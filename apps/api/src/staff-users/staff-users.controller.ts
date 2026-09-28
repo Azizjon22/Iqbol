@@ -42,6 +42,9 @@ export class StaffUsersController {
     if (id === user.sub && dto.isActive === false) {
       throw new ForbiddenException("O'zingizni faolsizlantira olmaysiz");
     }
+    if (id === user.sub && dto.role && dto.role !== user.role) {
+      throw new ForbiddenException("O'z rolingizni o'zgartira olmaysiz");
+    }
     return this.staffUsers.update(id, dto, user.sub, user.fullName);
   }
 

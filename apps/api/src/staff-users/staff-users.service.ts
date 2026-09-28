@@ -23,19 +23,34 @@ export class StaffUsersService {
     private auditLog: AuditLogService,
   ) {}
 
-  findAll() {
-    return this.prisma.staffUser.findMany({
-      select: {
-        id: true,
-        fullName: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        mustChangePassword: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  /** Accounts plus when each last did something (from the audit log). */
+  async findAll() {
+    const [staff, activity] = await Promise.all([
+      this.prisma.staffUser.findMany({
+        select: {
+          id: true,
+          fullName: true,
+          phone: true,
+          role: true,
+          isActive: true,
+          mustChangePassword: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.auditLog.groupBy({
+        by: ['actorId'],
+        where: { actorId: { not: null } },
+        _max: { createdAt: true },
+        _count: { _all: true },
+      }),
+    ]);
+    const byActor = new Map(activity.map((a) => [a.actorId, a]));
+    return staff.map((s) => ({
+      ...s,
+      lastActivityAt: byActor.get(s.id)?._max.createdAt ?? null,
+      activityCount: byActor.get(s.id)?._count._all ?? 0,
+    }));
   }
 
   async create(dto: CreateStaffUserDto, actorId: string, actorName: string) {
@@ -78,6 +93,16 @@ export class StaffUsersService {
     actorName: string,
   ) {
     const existing = await this.ensureExists(id);
+    if (dto.phone && dto.phone !== existing.phone) {
+      const taken = await this.prisma.staffUser.findUnique({
+        where: { phone: dto.phone },
+      });
+      if (taken) {
+        throw new ConflictException(
+          `Bu telefon raqam "${taken.fullName}" hisobiga tegishli`,
+        );
+      }
+    }
     const demotingOrDeactivatingSuperAdmin =
       existing.role === 'SUPER_ADMIN' &&
       ((dto.role && dto.role !== 'SUPER_ADMIN') || dto.isActive === false);
@@ -97,6 +122,7 @@ export class StaffUsersService {
       where: { id },
       data: {
         fullName: dto.fullName,
+        phone: dto.phone,
         role: dto.role,
         isActive: dto.isActive,
         passwordHash,
@@ -139,6 +165,41 @@ export class StaffUsersService {
     ) {
       throw new BadRequestException(
         'Tizimda kamida bitta faol super_admin qolishi shart',
+      );
+    }
+    // Weddings, payments, stock moves… keep a hard link to who did them.
+    // Deleting would break that history — deactivate instead.
+    const [
+      events,
+      payments,
+      expenses,
+      stock,
+      assignments,
+      workers,
+      reviewed,
+      approved,
+    ] = await Promise.all([
+      this.prisma.event.count({ where: { createdById: id } }),
+      this.prisma.payment.count({ where: { createdById: id } }),
+      this.prisma.eventExpense.count({ where: { createdById: id } }),
+      this.prisma.inventoryTransaction.count({ where: { createdById: id } }),
+      this.prisma.eventWorkerAssignment.count({ where: { assignedById: id } }),
+      this.prisma.worker.count({ where: { approvedById: id } }),
+      this.prisma.shoppingList.count({ where: { reviewedById: id } }),
+      this.prisma.shoppingList.count({ where: { approvedById: id } }),
+    ]);
+    const linked =
+      events +
+      payments +
+      expenses +
+      stock +
+      assignments +
+      workers +
+      reviewed +
+      approved;
+    if (linked > 0) {
+      throw new ConflictException(
+        `"${existing.fullName}" tizimda ishlagan (${linked} ta bog'langan yozuv) — o'chirish o'rniga faolsizlantiring`,
       );
     }
     await this.prisma.staffUser.delete({ where: { id } });

@@ -105,7 +105,9 @@ export async function changeStaffPasswordAction(
   }
 
   await setSession(data);
-  redirect("/dashboard");
+  // The Profil page sends the user back to itself; only in-app dashboard paths are honoured.
+  const redirectTo = String(formData.get("redirectTo") ?? "");
+  redirect(redirectTo.startsWith("/dashboard") && !redirectTo.startsWith("//") ? redirectTo : "/dashboard");
 }
 
 export async function changeWorkerPinAction(

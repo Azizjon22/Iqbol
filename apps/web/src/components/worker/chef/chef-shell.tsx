@@ -7,6 +7,8 @@ import { logoutAction } from "@/lib/actions/auth.actions";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand/brand-mark";
+import { useBrand } from "@/components/brand/brand-provider";
 
 const TABS = [
   { href: "/worker", label: "Bosh sahifa", icon: Home, exact: true },
@@ -17,6 +19,7 @@ const TABS = [
 /** App-like frame for chefs: slim header on top, thumb-reachable tab bar at the bottom. */
 export function ChefShell({ name, isChef, children }: { name: string; isChef: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
+  const brand = useBrand();
   const tabs = TABS.filter((t) => !t.chefOnly || isChef);
   const initials = name
     .split(" ")
@@ -31,10 +34,8 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-3 px-4">
           <Link href="/worker" className="flex items-center gap-2.5">
-            <span className="font-display flex h-9 w-9 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground shadow-sm shadow-primary/25">
-              S
-            </span>
-            <span className="font-display text-xl font-semibold tracking-tight">Shodiyora</span>
+            <BrandMark className="h-9 w-9 text-lg shadow-sm shadow-primary/25" />
+            <span className="font-display text-xl font-semibold tracking-tight">{brand.brandName}</span>
           </Link>
           <div className="flex items-center gap-1.5">
             <nav className="mr-2 hidden items-center gap-1 sm:flex">

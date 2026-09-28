@@ -37,6 +37,7 @@ export const ru: Dictionary = {
     accounting: "Бухгалтерия",
     staff: "Персонал",
     auditLog: "История действий",
+    profile: "Профиль",
     groupMain: "Основное",
     groupOps: "Операции",
     groupFinance: "Финансы",

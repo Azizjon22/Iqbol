@@ -70,6 +70,8 @@ export interface EventAssignment {
 export interface Payment {
   id: string;
   eventId: string;
+  /** REFUND = money handed back to the client; subtracted from what was paid. */
+  type?: "PAYMENT" | "REFUND";
   amount: string;
   paymentDate: string;
   method: PaymentMethod;
@@ -179,6 +181,8 @@ export interface ShoppingListItem {
   originalQuantity: string | null;
   unit: Unit;
   unitPrice: string | null;
+  /** Exact amount paid for the line (preferred over unitPrice × quantity). */
+  totalCost?: string | null;
   isPurchased: boolean;
   note: string | null;
 }
@@ -205,6 +209,9 @@ export interface StaffUserSummary {
   isActive: boolean;
   mustChangePassword?: boolean;
   createdAt: string;
+  /** From the audit log: when this account last did something, and how often. */
+  lastActivityAt?: string | null;
+  activityCount?: number;
 }
 
 export interface AuditLogEntry {

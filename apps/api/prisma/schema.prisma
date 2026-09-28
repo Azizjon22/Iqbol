@@ -338,6 +338,10 @@ model ShoppingListItem {
   originalQuantity Decimal?    @db.Decimal(12, 3)
   unit           Unit
   unitPrice      Decimal?      @db.Decimal(12, 2)
+  // Exactly what was paid for the line. Kept separately because a total
+  // typed at the bazaar (200 000 for 38 kg) can't round-trip through a
+  // 2-decimal unit price; all sums use this.
+  totalCost      Decimal?      @db.Decimal(14, 2)
   isPurchased    Boolean       @default(false)
   note           String?
 
@@ -349,10 +353,18 @@ model ShoppingListItem {
 
 // ---------- Accounting ----------
 
+/// A refund is money handed back to the client (e.g. a deposit returned
+/// when a wedding is called off). Amount stays positive; sums subtract it.
+enum PaymentType {
+  PAYMENT
+  REFUND
+}
+
 model Payment {
   id          String        @id @default(cuid())
   eventId     String
   event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  type        PaymentType   @default(PAYMENT)
   amount      Decimal       @db.Decimal(14, 2)
   paymentDate DateTime      @default(now())
   method      PaymentMethod
@@ -396,4 +408,17 @@ model AuditLog {
 
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ---------- App settings ----------
+
+/// Single-row, app-wide branding shown on every screen (sidebar, login,
+/// client presentation). Editable by SUPER_ADMIN from the Profil page.
+model AppSettings {
+  id        String   @id @default("app")
+  brandName String   @default("Shodiyora")
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
 }

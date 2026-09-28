@@ -6,6 +6,6 @@ export class PresignDto {
 }
 
 export class StaffPresignDto extends PresignDto {
-  @IsIn(['menus', 'inventory', 'workers'])
-  folder!: 'menus' | 'inventory' | 'workers';
+  @IsIn(['menus', 'inventory', 'workers', 'branding'])
+  folder!: 'menus' | 'inventory' | 'workers' | 'branding';
 }

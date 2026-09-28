@@ -1,27 +1,49 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect, useRef } from "react";
 import { PAYMENT_METHODS } from "@shodiyora/shared";
-import { addPaymentAction, type FormActionState } from "@/lib/actions/events.actions";
+import { addPaymentAction, addRefundAction, type FormActionState } from "@/lib/actions/events.actions";
 import { Input, Select, Label, FieldError } from "@/components/ui/input";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { Button } from "@/components/ui/button";
 
-const METHOD_LABEL: Record<string, string> = { CASH: "Naqd", CARD: "Karta", TRANSFER: "O'tkazma" };
+export const METHOD_LABEL: Record<string, string> = { CASH: "Naqd", CARD: "Karta", TRANSFER: "O'tkazma" };
 const initialState: FormActionState = undefined;
 
-export function PaymentForm({ eventId }: { eventId: string }) {
-  const action = addPaymentAction.bind(null, eventId);
-  const [state, formAction] = useActionState(action, initialState);
+/**
+ * Payment in, or refund out (mode="refund"). Submitted via onSubmit so a
+ * server-side refusal (e.g. "exceeds the remaining balance") keeps the input.
+ */
+export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mode?: "payment" | "refund" }) {
+  const refund = mode === "refund";
+  const action = (refund ? addRefundAction : addPaymentAction).bind(null, eventId);
+  const [state, formAction, isPending] = useActionState(action, initialState);
+  const formRef = useRef<HTMLFormElement>(null);
+  const submitted = useRef(false);
+
+  // Clear only after a successful save.
+  useEffect(() => {
+    if (submitted.current && !isPending && !state?.error) formRef.current?.reset();
+    if (!isPending) submitted.current = false;
+  }, [isPending, state]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+    <form
+      ref={formRef}
+      onSubmit={(e) => {
+        e.preventDefault();
+        submitted.current = true;
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+      className="flex flex-col gap-3 sm:flex-row sm:items-end"
+    >
       <div className="flex-1">
-        <Label htmlFor="amount">Summa (so&apos;m)</Label>
-        <Input id="amount" name="amount" type="number" min={1} required />
+        <Label htmlFor={`${mode}-amount`}>{refund ? "Qaytariladigan summa" : "Summa (so'm)"}</Label>
+        <Input id={`${mode}-amount`} name="amount" type="number" min={1} required />
       </div>
       <div>
-        <Label htmlFor="method">Usul</Label>
-        <Select id="method" name="method" className="sm:w-36">
+        <Label htmlFor={`${mode}-method`}>Usul</Label>
+        <Select id={`${mode}-method`} name="method" className="sm:w-36">
           {PAYMENT_METHODS.map((m) => (
             <option key={m} value={m}>
               {METHOD_LABEL[m]}
@@ -30,10 +52,12 @@ export function PaymentForm({ eventId }: { eventId: string }) {
         </Select>
       </div>
       <div className="flex-1">
-        <Label htmlFor="note">Izoh</Label>
-        <Input id="note" name="note" />
+        <Label htmlFor={`${mode}-note`}>Izoh</Label>
+        <Input id={`${mode}-note`} name="note" placeholder={refund ? "masalan: to'y bekor qilindi, zaklad qaytarildi" : undefined} />
       </div>
-      <SubmitButton pendingText="Saqlanmoqda...">To&apos;lov qo&apos;shish</SubmitButton>
+      <Button type="submit" variant={refund ? "destructive" : "primary"} disabled={isPending}>
+        {isPending ? "Saqlanmoqda..." : refund ? "Pulni qaytarish" : "To'lov qo'shish"}
+      </Button>
       <FieldError>{state?.error}</FieldError>
     </form>
   );

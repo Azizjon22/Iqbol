@@ -9,8 +9,11 @@ export function stageOf(status: ShoppingListStatus): Stage {
   return "done";
 }
 
-export function itemCost(item: ShoppingListItem) {
-  return item.isPurchased && item.unitPrice !== null ? Number(item.unitPrice) * Number(item.quantity) : 0;
+/** What was paid for a bought line: the exact total when recorded, else unit × qty. */
+export function itemCost(item: Pick<ShoppingListItem, "isPurchased" | "unitPrice" | "quantity" | "totalCost">) {
+  if (!item.isPurchased) return 0;
+  if (item.totalCost != null) return Number(item.totalCost);
+  return item.unitPrice !== null ? Number(item.unitPrice) * Number(item.quantity) : 0;
 }
 
 export function listProgress(list: ShoppingList) {

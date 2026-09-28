@@ -4,13 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { PaymentType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { AssignWorkerDto } from './dto/assign-worker.dto';
 import { FindEventsQuery } from './dto/find-events.query';
+import { netPaid } from '../common/money/net-paid';
 
 const eventInclude = {
   menu: true,
@@ -182,12 +183,22 @@ export class EventsService {
     const existing = await this.ensureExists(id);
     let totalPrice = existing.totalPrice;
 
-    const menuId = dto.menuId ?? existing.menuId;
+    // The per-guest price is fixed when the wedding is booked: later menu
+    // price changes must not touch it. Only switching to a different menu
+    // re-prices from that menu; a guest-count change reuses the agreed rate.
+    const menuChanged = !!dto.menuId && dto.menuId !== existing.menuId;
     const guestCount = dto.guestCount ?? existing.guestCount;
-    if (dto.menuId || dto.guestCount) {
-      const menu = await this.prisma.menu.findUnique({ where: { id: menuId } });
-      if (!menu) throw new BadRequestException('Menyu topilmadi');
-      totalPrice = menu.pricePerPerson.mul(guestCount);
+    const guestsChanged = guestCount !== existing.guestCount;
+    if (menuChanged || guestsChanged) {
+      let perGuest = existing.totalPrice.div(existing.guestCount);
+      if (menuChanged) {
+        const menu = await this.prisma.menu.findUnique({
+          where: { id: dto.menuId },
+        });
+        if (!menu) throw new BadRequestException('Menyu topilmadi');
+        perGuest = menu.pricePerPerson;
+      }
+      totalPrice = perGuest.mul(guestCount).toDecimalPlaces(2);
     }
 
     const event = await this.prisma.event.update({
@@ -368,14 +379,11 @@ export class EventsService {
   private withBalance<
     T extends {
       totalPrice: Prisma.Decimal;
-      payments?: { amount: Prisma.Decimal }[];
+      payments?: { amount: Prisma.Decimal; type: PaymentType }[];
       expenses?: { amount: Prisma.Decimal }[];
     },
   >(event: T) {
-    const paid = (event.payments ?? []).reduce(
-      (sum, p) => sum.add(p.amount),
-      new Prisma.Decimal(0),
-    );
+    const paid = netPaid(event.payments ?? []);
     const totalExpenses = (event.expenses ?? []).reduce(
       (sum, e) => sum.add(e.amount),
       new Prisma.Decimal(0),

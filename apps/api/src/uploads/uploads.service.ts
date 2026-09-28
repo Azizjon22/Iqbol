@@ -27,7 +27,7 @@ export class UploadsService {
   }
 
   async presign(
-    folder: 'workers' | 'menus' | 'inventory',
+    folder: 'workers' | 'menus' | 'inventory' | 'branding',
     contentType: string,
   ) {
     const extension = ALLOWED_CONTENT_TYPES[contentType];

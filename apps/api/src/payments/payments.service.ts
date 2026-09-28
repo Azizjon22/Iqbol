@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { netPaid } from '../common/money/net-paid';
 
 @Injectable()
 export class PaymentsService {
@@ -19,8 +24,21 @@ export class PaymentsService {
   ) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
+      include: { payments: { select: { amount: true, type: true } } },
     });
     if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
+
+    // A payment may settle the balance but never push it below zero —
+    // over-collection is almost always a typo or a duplicate entry.
+    const paid = netPaid(event.payments);
+    const remaining = event.totalPrice.sub(paid);
+    if (new Prisma.Decimal(dto.amount).greaterThan(remaining)) {
+      throw new BadRequestException(
+        remaining.lessThanOrEqualTo(0)
+          ? "Bu to'y to'liq to'langan — yangi to'lov qabul qilinmaydi"
+          : `To'lov qolgan qarzdan oshib ketadi: qolgan qarz ${remaining.toNumber().toLocaleString('ru-RU')} so'm`,
+      );
+    }
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -44,6 +62,50 @@ export class PaymentsService {
     return payment;
   }
 
+  /**
+   * Money handed back to the client (e.g. deposit returned when the wedding
+   * is called off). Recorded against the wedding, so its day nets out.
+   */
+  async refund(
+    eventId: string,
+    dto: CreatePaymentDto,
+    actorId: string,
+    actorName: string,
+  ) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: { payments: { select: { amount: true, type: true } } },
+    });
+    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    const kept = netPaid(event.payments);
+    if (new Prisma.Decimal(dto.amount).greaterThan(kept)) {
+      throw new BadRequestException(
+        kept.lessThanOrEqualTo(0)
+          ? "Bu to'y uchun qaytariladigan pul yo'q"
+          : `Olingan puldan ko'p qaytarib bo'lmaydi: qaytarish mumkin ${kept.toNumber().toLocaleString('ru-RU')} so'm`,
+      );
+    }
+    const refund = await this.prisma.payment.create({
+      data: {
+        eventId,
+        type: 'REFUND',
+        amount: new Prisma.Decimal(dto.amount),
+        method: dto.method,
+        note: dto.note,
+        createdById: actorId,
+      },
+    });
+    await this.auditLog.record({
+      actorId,
+      actorName,
+      action: 'CREATE',
+      entityType: 'PAYMENT',
+      entityId: refund.id,
+      description: `"${event.clientName}" mijoziga ${dto.amount.toLocaleString('uz-UZ')} so'm qaytarib berdi${dto.note ? ` (${dto.note})` : ''}`,
+    });
+    return refund;
+  }
+
   findAllForEvent(eventId: string) {
     return this.prisma.payment.findMany({
       where: { eventId },
@@ -55,9 +117,25 @@ export class PaymentsService {
   async remove(id: string, actorId: string, actorName: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id },
-      include: { event: { select: { clientName: true } } },
+      include: {
+        event: {
+          select: {
+            clientName: true,
+            payments: { select: { id: true, amount: true, type: true } },
+          },
+        },
+      },
     });
     if (!payment) throw new NotFoundException("To'lov topilmadi");
+    // Removing a payment must not leave more refunded than was ever paid.
+    if (payment.type === 'PAYMENT') {
+      const after = netPaid(payment.event.payments.filter((p) => p.id !== id));
+      if (after.isNegative()) {
+        throw new BadRequestException(
+          "Bu to'lovga qaytarish bog'langan — avval qaytarish yozuvini o'chiring",
+        );
+      }
+    }
     await this.prisma.payment.delete({ where: { id } });
 
     await this.auditLog.record({
@@ -66,42 +144,35 @@ export class PaymentsService {
       action: 'DELETE',
       entityType: 'PAYMENT',
       entityId: id,
-      description: `"${payment.event.clientName}" to'yidan ${Number(payment.amount).toLocaleString('uz-UZ')} so'm to'lovni o'chirdi`,
+      description: `"${payment.event.clientName}" to'yidan ${Number(payment.amount).toLocaleString('uz-UZ')} so'm ${payment.type === 'REFUND' ? 'qaytarish' : "to'lov"} yozuvini o'chirdi`,
     });
 
     return { success: true };
   }
 
   async summary(from?: Date, to?: Date) {
+    // Cancelled weddings still count for money that actually moved (a kept
+    // deposit, costs already paid) but not for expected revenue or debt.
     const events = await this.prisma.event.findMany({
-      where: { eventDate: { gte: from, lte: to }, status: { not: 'CANCELLED' } },
+      where: { eventDate: { gte: from, lte: to } },
       include: { payments: true, expenses: true },
     });
+    const zero = new Prisma.Decimal(0);
+    const paidOf = (e: (typeof events)[number]) => netPaid(e.payments);
+    const spentOf = (e: (typeof events)[number]) =>
+      e.expenses.reduce((s, x) => s.add(x.amount), zero);
+    const live = events.filter((e) => e.status !== 'CANCELLED');
 
-    const totalExpected = events.reduce(
-      (sum, e) => sum.add(e.totalPrice),
-      new Prisma.Decimal(0),
-    );
-    const totalCollected = events.reduce(
-      (sum, e) =>
-        sum.add(
-          e.payments.reduce((s, p) => s.add(p.amount), new Prisma.Decimal(0)),
-        ),
-      new Prisma.Decimal(0),
-    );
-    const totalExpenses = events.reduce(
-      (sum, e) =>
-        sum.add(
-          e.expenses.reduce((s, x) => s.add(x.amount), new Prisma.Decimal(0)),
-        ),
-      new Prisma.Decimal(0),
-    );
+    const totalExpected = live.reduce((sum, e) => sum.add(e.totalPrice), zero);
+    const liveCollected = live.reduce((sum, e) => sum.add(paidOf(e)), zero);
+    const totalCollected = events.reduce((sum, e) => sum.add(paidOf(e)), zero);
+    const totalExpenses = events.reduce((sum, e) => sum.add(spentOf(e)), zero);
 
     return {
-      eventCount: events.length,
+      eventCount: live.length,
       totalExpected,
       totalCollected,
-      totalOutstanding: totalExpected.sub(totalCollected),
+      totalOutstanding: totalExpected.sub(liveCollected),
       totalExpenses,
       totalNetProfit: totalCollected.sub(totalExpenses),
     };
@@ -130,7 +201,8 @@ export class PaymentsService {
       999,
     );
     const events = await this.prisma.event.findMany({
-      where: { eventDate: { lte: endOfToday }, status: { not: 'CANCELLED' } },
+      // Cancelled weddings included: their kept deposit and paid costs are real money.
+      where: { eventDate: { lte: endOfToday } },
       include: { payments: true, expenses: true },
       orderBy: { eventDate: 'asc' },
     });
@@ -148,10 +220,7 @@ export class PaymentsService {
 
     for (const event of events) {
       const day = dayKey(event.eventDate);
-      const paid = event.payments.reduce(
-        (s, p) => s.add(p.amount),
-        new Prisma.Decimal(0),
-      );
+      const paid = netPaid(event.payments);
       const expenses = event.expenses.reduce(
         (s, x) => s.add(x.amount),
         new Prisma.Decimal(0),
@@ -165,7 +234,7 @@ export class PaymentsService {
       };
       entry.paid = entry.paid.add(paid);
       entry.expenses = entry.expenses.add(expenses);
-      entry.eventCount += 1;
+      if (event.status !== 'CANCELLED') entry.eventCount += 1;
       dayMap.set(day, entry);
 
       for (const x of event.expenses) {
@@ -177,9 +246,7 @@ export class PaymentsService {
         );
         categoryMap.set(
           x.category,
-          (categoryMap.get(x.category) ?? new Prisma.Decimal(0)).add(
-            x.amount,
-          ),
+          (categoryMap.get(x.category) ?? new Prisma.Decimal(0)).add(x.amount),
         );
       }
     }

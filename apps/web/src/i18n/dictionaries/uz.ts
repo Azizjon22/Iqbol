@@ -35,6 +35,7 @@ export const uz = {
     accounting: "Hisob-kitob",
     staff: "Xodimlar",
     auditLog: "Faoliyat tarixi",
+    profile: "Profil",
     groupMain: "Asosiy",
     groupOps: "Operatsiyalar",
     groupFinance: "Moliya",

@@ -155,6 +155,30 @@ export async function addPaymentAction(
   return undefined;
 }
 
+/** Money handed back to the client (e.g. deposit returned after a cancellation). */
+export async function addRefundAction(
+  eventId: string,
+  _prev: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const parsed = createPaymentSchema.safeParse({
+    amount: formData.get("amount"),
+    method: formData.get("method"),
+    note: formData.get("note") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+  }
+  try {
+    await apiFetch(`/events/${eventId}/refunds`, { method: "POST", body: JSON.stringify(parsed.data) });
+  } catch (err) {
+    return { error: extractErrorMessage(err, "Qaytarishni saqlab bo'lmadi") };
+  }
+  revalidatePath(`/dashboard/events/${eventId}`);
+  revalidatePath("/dashboard/accounting");
+  return undefined;
+}
+
 export async function deleteEventAction(eventId: string) {
   await apiFetch(`/events/${eventId}`, { method: "DELETE" });
   revalidatePath("/dashboard/events");

@@ -3,6 +3,7 @@
 import { RegisterForm } from "@/components/auth/register-form";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useT } from "@/components/i18n/locale-provider";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 export default function RegisterPage() {
   const t = useT();
@@ -14,9 +15,7 @@ export default function RegisterPage() {
         <LanguageSwitcher />
       </div>
       <div className="relative mb-8 flex flex-col items-center text-center animate-fade-up">
-        <span className="font-display mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-xl font-semibold text-primary-foreground shadow-lg shadow-primary/25">
-          S
-        </span>
+        <BrandMark className="mb-3 h-12 w-12 text-xl shadow-lg shadow-primary/25" />
         <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">{t("common.brand")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("authExtra.registerWelcome")}</p>
       </div>

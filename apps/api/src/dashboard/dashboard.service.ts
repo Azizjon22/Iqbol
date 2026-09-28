@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, StaffRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { netPaid } from '../common/money/net-paid';
 
 // Weddings happen in Tashkent (UTC+5, no DST). Day boundaries are computed
 // in that zone explicitly so "tomorrow" stays right even when the server
@@ -73,7 +74,7 @@ export class DashboardService {
               },
             },
           },
-          payments: { select: { amount: true } },
+          payments: { select: { amount: true, type: true } },
           _count: { select: { shoppingLists: true } },
         },
         orderBy: { eventDate: 'asc' },
@@ -82,10 +83,7 @@ export class DashboardService {
 
     const showMoney = role === 'SUPER_ADMIN';
     const card = (e: (typeof weekEvents)[number]) => {
-      const paid = e.payments.reduce(
-        (s, p) => s.add(p.amount),
-        new Prisma.Decimal(0),
-      );
+      const paid = netPaid(e.payments);
       return {
         id: e.id,
         clientName: e.clientName,
@@ -176,40 +174,36 @@ export class DashboardService {
       return withOperational;
     }
 
+    // Cancelled weddings still count for money that actually moved (a kept
+    // deposit, costs already paid) but not for expected revenue or debt.
     const monthEvents = await this.prisma.event.findMany({
-      where: {
-        eventDate: { gte: monthStart, lt: monthEnd },
-        status: { not: 'CANCELLED' },
-      },
+      where: { eventDate: { gte: monthStart, lt: monthEnd } },
       include: { payments: true, expenses: true },
     });
+    const zero = new Prisma.Decimal(0);
+    const paidOf = (e: (typeof monthEvents)[number]) => netPaid(e.payments);
+    const spentOf = (e: (typeof monthEvents)[number]) =>
+      e.expenses.reduce((s, x) => s.add(x.amount), zero);
+    const live = monthEvents.filter((e) => e.status !== 'CANCELLED');
 
-    const totalExpected = monthEvents.reduce(
-      (sum, e) => sum.add(e.totalPrice),
-      new Prisma.Decimal(0),
-    );
+    const totalExpected = live.reduce((sum, e) => sum.add(e.totalPrice), zero);
+    const liveCollected = live.reduce((sum, e) => sum.add(paidOf(e)), zero);
     const totalCollected = monthEvents.reduce(
-      (sum, e) =>
-        sum.add(
-          e.payments.reduce((s, p) => s.add(p.amount), new Prisma.Decimal(0)),
-        ),
-      new Prisma.Decimal(0),
+      (sum, e) => sum.add(paidOf(e)),
+      zero,
     );
     const totalExpenses = monthEvents.reduce(
-      (sum, e) =>
-        sum.add(
-          e.expenses.reduce((s, x) => s.add(x.amount), new Prisma.Decimal(0)),
-        ),
-      new Prisma.Decimal(0),
+      (sum, e) => sum.add(spentOf(e)),
+      zero,
     );
 
     return {
       ...withOperational,
       monthlyFinancials: {
-        eventCount: monthEvents.length,
+        eventCount: live.length,
         totalExpected,
         totalCollected,
-        totalOutstanding: totalExpected.sub(totalCollected),
+        totalOutstanding: totalExpected.sub(liveCollected),
         totalExpenses,
         netProfit: totalCollected.sub(totalExpenses),
       },

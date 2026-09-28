@@ -10,7 +10,7 @@ import { formatDateTime, formatSom } from "@/lib/utils";
 import { WORKER_POSITION_LABELS_UZ, EVENT_EXPENSE_CATEGORY_LABELS_UZ } from "@shodiyora/shared";
 import { StatusSelect } from "@/components/events/status-select";
 import { UnassignButton } from "@/components/events/unassign-button";
-import { PaymentForm } from "@/components/events/payment-form";
+import { PaymentForm, METHOD_LABEL } from "@/components/events/payment-form";
 import { ExpenseForm } from "@/components/events/expense-form";
 import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";
@@ -28,9 +28,9 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
   const canEdit = role === "SUPER_ADMIN" || role === "ADMIN";
   const canDelete = role === "SUPER_ADMIN";
 
-  // unitPrice is per unit (kg, litr, dona) — same maths as the API's expense report.
-  const itemCost = (item: { unitPrice: string | null; quantity: string }) =>
-    item.unitPrice === null ? 0 : Number(item.unitPrice) * Number(item.quantity);
+  // Exact paid total when recorded, else unit price × quantity — same as the API's expense report.
+  const itemCost = (item: { unitPrice: string | null; quantity: string; totalCost?: string | null }) =>
+    item.totalCost != null ? Number(item.totalCost) : item.unitPrice === null ? 0 : Number(item.unitPrice) * Number(item.quantity);
   const shoppingLists = event.shoppingLists ?? [];
   const shoppingTotal = shoppingLists.reduce(
     (sum, list) => sum + list.items.reduce((s, item) => s + (item.isPurchased ? itemCost(item) : 0), 0),
@@ -41,6 +41,9 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
     0,
   );
   const hasShoppingExpense = (event.expenses ?? []).some((x) => x.category === "SHOPPING");
+  const received = (event.payments ?? []).filter((p) => p.type !== "REFUND").reduce((s, p) => s + Number(p.amount), 0);
+  const refunded = (event.payments ?? []).filter((p) => p.type === "REFUND").reduce((s, p) => s + Number(p.amount), 0);
+  const kept = received - refunded;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -234,18 +237,63 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
             <CardTitle>To&apos;lovlar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {event.status === "CANCELLED" && kept > 0 && (
+              <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+                To&apos;y bekor qilingan, mijozdan olingan {formatSom(kept)} hali qaytarilmagan. Pul qaytarilgan bo&apos;lsa,
+                pastdagi &quot;Pulni qaytarish&quot; orqali yozing — shu to&apos;y kunidan ayriladi.
+              </p>
+            )}
             <div className="space-y-2">
               {(event.payments ?? []).length === 0 && (
                 <p className="text-sm text-muted-foreground">To&apos;lovlar hali kiritilmagan.</p>
               )}
-              {(event.payments ?? []).map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
-                  <span>{formatSom(p.amount)}</span>
-                  <span className="text-muted-foreground">{formatDateTime(p.paymentDate)}</span>
-                </div>
-              ))}
+              {(event.payments ?? []).map((p) => {
+                const isRefund = p.type === "REFUND";
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${isRefund ? "border-destructive/30 bg-destructive/5" : "border-border"}`}
+                  >
+                    <span className="min-w-0">
+                      <span className={`font-medium tabular-nums ${isRefund ? "text-destructive" : ""}`}>
+                        {isRefund ? "−" : "+"}
+                        {formatSom(p.amount)}
+                      </span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {isRefund ? "Qaytarildi" : "To'lov"} · {METHOD_LABEL[p.method] ?? p.method}
+                        {p.note && ` · ${p.note}`}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(p.paymentDate)}</span>
+                  </div>
+                );
+              })}
             </div>
-            <PaymentForm eventId={event.id} />
+            {refunded > 0 && (
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-lg bg-muted/60 px-2 py-2">
+                  <p className="text-muted-foreground">Olindi</p>
+                  <p className="font-semibold tabular-nums">{formatSom(received)}</p>
+                </div>
+                <div className="rounded-lg bg-destructive/10 px-2 py-2">
+                  <p className="text-muted-foreground">Qaytarildi</p>
+                  <p className="font-semibold tabular-nums text-destructive">−{formatSom(refunded)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/60 px-2 py-2">
+                  <p className="text-muted-foreground">Sof</p>
+                  <p className="font-semibold tabular-nums">{formatSom(kept)}</p>
+                </div>
+              </div>
+            )}
+            {event.status !== "CANCELLED" && <PaymentForm eventId={event.id} />}
+            {kept > 0 && (
+              <details className="rounded-xl border border-border px-3 py-2" open={event.status === "CANCELLED"}>
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">Pulni qaytarish (vozvrat)</summary>
+                <div className="pt-3">
+                  <PaymentForm eventId={event.id} mode="refund" />
+                </div>
+              </details>
+            )}
           </CardContent>
         </Card>
       )}

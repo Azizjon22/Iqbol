@@ -361,7 +361,7 @@ export class ShoppingListsService {
       dto.quantity !== undefined
         ? new Prisma.Decimal(dto.quantity)
         : item.quantity;
-    const unitPrice = this.resolveUnitPrice(dto, bought);
+    const { unitPrice, totalCost } = this.resolvePrice(dto, bought);
     const quantityChanged = !bought.equals(item.quantity);
 
     // Stock-in and the purchase flag commit together or not at all, so a
@@ -392,6 +392,7 @@ export class ShoppingListsService {
         data: {
           isPurchased: true,
           unitPrice,
+          totalCost,
           // Bought a different amount than listed: keep the planned figure
           // visible as "8 → 7 kg" (unless SUPER_ADMIN already set one).
           ...(quantityChanged
@@ -431,7 +432,7 @@ export class ShoppingListsService {
       action: 'UPDATE',
       entityType: 'SHOPPING_LIST',
       entityId: listId,
-      description: `"${item.name}" (${bought} ${UNIT_UZ[item.unit]}) xarid qilinganini belgiladi, jami ${unitPrice.mul(bought).toNumber().toLocaleString('uz-UZ')} so'm`,
+      description: `"${item.name}" (${bought} ${UNIT_UZ[item.unit]}) xarid qilinganini belgiladi, jami ${totalCost.toNumber().toLocaleString('uz-UZ')} so'm`,
     });
 
     return this.findOne(listId);
@@ -454,10 +455,10 @@ export class ShoppingListsService {
         'Narxni faqat sotib olingan mahsulot uchun tuzatish mumkin',
       );
     }
-    const unitPrice = this.resolveUnitPrice(dto, item.quantity);
+    const { unitPrice, totalCost } = this.resolvePrice(dto, item.quantity);
     await this.prisma.shoppingListItem.update({
       where: { id: itemId },
-      data: { unitPrice },
+      data: { unitPrice, totalCost },
     });
 
     await this.auditLog.record({
@@ -471,15 +472,27 @@ export class ShoppingListsService {
     return this.findOne(listId);
   }
 
-  private resolveUnitPrice(
+  /**
+   * A typed total is kept exactly (the unit price is only for display);
+   * a typed unit price gives total = price × quantity.
+   */
+  private resolvePrice(
     dto: { unitPrice?: number; totalPrice?: number },
     quantity: Prisma.Decimal,
   ) {
-    if (dto.unitPrice !== undefined) return new Prisma.Decimal(dto.unitPrice);
     if (dto.totalPrice !== undefined) {
-      return new Prisma.Decimal(dto.totalPrice)
-        .div(quantity)
-        .toDecimalPlaces(2);
+      const totalCost = new Prisma.Decimal(dto.totalPrice).toDecimalPlaces(2);
+      return {
+        totalCost,
+        unitPrice: totalCost.div(quantity).toDecimalPlaces(2),
+      };
+    }
+    if (dto.unitPrice !== undefined) {
+      const unitPrice = new Prisma.Decimal(dto.unitPrice).toDecimalPlaces(2);
+      return {
+        unitPrice,
+        totalCost: unitPrice.mul(quantity).toDecimalPlaces(2),
+      };
     }
     throw new BadRequestException(
       'Narxni kiriting (jami summa yoki 1 birlik narxi)',
@@ -501,7 +514,10 @@ export class ShoppingListsService {
 
     const total = items.reduce(
       (sum, item) =>
-        sum.add(item.unitPrice ? item.unitPrice.mul(item.quantity) : 0),
+        sum.add(
+          item.totalCost ??
+            (item.unitPrice ? item.unitPrice.mul(item.quantity) : 0),
+        ),
       new Prisma.Decimal(0),
     );
 
