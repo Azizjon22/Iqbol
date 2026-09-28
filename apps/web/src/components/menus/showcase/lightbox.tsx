@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Portal } from "@/components/ui/portal";
 import { useT } from "@/components/i18n/locale-provider";
@@ -25,7 +25,32 @@ export function Lightbox({
   const t = useT();
   const item = items[index];
   const many = items.length > 1;
-  const go = (delta: number) => onIndex((index + delta + items.length) % items.length);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const lock = useRef(false);
+  const jumped = useRef(false);
+  const settle = useRef<number | undefined>(undefined);
+
+  function scrollToIndex(next: number, behavior: ScrollBehavior) {
+    const scroller = scrollerRef.current;
+    if (!scroller || scroller.clientWidth === 0) return;
+    lock.current = true;
+    scroller.scrollTo({ left: next * scroller.clientWidth, behavior });
+    window.setTimeout(() => {
+      lock.current = false;
+    }, behavior === "smooth" ? 480 : 40);
+  }
+
+  const go = (delta: number) => {
+    const next = (index + delta + items.length) % items.length;
+    onIndex(next);
+    scrollToIndex(next, "smooth");
+  };
+
+  useLayoutEffect(() => {
+    if (lock.current) return;
+    scrollToIndex(index, jumped.current ? "smooth" : "auto");
+    jumped.current = true;
+  }, [index]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -39,76 +64,96 @@ export function Lightbox({
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKeyDown);
+      window.clearTimeout(settle.current);
     };
   }, [index, items.length, many, onClose, onIndex]);
 
   if (!item) return null;
 
-  const navButton =
-    "absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md transition hover:bg-white/15";
+  function onScroll() {
+    if (lock.current) return;
+    window.clearTimeout(settle.current);
+    settle.current = window.setTimeout(() => {
+      const scroller = scrollerRef.current;
+      if (!scroller || scroller.clientWidth === 0) return;
+      const next = Math.round(scroller.scrollLeft / scroller.clientWidth);
+      if (next !== index && next >= 0 && next < items.length) onIndex(next);
+    }, 70);
+  }
 
   return (
     <Portal>
       <div
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4 backdrop-blur-sm animate-soft-scale sm:p-10"
-        onClick={onClose}
+        className="fixed inset-0 z-50 flex flex-col bg-black/95 animate-soft-scale"
         role="dialog"
         aria-modal="true"
         aria-label={item.caption ?? undefined}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white hover:bg-white/15"
-          aria-label={t("presentation.close")}
+        <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <p className="min-w-0 truncate font-display text-lg text-white sm:text-xl">
+            {item.caption}
+            {many && <span className="ml-2 text-sm tabular-nums text-white/50">{index + 1} / {items.length}</span>}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#1a1214] text-white"
+            aria-label={t("presentation.close")}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div
+          ref={scrollerRef}
+          onScroll={onScroll}
+          className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain"
         >
-          <X className="h-5 w-5" />
-        </button>
+          {items.map((slide, i) => (
+            <div key={`${slide.url}-${i}`} className="h-full w-full shrink-0 snap-center overflow-y-auto overscroll-y-contain">
+              <div className="flex min-h-full items-center justify-center px-3 py-3 sm:px-8">
+                {slide.kind === "VIDEO" ? (
+                  <video
+                    key={slide.url}
+                    src={slide.url}
+                    controls
+                    autoPlay={i === index}
+                    className="w-full rounded-lg xl:max-h-[70vh]"
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={slide.url}
+                    alt={slide.caption ?? ""}
+                    draggable={false}
+                    className="w-full max-w-5xl rounded-lg object-contain shadow-2xl xl:max-h-[75vh] xl:w-auto"
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
 
         {many && (
           <>
             <button
               type="button"
-              className={`${navButton} left-3 sm:left-6`}
-              onClick={(e) => {
-                e.stopPropagation();
-                go(-1);
-              }}
+              onClick={() => go(-1)}
+              className="absolute left-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center text-white/70 sm:left-6"
               aria-label={t("presentation.prev")}
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-7 w-7" strokeWidth={1.75} />
             </button>
             <button
               type="button"
-              className={`${navButton} right-3 sm:right-6`}
-              onClick={(e) => {
-                e.stopPropagation();
-                go(1);
-              }}
+              onClick={() => go(1)}
+              className="absolute right-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center text-white/70 sm:right-6"
               aria-label={t("presentation.next")}
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-7 w-7" strokeWidth={1.75} />
             </button>
           </>
         )}
-
-        <div className="flex max-h-full w-full max-w-6xl flex-1 items-center justify-center" onClick={(e) => e.stopPropagation()}>
-          {item.kind === "VIDEO" ? (
-            <video key={item.url} src={item.url} controls autoPlay className="max-h-[80vh] w-full rounded-lg" />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={item.url} src={item.url} alt={item.caption ?? ""} className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain shadow-2xl animate-soft-scale" />
-          )}
-        </div>
-
-        <div className="mt-4 flex items-center gap-3 text-sm text-white/80" onClick={(e) => e.stopPropagation()}>
-          {item.caption && <span className="font-display text-xl text-white">{item.caption}</span>}
-          {many && (
-            <span className="tabular-nums text-white/50">
-              {index + 1} / {items.length}
-            </span>
-          )}
-        </div>
       </div>
     </Portal>
   );
