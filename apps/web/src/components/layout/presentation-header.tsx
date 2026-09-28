@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useT } from "@/components/i18n/locale-provider";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 export function PresentationHeader() {
   const t = useT();
@@ -12,11 +13,9 @@ export function PresentationHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6 2xl:max-w-7xl">
         <Link href="/dashboard" className="flex items-center gap-2.5 text-foreground">
-          <span className="font-display flex h-8 w-8 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground shadow-sm shadow-primary/20">
-            S
-          </span>
+          <BrandMark className="h-8 w-8 text-lg shadow-sm shadow-primary/20" />
           <span className="font-display text-xl font-semibold tracking-tight">{t("common.brand")}</span>
         </Link>
         <div className="flex items-center gap-1.5 sm:gap-2 text-sm">

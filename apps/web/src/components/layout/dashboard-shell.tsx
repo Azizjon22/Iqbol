@@ -11,6 +11,7 @@ import { logoutAction } from "@/lib/actions/auth.actions";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 const COLLAPSE_KEY = "nav-collapsed";
 
@@ -130,9 +131,7 @@ export function DashboardShell({
         )}
       >
         <div className={cn("flex h-16 items-center gap-2.5 border-b border-border/60", collapsed ? "justify-center px-2" : "px-4")}>
-          <span className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground shadow-sm shadow-primary/25">
-            S
-          </span>
+          <BrandMark className="h-9 w-9 shrink-0 text-lg shadow-sm shadow-primary/25" />
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="font-display truncate text-lg font-semibold leading-tight tracking-tight">
@@ -167,9 +166,7 @@ export function DashboardShell({
       >
         <div className="flex h-16 items-center justify-between border-b border-border/60 px-4">
           <span className="flex items-center gap-2.5">
-            <span className="font-display flex h-9 w-9 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-              S
-            </span>
+            <BrandMark className="h-9 w-9 text-lg" />
             <span className="font-display text-lg font-semibold">{t("common.brand")}</span>
           </span>
           <button type="button" onClick={() => setMobileOpen(false)} aria-label={t("common.close")}>
@@ -229,7 +226,11 @@ export function DashboardShell({
                 </span>
               </Link>
             )}
-            <div className="ml-1 hidden items-center gap-2 rounded-full border border-border/80 bg-muted/40 py-1 pl-1 pr-3 sm:flex">
+            <Link
+              href="/dashboard/profile"
+              title={t("nav.profile")}
+              className="ml-1 hidden items-center gap-2 rounded-full border border-border/80 bg-muted/40 py-1 pl-1 pr-3 transition hover:border-primary/40 hover:bg-muted sm:flex"
+            >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
                 {fullName
                   .split(" ")
@@ -242,7 +243,7 @@ export function DashboardShell({
                 <p className="max-w-[120px] truncate text-xs font-medium leading-none">{fullName}</p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">{t(`roles.${role}`)}</p>
               </div>
-            </div>
+            </Link>
             <form action={logoutAction}>
               <button
                 type="submit"

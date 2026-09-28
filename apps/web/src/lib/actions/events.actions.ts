@@ -13,6 +13,19 @@ import { extractErrorMessage } from "@/lib/errors";
 
 export type FormActionState = { error?: string } | undefined;
 
+/**
+ * SUPER_ADMIN's form carries the couple's 1st/2nd dish (both required);
+ * other roles never send them — the API refuses them from anyone else.
+ */
+function readDishes(formData: FormData): { error?: string; dishes?: { firstDish: string; secondDish: string } } {
+  if (formData.get("canSetDishes") !== "1") return {};
+  const firstDish = String(formData.get("firstDish") ?? "").trim();
+  const secondDish = String(formData.get("secondDish") ?? "").trim();
+  if (!firstDish) return { error: "1-ovqatni tanlang" };
+  if (!secondDish) return { error: "2-ovqatni tanlang" };
+  return { dishes: { firstDish, secondDish } };
+}
+
 export async function createEventAction(
   _prev: FormActionState,
   formData: FormData,
@@ -30,11 +43,14 @@ export async function createEventAction(
     return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
   }
 
+  const dishes = readDishes(formData);
+  if (dishes.error) return { error: dishes.error };
+
   let eventId: string;
   try {
     const event = await apiFetch<{ id: string }>("/events", {
       method: "POST",
-      body: JSON.stringify({ ...parsed.data, eventDate: parsed.data.eventDate.toISOString() }),
+      body: JSON.stringify({ ...parsed.data, ...dishes.dishes, eventDate: parsed.data.eventDate.toISOString() }),
     });
     eventId = event.id;
   } catch (err) {
@@ -63,10 +79,13 @@ export async function updateEventAction(
     return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
   }
 
+  const dishes = readDishes(formData);
+  if (dishes.error) return { error: dishes.error };
+
   try {
     await apiFetch(`/events/${eventId}`, {
       method: "PATCH",
-      body: JSON.stringify({ ...parsed.data, eventDate: parsed.data.eventDate?.toISOString() }),
+      body: JSON.stringify({ ...parsed.data, ...dishes.dishes, eventDate: parsed.data.eventDate?.toISOString() }),
     });
   } catch (err) {
     return { error: extractErrorMessage(err, "To'y buyurtmasini yangilab bo'lmadi") };
@@ -133,6 +152,30 @@ export async function addPaymentAction(
   }
 
   revalidatePath(`/dashboard/events/${eventId}`);
+  return undefined;
+}
+
+/** Money handed back to the client (e.g. deposit returned after a cancellation). */
+export async function addRefundAction(
+  eventId: string,
+  _prev: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const parsed = createPaymentSchema.safeParse({
+    amount: formData.get("amount"),
+    method: formData.get("method"),
+    note: formData.get("note") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+  }
+  try {
+    await apiFetch(`/events/${eventId}/refunds`, { method: "POST", body: JSON.stringify(parsed.data) });
+  } catch (err) {
+    return { error: extractErrorMessage(err, "Qaytarishni saqlab bo'lmadi") };
+  }
+  revalidatePath(`/dashboard/events/${eventId}`);
+  revalidatePath("/dashboard/accounting");
   return undefined;
 }
 

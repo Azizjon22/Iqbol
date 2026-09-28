@@ -3,7 +3,7 @@ import { decryptSession, encryptSession, SESSION_COOKIE, type SessionData } from
 import { isJwtExpiringSoon } from "@/lib/jwt-decode";
 
 const ZAVZAL_EXACT_PATHS = ["/dashboard"];
-const ZAVZAL_ALLOWED_PREFIXES = ["/dashboard/events", "/dashboard/workers"];
+const ZAVZAL_ALLOWED_PREFIXES = ["/dashboard/events", "/dashboard/workers", "/dashboard/profile"];
 
 function isZavzalAllowed(pathname: string) {
   if (ZAVZAL_EXACT_PATHS.includes(pathname)) return true;

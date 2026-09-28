@@ -11,6 +11,7 @@ import {
   Wallet,
   UserCog,
   History,
+  CircleUserRound,
 } from "lucide-react";
 
 export type NavGroupId = "main" | "ops" | "finance" | "admin";
@@ -99,6 +100,13 @@ export const NAV_ITEMS: NavItem[] = [
     labelKey: "nav.auditLog",
     roles: ["SUPER_ADMIN"],
     icon: History,
+    group: "admin",
+  },
+  {
+    href: "/dashboard/profile",
+    labelKey: "nav.profile",
+    roles: ["SUPER_ADMIN", "ADMIN", "ZAVZAL"],
+    icon: CircleUserRound,
     group: "admin",
   },
 ];

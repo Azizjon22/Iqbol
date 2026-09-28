@@ -13,6 +13,7 @@ import { MenusModule } from './menus/menus.module';
 import { EventsModule } from './events/events.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ShoppingListsModule } from './shopping-lists/shopping-lists.module';
+import { SettingsModule } from './settings/settings.module';
 import { PaymentsModule } from './payments/payments.module';
 import { EventExpensesModule } from './event-expenses/event-expenses.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -31,6 +32,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     EventsModule,
     InventoryModule,
     ShoppingListsModule,
+    SettingsModule,
     PaymentsModule,
     EventExpensesModule,
     UploadsModule,

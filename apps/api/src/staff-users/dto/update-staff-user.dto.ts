@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  Matches,
   MinLength,
 } from 'class-validator';
 
@@ -12,6 +13,11 @@ export class UpdateStaffUserDto {
   @IsString()
   @MinLength(3)
   fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?[0-9]{9,15}$/, { message: "Telefon raqami noto'g'ri" })
+  phone?: string;
 
   @IsOptional()
   @IsEnum(StaffRole)

@@ -21,10 +21,12 @@ export type AuditEntityType =
   | 'INVENTORY_ITEM'
   | 'WORKER'
   | 'STAFF_USER'
-  | 'SHOPPING_LIST';
+  | 'SHOPPING_LIST'
+  | 'SETTINGS';
 
 interface RecordParams {
-  actorId: string;
+  /** null for actions by workers (chefs), who aren't staff users. */
+  actorId: string | null;
   actorName: string;
   action: AuditAction;
   entityType: AuditEntityType;

@@ -38,6 +38,7 @@ const ENTITY_LABEL_UZ: Record<string, string> = {
   WORKER: "Ishchi",
   STAFF_USER: "Xodim",
   SHOPPING_LIST: "Bozorlik",
+  SETTINGS: "Sozlamalar",
 };
 
 export function AuditLogFeed({ initialEntries }: { initialEntries: AuditLogEntry[] }) {

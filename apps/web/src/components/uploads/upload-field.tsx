@@ -6,11 +6,15 @@ import { ImageDropzone } from "./image-dropzone";
 interface Props {
   name: string;
   label: string;
-  folder: "menus" | "inventory" | "workers";
+  folder: "menus" | "inventory" | "workers" | "branding";
   kind?: "image" | "video";
   accept?: string;
   required?: boolean;
   aspect?: "video" | "square";
+  /** Existing file URL when editing, so the current picture shows and is kept. */
+  defaultValue?: string | null;
+  /** Fires with the uploaded public URL (or "" when cleared), e.g. for live previews. */
+  onChange?: (url: string) => void;
 }
 
 export function UploadField({
@@ -21,8 +25,10 @@ export function UploadField({
   accept = "image/jpeg,image/png,image/webp",
   required,
   aspect = "video",
+  defaultValue,
+  onChange,
 }: Props) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(defaultValue ?? "");
   const [localPreview, setLocalPreview] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -44,6 +50,7 @@ export function UploadField({
       if (!putRes.ok) throw new Error("Yuklashda xatolik yuz berdi");
 
       setUrl(publicUrl);
+      onChange?.(publicUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
       setLocalPreview(undefined);
@@ -66,6 +73,7 @@ export function UploadField({
         onFileSelected={handleFile}
         onClear={() => {
           setUrl("");
+          onChange?.("");
           setLocalPreview(undefined);
         }}
       />

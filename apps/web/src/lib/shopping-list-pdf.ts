@@ -49,7 +49,8 @@ export function downloadShoppingListPdf(list: ShoppingList) {
       doc.addPage();
       y = 18;
     }
-    const itemTotal = item.unitPrice ? Number(item.unitPrice) * Number(item.quantity) : 0;
+    const itemTotal =
+      item.totalCost != null ? Number(item.totalCost) : item.unitPrice ? Number(item.unitPrice) * Number(item.quantity) : 0;
     total += itemTotal;
 
     doc.text(item.name, left, y, { maxWidth: 88 });

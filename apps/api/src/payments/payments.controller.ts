@@ -48,6 +48,15 @@ export class PaymentsController {
     return this.payments.create(eventId, dto, user.sub, user.fullName);
   }
 
+  @Post('events/:eventId/refunds')
+  refund(
+    @Param('eventId') eventId: string,
+    @Body() dto: CreatePaymentDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    return this.payments.refund(eventId, dto, user.sub, user.fullName);
+  }
+
   @Roles('SUPER_ADMIN')
   @Delete('payments/:id')
   remove(@Param('id') id: string, @CurrentUser() user: AuthPayload) {

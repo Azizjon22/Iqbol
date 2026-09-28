@@ -15,6 +15,11 @@ export class UpdateWorkerDto {
   fullName?: string;
 
   @IsOptional()
+  @IsString()
+  @Matches(/^\+?[0-9]{9,15}$/, { message: "Telefon raqami noto'g'ri" })
+  phone?: string;
+
+  @IsOptional()
   @IsEnum(WorkerPosition)
   position?: WorkerPosition;
 

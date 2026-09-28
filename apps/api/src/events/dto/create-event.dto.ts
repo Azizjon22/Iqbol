@@ -37,4 +37,12 @@ export class CreateEventDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  firstDish?: string;
+
+  @IsOptional()
+  @IsString()
+  secondDish?: string;
 }

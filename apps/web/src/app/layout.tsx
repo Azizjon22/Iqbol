@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { cookies } from "next/headers";
 import { LocaleProvider } from "@/components/i18n/locale-provider";
+import { BrandProvider } from "@/components/brand/brand-provider";
+import { getBrand } from "@/lib/brand";
 import { getDictionary } from "@/i18n/get-dictionary";
 import type { Locale } from "@/i18n/types";
 import "./globals.css";
@@ -19,12 +21,15 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Shodiyora | To'yxona boshqaruv tizimi",
-  description: "Shodiyora to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.",
-  manifest: "/manifest.webmanifest",
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { brandName, logoUrl } = await getBrand();
+  return {
+    title: `${brandName} | To'yxona boshqaruv tizimi`,
+    description: `${brandName} to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.`,
+    manifest: "/manifest.webmanifest",
+    icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : { icon: "/icon.svg", apple: "/icon.svg" },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#7a1f3d",
@@ -34,7 +39,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const cookieStore = await cookies();
   const raw = cookieStore.get("locale")?.value;
   const locale: Locale = raw === "ru" ? "ru" : "uz";
-  const dictionary = getDictionary(locale);
+  const brand = await getBrand();
+  // The configured brand name replaces the built-in one everywhere t("common.brand") is used.
+  const base = getDictionary(locale);
+  const dictionary = { ...base, common: { ...base.common, brand: brand.brandName } };
 
   return (
     <html
@@ -52,9 +60,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <LocaleProvider locale={locale} dictionary={dictionary}>
-          {children}
-        </LocaleProvider>
+        <BrandProvider brand={brand}>
+          <LocaleProvider locale={locale} dictionary={dictionary}>
+            {children}
+          </LocaleProvider>
+        </BrandProvider>
       </body>
     </html>
   );
