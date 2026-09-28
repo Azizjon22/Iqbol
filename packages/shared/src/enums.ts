@@ -72,6 +72,7 @@ export type InventoryTxnType = (typeof INVENTORY_TXN_TYPES)[number];
 export const SHOPPING_LIST_STATUSES = [
   "SUBMITTED",
   "REVIEWED",
+  "APPROVED",
   "PURCHASED",
   "CLOSED",
 ] as const;

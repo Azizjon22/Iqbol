@@ -98,6 +98,9 @@ export interface EventDetail {
   menu: Menu;
   status: EventStatus;
   notes: string | null;
+  /** The couple's chosen 1st / 2nd dish; set by SUPER_ADMIN. */
+  firstDish: string | null;
+  secondDish: string | null;
   assignments: EventAssignment[];
   payments?: Payment[];
   expenses?: EventExpense[];
@@ -125,6 +128,21 @@ export interface InventoryItem {
   quantity: string;
   minThreshold: string | null;
   updatedAt: string;
+}
+
+export interface InventoryTxn {
+  id: string;
+  itemId: string;
+  type: "IN" | "OUT";
+  quantity: string;
+  note: string | null;
+  createdAt: string;
+  createdBy: { id: string; fullName: string };
+  sourceShoppingListItem: {
+    shoppingList: { id: string; event: { id: string; clientName: string } | null };
+  } | null;
+  /** Only on the store-wide recent feed. */
+  item?: { id: string; name: string; unit: Unit; category: InventoryCategory };
 }
 
 export interface DailyReportDay {
@@ -157,6 +175,8 @@ export interface ShoppingListItem {
   shoppingListId: string;
   name: string;
   quantity: string;
+  /** Chef's original figure when SUPER_ADMIN changed it; "0" = added by SUPER_ADMIN. */
+  originalQuantity: string | null;
   unit: Unit;
   unitPrice: string | null;
   isPurchased: boolean;
@@ -170,8 +190,10 @@ export interface ShoppingList {
   createdAt: string;
   reviewedAt: string | null;
   createdByWorker: { id: string; fullName: string; position: WorkerPosition };
-  event: { id: string; clientName: string; eventDate: string } | null;
+  event: { id: string; clientName: string; eventDate: string; guestCount?: number } | null;
   reviewedBy: { id: string; fullName: string } | null;
+  approvedAt: string | null;
+  approvedBy: { id: string; fullName: string } | null;
   items: ShoppingListItem[];
 }
 

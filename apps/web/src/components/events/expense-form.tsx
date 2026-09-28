@@ -8,7 +8,15 @@ import { SubmitButton } from "@/components/ui/submit-button";
 
 const initialState: FormActionState = undefined;
 
-function ExpenseRow({ eventId, category }: { eventId: string; category: EventExpenseCategory }) {
+function ExpenseRow({
+  eventId,
+  category,
+  suggestedAmount,
+}: {
+  eventId: string;
+  category: EventExpenseCategory;
+  suggestedAmount?: number;
+}) {
   const action = addExpenseAction.bind(null, eventId);
   const [state, formAction, isPending] = useActionState(action, initialState);
   const formRef = useRef<HTMLFormElement>(null);
@@ -29,8 +37,21 @@ function ExpenseRow({ eventId, category }: { eventId: string; category: EventExp
     >
       <input type="hidden" name="category" value={category} />
       <span className="w-36 shrink-0 text-sm font-medium">{EVENT_EXPENSE_CATEGORY_LABELS_UZ[category]}</span>
-      <Input type="number" name="amount" min={1} placeholder="Summa" className="h-9 min-w-28 flex-1" required />
-      <Input name="note" placeholder="Izoh (ixtiyoriy)" className="h-9 min-w-28 flex-1" />
+      <Input
+        type="number"
+        name="amount"
+        min={1}
+        placeholder="Summa"
+        defaultValue={suggestedAmount}
+        className="h-9 min-w-28 flex-1"
+        required
+      />
+      <Input
+        name="note"
+        placeholder="Izoh (ixtiyoriy)"
+        defaultValue={suggestedAmount ? "Bozorlik ro'yxatlari bo'yicha" : undefined}
+        className="h-9 min-w-28 flex-1"
+      />
       <SubmitButton pendingText="Qo'shilmoqda..." size="sm" variant="outline" className="shrink-0">
         Qo&apos;shish
       </SubmitButton>
@@ -39,11 +60,23 @@ function ExpenseRow({ eventId, category }: { eventId: string; category: EventExp
   );
 }
 
-export function ExpenseForm({ eventId }: { eventId: string }) {
+/** suggestedAmounts pre-fills a row, e.g. SHOPPING with the purchased lists' total. */
+export function ExpenseForm({
+  eventId,
+  suggestedAmounts,
+}: {
+  eventId: string;
+  suggestedAmounts?: Partial<Record<EventExpenseCategory, number>>;
+}) {
   return (
     <div className="space-y-2">
       {EVENT_EXPENSE_CATEGORIES.map((category) => (
-        <ExpenseRow key={category} eventId={eventId} category={category} />
+        <ExpenseRow
+          key={`${category}-${suggestedAmounts?.[category] ?? ""}`}
+          eventId={eventId}
+          category={category}
+          suggestedAmount={suggestedAmounts?.[category]}
+        />
       ))}
     </div>
   );

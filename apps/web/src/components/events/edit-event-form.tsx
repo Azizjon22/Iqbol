@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { updateEventAction, type FormActionState } from "@/lib/actions/events.actions";
 import { Input, Label, Select, Textarea, FieldError } from "@/components/ui/input";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { MenuAndDishes } from "@/components/events/menu-and-dishes";
+import { Button } from "@/components/ui/button";
 import type { EventDetail, Menu } from "@/lib/types";
-import { formatSom } from "@/lib/utils";
 
 const initialState: FormActionState = undefined;
 
@@ -15,12 +15,22 @@ function toDateTimeLocalValue(value: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function EditEventForm({ event, menus }: { event: EventDetail; menus: Menu[] }) {
+export function EditEventForm({ event, menus, canSetDishes }: { event: EventDetail; menus: Menu[]; canSetDishes: boolean }) {
   const action = updateEventAction.bind(null, event.id);
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction, isPending] = useActionState(action, initialState);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      // onSubmit + formAction instead of action={formAction}: React resets an
+      // action-bound form after every submit, wiping everything the user typed
+      // whenever the server sends back a validation error.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+      className="space-y-4"
+    >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="clientName">Mijoz ismi</Label>
@@ -56,17 +66,13 @@ export function EditEventForm({ event, menus }: { event: EventDetail; menus: Men
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="menuId">Menyu</Label>
-        <Select id="menuId" name="menuId" defaultValue={event.menuId} required>
-          <option value="">Tanlang</option>
-          {menus.map((menu) => (
-            <option key={menu.id} value={menu.id}>
-              {menu.name} — {formatSom(menu.pricePerPerson)} / kishi
-            </option>
-          ))}
-        </Select>
-      </div>
+      <MenuAndDishes
+        menus={menus}
+        defaultMenuId={event.menuId}
+        defaultFirst={event.firstDish}
+        defaultSecond={event.secondDish}
+        canSetDishes={canSetDishes}
+      />
 
       <div>
         <Label htmlFor="notes">Izoh (ixtiyoriy)</Label>
@@ -74,7 +80,9 @@ export function EditEventForm({ event, menus }: { event: EventDetail; menus: Men
       </div>
 
       <FieldError>{state?.error}</FieldError>
-      <SubmitButton pendingText="Saqlanmoqda...">O&apos;zgarishlarni saqlash</SubmitButton>
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "Saqlanmoqda..." : <>O&apos;zgarishlarni saqlash</>}
+      </Button>
     </form>
   );
 }

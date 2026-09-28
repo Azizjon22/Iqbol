@@ -1,0 +1,192 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CalendarHeart, Check, CheckCheck, ChefHat, Lock } from "lucide-react";
+import { PRODUCT_CATEGORY_LABELS_UZ } from "@shodiyora/shared";
+import type { ProductCatalogItem, ShoppingList } from "@/lib/types";
+import { ShoppingListEditor } from "@/components/shopping-lists/shopping-list-editor";
+import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";
+import { ProductCategoryIcon } from "@/components/inventory/product-category-icon";
+import { isShoppingListEditable } from "@/lib/shopping-list-status";
+import { formatDate, formatDateTime, formatSom, cn } from "@/lib/utils";
+import { catalogIndex, groupBySection, itemCost, listApi, listProgress } from "./helpers";
+import { PurchaseRow } from "./purchase-row";
+
+const STEPS = [
+  { key: "SUBMITTED", label: "Yozildi" },
+  { key: "REVIEWED", label: "Tekshirildi" },
+  { key: "APPROVED", label: "Yuborildi" },
+  { key: "PURCHASED", label: "Xarid qilindi" },
+  { key: "CLOSED", label: "Yopildi" },
+] as const;
+
+export function ListDetail({
+  list,
+  catalog,
+  isSuperAdmin,
+  onBack,
+}: {
+  list: ShoppingList;
+  catalog: ProductCatalogItem[];
+  isSuperAdmin: boolean;
+  onBack?: () => void;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const lookup = catalogIndex(catalog);
+  const { total, bought, spent, complete } = listProgress(list);
+  const current = STEPS.findIndex((s) => s.key === list.status);
+  const sent = current >= 2;
+  const canBuy = sent && list.status !== "CLOSED";
+  const groups = groupBySection(list.items, lookup);
+  const stepTime: Partial<Record<(typeof STEPS)[number]["key"], string | null>> = {
+    SUBMITTED: list.createdAt,
+    REVIEWED: list.reviewedAt,
+    APPROVED: list.approvedAt,
+  };
+
+  async function setStatus(status: "PURCHASED" | "CLOSED") {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await listApi(`/${list.id}/status`, "PATCH", { status });
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      {/* ---------- Header ---------- */}
+      <div className="border-b border-border p-4 sm:p-5">
+        {onBack && (
+          <button type="button" onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground lg:hidden">
+            <ArrowLeft className="h-4 w-4" /> Ro&apos;yxatlar
+          </button>
+        )}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            {list.event ? (
+              <Link href={`/dashboard/events/${list.event.id}`} className="group inline-flex items-center gap-2">
+                <CalendarHeart className="h-5 w-5 shrink-0 text-primary" />
+                <span className="font-display truncate text-2xl font-semibold group-hover:underline">{list.event.clientName}</span>
+              </Link>
+            ) : (
+              <p className="font-display text-2xl font-semibold">To&apos;ysiz ro&apos;yxat</p>
+            )}
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              {list.event && <span>To&apos;y: {formatDate(list.event.eventDate)}</span>}
+              <span className="inline-flex items-center gap-1">
+                <ChefHat className="h-3.5 w-3.5" /> {list.createdByWorker.fullName}
+              </span>
+            </p>
+          </div>
+          <ShoppingListPdfButton list={list} />
+        </div>
+
+        {/* Stepper */}
+        <ol className="mt-5 grid grid-cols-5 gap-1">
+          {STEPS.map((step, i) => {
+            const done = i <= current;
+            const time = stepTime[step.key];
+            return (
+              <li key={step.key} className="min-w-0">
+                <div className={cn("h-1.5 rounded-full", done ? (i === current ? "bg-primary" : "bg-primary/50") : "bg-muted")} />
+                <p className={cn("mt-1.5 truncate text-[11px] font-medium", done ? "text-foreground" : "text-muted-foreground")}>{step.label}</p>
+                {done && time && <p className="hidden truncate text-[10px] text-muted-foreground sm:block">{formatDateTime(time)}</p>}
+              </li>
+            );
+          })}
+        </ol>
+
+        {/* Progress + money */}
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="rounded-xl bg-muted/60 px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">Olindi</p>
+            <p className="font-semibold tabular-nums">
+              {bought} / {total}
+            </p>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-background">
+              <div className="h-full rounded-full bg-success transition-all" style={{ width: `${total ? (bought / total) * 100 : 0}%` }} />
+            </div>
+          </div>
+          <div className="rounded-xl bg-muted/60 px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">Sarflandi</p>
+            <p className="font-semibold tabular-nums">{formatSom(spent)}</p>
+          </div>
+          <div className="col-span-2 rounded-xl bg-muted/60 px-3 py-2.5 sm:col-span-1">
+            <p className="text-xs text-muted-foreground">Holat</p>
+            <p className="font-semibold">
+              {!sent ? "Tekshirilmoqda" : list.status === "APPROVED" ? (complete ? "Hammasi olindi" : `${total - bought} ta qoldi`) : STEPS[current]?.label}
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-4 space-y-3">
+          {isSuperAdmin && isShoppingListEditable(list.status) && <ShoppingListEditor list={list} />}
+          {!sent && !isSuperAdmin && <p className="text-sm text-muted-foreground">Super admin tekshirib yuborgach xarid qilinadi.</p>}
+          <div className="flex flex-wrap gap-2">
+            {list.status === "APPROVED" && complete && (
+              <button
+                type="button"
+                onClick={() => setStatus("PURCHASED")}
+                disabled={busy}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-success px-4 text-sm font-semibold text-success-foreground hover:brightness-95 disabled:opacity-50"
+              >
+                <CheckCheck className="h-4 w-4" /> Xaridni yakunlash
+              </button>
+            )}
+            {list.status === "PURCHASED" && (
+              <button
+                type="button"
+                onClick={() => setStatus("CLOSED")}
+                disabled={busy}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <Lock className="h-4 w-4" /> Ro&apos;yxatni yopish
+              </button>
+            )}
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+      </div>
+
+      {/* ---------- Items by bazaar section ---------- */}
+      {groups.map((g) => {
+        const sectionSpent = g.items.reduce((s, i) => s + itemCost(i), 0);
+        const sectionDone = g.items.every((i) => i.isPurchased);
+        return (
+          <section key={g.section}>
+            <header className="flex items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <ProductCategoryIcon category={g.section} className="h-3.5 w-3.5" />
+                {PRODUCT_CATEGORY_LABELS_UZ[g.section]}
+                {sectionDone && <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />}
+              </span>
+              {sectionSpent > 0 && <span className="normal-case tracking-normal tabular-nums">{formatSom(sectionSpent)}</span>}
+            </header>
+            <ul className="divide-y divide-border border-b border-border last:border-b-0">
+              {g.items.map((item) => (
+                <PurchaseRow key={item.id} listId={list.id} item={item} catalog={lookup(item.name)} canBuy={canBuy} />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+
+      {spent > 0 && (
+        <div className="flex items-center justify-between bg-muted/40 px-4 py-3">
+          <span className="text-sm font-medium">Jami bozorlik</span>
+          <span className="font-display text-xl font-semibold lining-nums tabular-nums">{formatSom(spent)}</span>
+        </div>
+      )}
+    </div>
+  );
+}

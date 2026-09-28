@@ -1,24 +1,52 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ShoppingListStatus } from '@prisma/client';
+import { Prisma, ShoppingListStatus, StaffRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateShoppingListDto } from './dto/create-shopping-list.dto';
-import { MarkPurchasedDto } from './dto/mark-purchased.dto';
+import { MarkPurchasedDto, UpdateItemPriceDto } from './dto/mark-purchased.dto';
+import { UpdateShoppingListItemsDto } from './dto/update-items.dto';
 
 const include = {
   items: true,
   createdByWorker: { select: { id: true, fullName: true, position: true } },
-  event: { select: { id: true, clientName: true, eventDate: true } },
+  event: {
+    select: { id: true, clientName: true, eventDate: true, guestCount: true },
+  },
   reviewedBy: { select: { id: true, fullName: true } },
+  approvedBy: { select: { id: true, fullName: true } },
+};
+
+/**
+ * A chef's list goes to SUPER_ADMIN first; ADMIN only ever sees it once
+ * SUPER_ADMIN has checked (and possibly corrected) it and sent it on.
+ */
+export const ADMIN_VISIBLE_STATUSES: ShoppingListStatus[] = [
+  'APPROVED',
+  'PURCHASED',
+  'CLOSED',
+];
+
+const NOT_YET_SENT_STATUSES: ShoppingListStatus[] = ['SUBMITTED', 'REVIEWED'];
+
+function visibleTo(role?: StaffRole): Prisma.ShoppingListWhereInput {
+  return role === 'ADMIN' ? { status: { in: ADMIN_VISIBLE_STATUSES } } : {};
+}
+
+const UNIT_UZ: Record<string, string> = {
+  KG: 'kg',
+  LITER: 'litr',
+  DONA: 'dona',
 };
 
 const STATUS_LABEL_UZ: Record<string, string> = {
   SUBMITTED: 'Yuborilgan',
   REVIEWED: "Ko'rib chiqilgan",
+  APPROVED: 'Adminga yuborilgan',
   PURCHASED: 'Xarid qilingan',
   CLOSED: 'Yopilgan',
 };
@@ -48,9 +76,9 @@ export class ShoppingListsService {
     });
   }
 
-  findAll(status?: ShoppingListStatus) {
+  findAll(role?: StaffRole, status?: ShoppingListStatus) {
     return this.prisma.shoppingList.findMany({
-      where: { status },
+      where: { AND: [visibleTo(role), { status }] },
       include,
       orderBy: { createdAt: 'desc' },
     });
@@ -64,13 +92,36 @@ export class ShoppingListsService {
     });
   }
 
-  async findOne(id: string) {
-    const list = await this.prisma.shoppingList.findUnique({
-      where: { id },
+  async findOne(id: string, role?: StaffRole) {
+    const list = await this.prisma.shoppingList.findFirst({
+      where: { id, ...visibleTo(role) },
       include,
     });
     if (!list) throw new NotFoundException("Bozorlik ro'yxati topilmadi");
     return list;
+  }
+
+  /** A chef takes back a list sent by mistake — only before anyone acted on it. */
+  async cancelByWorker(id: string, workerId: string, workerName: string) {
+    const list = await this.ensureWorkerOwnsOrThrow(id, workerId);
+    if (
+      !NOT_YET_SENT_STATUSES.includes(list.status) ||
+      list.items.some((i) => i.isPurchased)
+    ) {
+      throw new BadRequestException(
+        "Ro'yxat allaqachon adminga yuborilgan — endi uni bekor qilib bo'lmaydi",
+      );
+    }
+    await this.prisma.shoppingList.delete({ where: { id } });
+    await this.auditLog.record({
+      actorId: null,
+      actorName: workerName,
+      action: 'DELETE',
+      entityType: 'SHOPPING_LIST',
+      entityId: id,
+      description: `Oshpaz o'z bozorlik ro'yxatini bekor qildi${list.event ? ` (${list.event.clientName})` : ''}`,
+    });
+    return { success: true };
   }
 
   async ensureWorkerOwnsOrThrow(id: string, workerId: string) {
@@ -86,8 +137,17 @@ export class ShoppingListsService {
     status: ShoppingListStatus,
     actorId: string,
     actorName: string,
+    role?: StaffRole,
   ) {
-    const existing = await this.findOne(id);
+    if (status === 'APPROVED') {
+      throw new BadRequestException(
+        'Adminga yuborish uchun "Adminga yuborish" amalidan foydalaning',
+      );
+    }
+    if (role === 'ADMIN' && !ADMIN_VISIBLE_STATUSES.includes(status)) {
+      throw new ForbiddenException("Bu amal uchun ruxsatingiz yo'q");
+    }
+    const existing = await this.findOne(id, role);
     const list = await this.prisma.shoppingList.update({
       where: { id },
       data: { status, reviewedById: actorId, reviewedAt: new Date() },
@@ -107,11 +167,173 @@ export class ShoppingListsService {
   }
 
   /**
-   * Called when an admin opens the shopping lists page — flips freshly
-   * submitted lists to REVIEWED so the notification badge clears on next
-   * load, without requiring any further action on the lists themselves.
+   * SUPER_ADMIN corrects the chef's list before it reaches ADMIN — changes
+   * quantities, drops items, adds missing ones. Purchased items are locked.
    */
-  async markAllSeen(reviewedById: string) {
+  async updateItems(
+    id: string,
+    dto: UpdateShoppingListItemsDto,
+    actorId: string,
+    actorName: string,
+  ) {
+    const list = await this.findOne(id);
+    if (list.status === 'PURCHASED' || list.status === 'CLOSED') {
+      throw new BadRequestException(
+        "Xarid qilingan yoki yopilgan ro'yxatni o'zgartirib bo'lmaydi",
+      );
+    }
+
+    const editable = new Map(
+      list.items.filter((i) => !i.isPurchased).map((i) => [i.id, i]),
+    );
+    for (const input of dto.items) {
+      if (input.id && !editable.has(input.id)) {
+        throw new BadRequestException(
+          "Ro'yxat elementi topilmadi yoki allaqachon xarid qilingan",
+        );
+      }
+    }
+
+    const keptIds = new Set(dto.items.map((i) => i.id).filter(Boolean));
+    const removed = [...editable.values()].filter((i) => !keptIds.has(i.id));
+    const changes: string[] = [];
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
+
+    for (const item of removed) {
+      changes.push(`"${item.name}" o'chirildi`);
+    }
+    if (removed.length) {
+      ops.push(
+        this.prisma.shoppingListItem.deleteMany({
+          where: { id: { in: removed.map((i) => i.id) } },
+        }),
+      );
+    }
+
+    for (const input of dto.items) {
+      const quantity = new Prisma.Decimal(input.quantity);
+      const note = input.note?.trim() || null;
+
+      if (!input.id) {
+        changes.push(
+          `"${input.name}" (${input.quantity} ${input.unit}) qo'shildi`,
+        );
+        ops.push(
+          this.prisma.shoppingListItem.create({
+            data: {
+              shoppingListId: id,
+              name: input.name,
+              quantity,
+              originalQuantity: 0,
+              unit: input.unit,
+              note,
+            },
+          }),
+        );
+        continue;
+      }
+
+      const existing = editable.get(input.id)!;
+      const quantityChanged = !existing.quantity.equals(quantity);
+      if (
+        !quantityChanged &&
+        existing.name === input.name &&
+        existing.unit === input.unit &&
+        existing.note === note
+      ) {
+        continue;
+      }
+
+      // Keep the chef's first figure; forget it if SUPER_ADMIN changes back.
+      let originalQuantity = existing.originalQuantity;
+      if (quantityChanged) {
+        originalQuantity = existing.originalQuantity ?? existing.quantity;
+        if (originalQuantity.equals(quantity)) originalQuantity = null;
+      }
+
+      if (quantityChanged) {
+        changes.push(
+          `"${existing.name}": ${existing.quantity} → ${input.quantity} ${input.unit}`,
+        );
+      } else {
+        changes.push(`"${existing.name}" tahrirlandi`);
+      }
+      ops.push(
+        this.prisma.shoppingListItem.update({
+          where: { id: existing.id },
+          data: {
+            name: input.name,
+            quantity,
+            originalQuantity,
+            unit: input.unit,
+            note,
+          },
+        }),
+      );
+    }
+
+    if (ops.length === 0) return list;
+    await this.prisma.$transaction(ops);
+
+    await this.auditLog.record({
+      actorId,
+      actorName,
+      action: 'UPDATE',
+      entityType: 'SHOPPING_LIST',
+      entityId: id,
+      description: `${list.createdByWorker.fullName}ning bozorlik ro'yxatini tahrirladi: ${changes.join('; ')}`,
+    });
+
+    return this.findOne(id);
+  }
+
+  async approve(id: string, actorId: string, actorName: string) {
+    const list = await this.findOne(id);
+    if (!NOT_YET_SENT_STATUSES.includes(list.status)) {
+      throw new BadRequestException("Bu ro'yxat allaqachon adminga yuborilgan");
+    }
+    if (list.items.length === 0) {
+      throw new BadRequestException("Bo'sh ro'yxatni yuborib bo'lmaydi");
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.shoppingList.update({
+      where: { id },
+      data: {
+        status: 'APPROVED',
+        approvedById: actorId,
+        approvedAt: now,
+        reviewedById: list.reviewedById ?? actorId,
+        reviewedAt: list.reviewedAt ?? now,
+      },
+      include,
+    });
+
+    await this.auditLog.record({
+      actorId,
+      actorName,
+      action: 'STATUS_CHANGE',
+      entityType: 'SHOPPING_LIST',
+      entityId: id,
+      description: `${list.createdByWorker.fullName}ning bozorlik ro'yxatini tasdiqlab, adminga yubordi`,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Called when staff open the shopping lists page so the notification badge
+   * clears on next load. SUPER_ADMIN's badge counts lists fresh from chefs;
+   * ADMIN's counts lists SUPER_ADMIN has just sent them.
+   */
+  async markAllSeen(role: StaffRole | undefined, reviewedById: string) {
+    if (role === 'ADMIN') {
+      await this.prisma.shoppingList.updateMany({
+        where: { status: 'APPROVED', adminSeenAt: null },
+        data: { adminSeenAt: new Date() },
+      });
+      return;
+    }
     await this.prisma.shoppingList.updateMany({
       where: { status: 'SUBMITTED' },
       data: { status: 'REVIEWED', reviewedById, reviewedAt: new Date() },
@@ -124,36 +346,84 @@ export class ShoppingListsService {
     dto: MarkPurchasedDto,
     actorId: string,
     actorName: string,
+    role?: StaffRole,
   ) {
-    const list = await this.findOne(listId);
+    const list = await this.findOne(listId, role);
     const item = list.items.find((i) => i.id === itemId);
     if (!item) throw new NotFoundException("Ro'yxat elementi topilmadi");
+    if (item.isPurchased) {
+      throw new BadRequestException(
+        'Bu mahsulot allaqachon sotib olingan deb belgilangan',
+      );
+    }
 
-    const inventoryItem = await this.prisma.inventoryItem.upsert({
-      where: { name: item.name },
-      create: { name: item.name, unit: item.unit, quantity: item.quantity },
-      update: { quantity: { increment: item.quantity } },
-    });
+    const bought =
+      dto.quantity !== undefined
+        ? new Prisma.Decimal(dto.quantity)
+        : item.quantity;
+    const unitPrice = this.resolveUnitPrice(dto, bought);
+    const quantityChanged = !bought.equals(item.quantity);
 
-    await this.prisma.$transaction([
-      this.prisma.shoppingListItem.update({
+    // Stock-in and the purchase flag commit together or not at all, so a
+    // failure can never leave the store counted twice.
+    await this.prisma.$transaction(async (tx) => {
+      // Match the store item regardless of how the chef capitalised it.
+      let stock = await tx.inventoryItem.findFirst({
+        where: { name: { equals: item.name.trim(), mode: 'insensitive' } },
+      });
+      if (stock && stock.unit !== item.unit) {
+        throw new BadRequestException(
+          `Omborda "${stock.name}" ${UNIT_UZ[stock.unit]}da hisoblanadi, ro'yxatda esa ${UNIT_UZ[item.unit]} — birlikni to'g'rilang`,
+        );
+      }
+      if (stock) {
+        stock = await tx.inventoryItem.update({
+          where: { id: stock.id },
+          data: { quantity: { increment: bought } },
+        });
+      } else {
+        stock = await tx.inventoryItem.create({
+          data: { name: item.name.trim(), unit: item.unit, quantity: bought },
+        });
+      }
+
+      await tx.shoppingListItem.update({
         where: { id: itemId },
         data: {
           isPurchased: true,
-          unitPrice: new Prisma.Decimal(dto.unitPrice),
+          unitPrice,
+          // Bought a different amount than listed: keep the planned figure
+          // visible as "8 → 7 kg" (unless SUPER_ADMIN already set one).
+          ...(quantityChanged
+            ? {
+                quantity: bought,
+                originalQuantity: item.originalQuantity ?? item.quantity,
+              }
+            : {}),
         },
-      }),
-      this.prisma.inventoryTransaction.create({
+      });
+      await tx.inventoryTransaction.create({
         data: {
-          itemId: inventoryItem.id,
+          itemId: stock.id,
           type: 'IN',
-          quantity: item.quantity,
-          note: `Bozorlik ro'yxatidan: ${item.name}`,
+          quantity: bought,
+          note: `Bozorlik ro'yxatidan${list.event ? ` — ${list.event.clientName}` : ''}`,
           sourceShoppingListItemId: itemId,
           createdById: actorId,
         },
-      }),
-    ]);
+      });
+
+      // Last item bought → the whole list is done.
+      const remaining = await tx.shoppingListItem.count({
+        where: { shoppingListId: listId, isPurchased: false },
+      });
+      if (remaining === 0 && list.status !== 'CLOSED') {
+        await tx.shoppingList.update({
+          where: { id: listId },
+          data: { status: 'PURCHASED' },
+        });
+      }
+    });
 
     await this.auditLog.record({
       actorId,
@@ -161,10 +431,59 @@ export class ShoppingListsService {
       action: 'UPDATE',
       entityType: 'SHOPPING_LIST',
       entityId: listId,
-      description: `"${item.name}" (${item.quantity} ${item.unit}) xarid qilinganini belgiladi, narxi ${dto.unitPrice.toLocaleString('uz-UZ')} so'm`,
+      description: `"${item.name}" (${bought} ${UNIT_UZ[item.unit]}) xarid qilinganini belgiladi, jami ${unitPrice.mul(bought).toNumber().toLocaleString('uz-UZ')} so'm`,
     });
 
     return this.findOne(listId);
+  }
+
+  /** Fix a mistyped price on an already-bought item; stock is untouched. */
+  async updateItemPrice(
+    listId: string,
+    itemId: string,
+    dto: UpdateItemPriceDto,
+    actorId: string,
+    actorName: string,
+    role?: StaffRole,
+  ) {
+    const list = await this.findOne(listId, role);
+    const item = list.items.find((i) => i.id === itemId);
+    if (!item) throw new NotFoundException("Ro'yxat elementi topilmadi");
+    if (!item.isPurchased) {
+      throw new BadRequestException(
+        'Narxni faqat sotib olingan mahsulot uchun tuzatish mumkin',
+      );
+    }
+    const unitPrice = this.resolveUnitPrice(dto, item.quantity);
+    await this.prisma.shoppingListItem.update({
+      where: { id: itemId },
+      data: { unitPrice },
+    });
+
+    await this.auditLog.record({
+      actorId,
+      actorName,
+      action: 'UPDATE',
+      entityType: 'SHOPPING_LIST',
+      entityId: listId,
+      description: `"${item.name}" narxini tuzatdi: ${item.unitPrice ?? 0} → ${unitPrice} so'm (1 ${UNIT_UZ[item.unit]})`,
+    });
+    return this.findOne(listId);
+  }
+
+  private resolveUnitPrice(
+    dto: { unitPrice?: number; totalPrice?: number },
+    quantity: Prisma.Decimal,
+  ) {
+    if (dto.unitPrice !== undefined) return new Prisma.Decimal(dto.unitPrice);
+    if (dto.totalPrice !== undefined) {
+      return new Prisma.Decimal(dto.totalPrice)
+        .div(quantity)
+        .toDecimalPlaces(2);
+    }
+    throw new BadRequestException(
+      'Narxni kiriting (jami summa yoki 1 birlik narxi)',
+    );
   }
 
   async expenseReport(from?: Date, to?: Date) {

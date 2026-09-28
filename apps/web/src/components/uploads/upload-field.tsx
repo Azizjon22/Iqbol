@@ -11,6 +11,8 @@ interface Props {
   accept?: string;
   required?: boolean;
   aspect?: "video" | "square";
+  /** Existing file URL when editing, so the current picture shows and is kept. */
+  defaultValue?: string | null;
 }
 
 export function UploadField({
@@ -21,8 +23,9 @@ export function UploadField({
   accept = "image/jpeg,image/png,image/webp",
   required,
   aspect = "video",
+  defaultValue,
 }: Props) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(defaultValue ?? "");
   const [localPreview, setLocalPreview] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | undefined>();

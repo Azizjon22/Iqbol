@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, DragEvent } from "react";
-import { ImagePlus, Loader2, Video, X } from "lucide-react";
+import { ImageOff, ImagePlus, Loader2, Video, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -31,6 +31,8 @@ export function ImageDropzone({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [brokenUrl, setBrokenUrl] = useState<string | undefined>();
+  const previewBroken = !!previewUrl && brokenUrl === previewUrl;
 
   function handleFiles(files: FileList | null) {
     const file = files?.[0];
@@ -75,8 +77,15 @@ export function ImageDropzone({
         {previewUrl ? (
           <>
             {kind === "image" ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+              previewBroken ? (
+                <span className="flex flex-col items-center gap-1.5 px-4 text-center text-xs text-destructive">
+                  <ImageOff className="h-6 w-6" />
+                  Hozirgi rasm ochilmayapti — yangisini yuklang
+                </span>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={previewUrl} alt="" className="h-full w-full object-cover" onError={() => setBrokenUrl(previewUrl)} />
+              )
             ) : (
               <video src={previewUrl} className="h-full w-full object-cover" muted playsInline />
             )}

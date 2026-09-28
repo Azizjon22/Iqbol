@@ -81,8 +81,12 @@ body {
   font-family: var(--font-cormorant), Georgia, serif;
 }
 
-* {
-  border-color: var(--border);
+/* In a layer so border-* colour utilities (gold frames, selected states) can
+   override it — unlayered, this beat every utility in Tailwind v4. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 @keyframes fade-up {
@@ -264,4 +268,136 @@ body {
 .switch input:checked + .slider .circle {
   left: calc(100% - var(--circle-diameter) - var(--switch-offset));
   box-shadow: var(--circle-checked-shadow);
+}
+
+/* ---------- Client presentation ("Zarhal taklifnoma") ---------- */
+
+@keyframes ken-burns {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 14s ease-out both;
+}
+
+@keyframes scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+
+.animate-scroll-cue {
+  animation: scroll-cue 2.2s ease-in-out infinite;
+}
+
+/* Scroll-triggered reveal; <Reveal> flips data-shown once it enters view. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal[data-shown="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .animate-ken-burns,
+  .animate-scroll-cue {
+    animation: none;
+  }
+}
+
+/* Gold-leaf text for prices and headings on the presentation. */
+.text-gilded {
+  background: linear-gradient(100deg, #b88a44 0%, #f1d9a0 38%, #c99a52 60%, #f5e3b5 82%, #b88a44 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme="light"] .text-gilded-adaptive {
+  background: linear-gradient(100deg, #7a5320 0%, #b8873e 45%, #8a5f26 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme="dark"] .text-gilded-adaptive {
+  background: linear-gradient(100deg, #b88a44 0%, #f1d9a0 38%, #c99a52 60%, #f5e3b5 82%, #b88a44 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gold-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--fill, 50%),
+    var(--muted) var(--fill, 50%),
+    var(--muted) 100%
+  );
+  outline: none;
+}
+
+.gold-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+
+.gold-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+
+.gold-range:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/*
+ * Big screens (Full HD TVs, 2K/4K monitors in the hall): grow the root size
+ * so the whole rem-based presentation scales up proportionally instead of
+ * floating small in the middle. Scoped to presentation pages only.
+ */
+@media (min-width: 1600px) {
+  :root:has(.presentation-root) {
+    font-size: clamp(16px, calc(0.4vw + 9px), 22px);
+  }
 }

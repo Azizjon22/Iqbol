@@ -39,6 +39,7 @@ const eventDetailInclude = {
     include: {
       items: true,
       createdByWorker: { select: { id: true, fullName: true } },
+      approvedBy: { select: { id: true, fullName: true } },
     },
     orderBy: { createdAt: 'desc' as const },
   },
@@ -76,6 +77,8 @@ export class EventsService {
         menuId: dto.menuId,
         totalPrice,
         notes: dto.notes,
+        firstDish: dto.firstDish?.trim() || null,
+        secondDish: dto.secondDish?.trim() || null,
         createdById: actorId,
       },
       include: eventDetailInclude,
@@ -103,6 +106,45 @@ export class EventsService {
       // Also backs the chef's read-only events calendar, which needs every
       // upcoming booking in view, not just the nearest handful.
       take: 500,
+    });
+  }
+
+  /**
+   * What a chef needs to plan cooking: upcoming weddings with guests, tables
+   * and the menu's dishes, plus their own shopping lists per wedding. No money.
+   */
+  chefAgenda(workerId: string) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    return this.prisma.event.findMany({
+      where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
+      select: {
+        id: true,
+        clientName: true,
+        eventDate: true,
+        status: true,
+        guestCount: true,
+        tableCapacity: true,
+        menu: {
+          select: {
+            name: true,
+            dishes: {
+              select: { id: true, name: true, category: true },
+              orderBy: { order: 'asc' },
+            },
+          },
+        },
+        assignments: { where: { workerId }, select: { id: true } },
+        firstDish: true,
+        secondDish: true,
+        shoppingLists: {
+          where: { createdByWorkerId: workerId },
+          select: { id: true, status: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { eventDate: 'asc' },
+      take: 200,
     });
   }
 
@@ -158,6 +200,15 @@ export class EventsService {
         guestCount: dto.guestCount,
         menuId: dto.menuId,
         notes: dto.notes,
+        // "" clears a choice; undefined leaves it untouched.
+        firstDish:
+          dto.firstDish === undefined
+            ? undefined
+            : dto.firstDish.trim() || null,
+        secondDish:
+          dto.secondDish === undefined
+            ? undefined
+            : dto.secondDish.trim() || null,
         totalPrice,
       },
       include: eventDetailInclude,
@@ -169,6 +220,18 @@ export class EventsService {
     }
     if (dto.eventDate) changes.push('sana');
     if (dto.menuId && dto.menuId !== existing.menuId) changes.push('menyu');
+    if (
+      dto.firstDish !== undefined &&
+      (dto.firstDish.trim() || null) !== existing.firstDish
+    ) {
+      changes.push(`1-ovqat: ${dto.firstDish.trim() || '—'}`);
+    }
+    if (
+      dto.secondDish !== undefined &&
+      (dto.secondDish.trim() || null) !== existing.secondDish
+    ) {
+      changes.push(`2-ovqat: ${dto.secondDish.trim() || '—'}`);
+    }
     if (dto.clientName && dto.clientName !== existing.clientName) {
       changes.push(`mijoz nomi "${existing.clientName}" → "${dto.clientName}"`);
     }

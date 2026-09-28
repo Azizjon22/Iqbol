@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -19,10 +20,13 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { UpdateEventStatusDto } from './dto/update-event-status.dto';
 import { AssignWorkerDto } from './dto/assign-worker.dto';
 import { FindEventsQuery } from './dto/find-events.query';
+import { ADMIN_VISIBLE_STATUSES } from '../shopping-lists/shopping-lists.service';
+import { WorkerGuard } from '../common/guards/worker.guard';
 
 // ADMIN still needs to see which shopping lists were written for a wedding
-// (they manage procurement), so only ZAVZAL loses that too — everyone
-// below SUPER_ADMIN loses the money fields themselves.
+// (they manage procurement) — but only the ones SUPER_ADMIN has sent on —
+// so only ZAVZAL loses that too. Everyone below SUPER_ADMIN loses the money
+// fields themselves.
 function hideFinancials(
   event: Record<string, unknown>,
   keepShoppingLists: boolean,
@@ -38,7 +42,29 @@ function hideFinancials(
     shoppingLists,
     ...rest
   } = event;
-  return keepShoppingLists ? { ...rest, shoppingLists } : rest;
+  if (!keepShoppingLists) return rest;
+  if (!Array.isArray(shoppingLists)) return { ...rest, shoppingLists };
+  return {
+    ...rest,
+    shoppingLists: shoppingLists.filter((list: { status: string }) =>
+      (ADMIN_VISIBLE_STATUSES as string[]).includes(list.status),
+    ),
+  };
+}
+
+/** The wedding's 1st/2nd dish is agreed with the couple — SUPER_ADMIN's call. */
+function assertCanSetDishes(
+  dto: { firstDish?: string; secondDish?: string },
+  user: AuthPayload,
+) {
+  if (
+    user.role !== 'SUPER_ADMIN' &&
+    (dto.firstDish !== undefined || dto.secondDish !== undefined)
+  ) {
+    throw new ForbiddenException(
+      '1-ovqat va 2-ovqatni faqat super admin belgilaydi',
+    );
+  }
 }
 
 @UseGuards(RolesGuard)
@@ -49,6 +75,7 @@ export class EventsController {
   @Roles('SUPER_ADMIN', 'ADMIN')
   @Post()
   async create(@Body() dto: CreateEventDto, @CurrentUser() user: AuthPayload) {
+    assertCanSetDishes(dto, user);
     const event = await this.events.create(dto, user.sub, user.fullName);
     if (user.role === 'SUPER_ADMIN') return event;
     return hideFinancials(event, true);
@@ -59,6 +86,12 @@ export class EventsController {
   @Get('upcoming')
   upcoming() {
     return this.events.upcomingForPicker();
+  }
+
+  @UseGuards(WorkerGuard)
+  @Get('chef-agenda')
+  chefAgenda(@CurrentUser() user: AuthPayload) {
+    return this.events.chefAgenda(user.sub);
   }
 
   @Roles('SUPER_ADMIN', 'ADMIN', 'ZAVZAL')
@@ -88,6 +121,7 @@ export class EventsController {
     @Body() dto: UpdateEventDto,
     @CurrentUser() user: AuthPayload,
   ) {
+    assertCanSetDishes(dto, user);
     const event = await this.events.update(id, dto, user.sub, user.fullName);
     return user.role === 'SUPER_ADMIN' ? event : hideFinancials(event, true);
   }

@@ -24,7 +24,8 @@ export type AuditEntityType =
   | 'SHOPPING_LIST';
 
 interface RecordParams {
-  actorId: string;
+  /** null for actions by workers (chefs), who aren't staff users. */
+  actorId: string | null;
   actorName: string;
   action: AuditAction;
   entityType: AuditEntityType;

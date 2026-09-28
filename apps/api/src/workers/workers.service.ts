@@ -149,11 +149,22 @@ export class WorkersService {
     actorName: string,
   ) {
     const existing = await this.ensureExists(id);
+    if (dto.phone && dto.phone !== existing.phone) {
+      const taken = await this.prisma.worker.findUnique({
+        where: { phone: dto.phone },
+      });
+      if (taken) {
+        throw new ConflictException(
+          `Bu telefon raqam "${taken.fullName}" ishchisiga tegishli`,
+        );
+      }
+    }
     const pinHash = dto.pin ? await bcrypt.hash(dto.pin, 10) : undefined;
     const worker = await this.prisma.worker.update({
       where: { id },
       data: {
         fullName: dto.fullName,
+        phone: dto.phone,
         position: dto.position,
         gender: dto.gender,
         photoUrl: dto.photoUrl,
@@ -163,6 +174,12 @@ export class WorkersService {
     });
 
     const changes: string[] = [];
+    if (dto.fullName && dto.fullName !== existing.fullName)
+      changes.push(`ism: ${dto.fullName}`);
+    if (dto.phone && dto.phone !== existing.phone)
+      changes.push(`telefon: ${dto.phone}`);
+    if (dto.position && dto.position !== existing.position)
+      changes.push('lavozim');
     if (dto.pin) changes.push('PIN kodni tikladi');
 
     await this.auditLog.record({
@@ -187,7 +204,7 @@ export class WorkersService {
         err.code === 'P2003'
       ) {
         throw new ConflictException(
-          'Bu ishchi bozorlik ro\'yxati yaratgan, shuning uchun o\'chirib bo\'lmaydi. Buning o\'rniga uni "Rad etilgan" holatiga o\'tkazing.',
+          "Bu ishchi bozorlik ro'yxati yaratgan, shuning uchun o'chirib bo'lmaydi. Buning o'rniga uni \"Rad etilgan\" holatiga o'tkazing.",
         );
       }
       throw err;

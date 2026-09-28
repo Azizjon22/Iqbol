@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -16,6 +17,7 @@ import { InventoryService } from './inventory.service';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { StockCountDto } from './dto/stock-count.dto';
 
 @Controller('inventory')
 export class InventoryController {
@@ -42,6 +44,14 @@ export class InventoryController {
     return this.inventory.lowStock();
   }
 
+  // Declared before ':id' so "transactions" isn't read as an item id.
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Get('transactions/recent')
+  recent(@Query('limit') limit?: string) {
+    return this.inventory.recentTransactions(limit ? Number(limit) : undefined);
+  }
+
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @Get(':id')
@@ -52,7 +62,10 @@ export class InventoryController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @Post()
-  create(@Body() dto: CreateInventoryItemDto, @CurrentUser() user: AuthPayload) {
+  create(
+    @Body() dto: CreateInventoryItemDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
     return this.inventory.create(dto, user.sub, user.fullName);
   }
 
@@ -83,6 +96,17 @@ export class InventoryController {
     @CurrentUser() user: AuthPayload,
   ) {
     return this.inventory.addTransaction(id, dto, user.sub, user.fullName);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Post(':id/count')
+  count(
+    @Param('id') id: string,
+    @Body() dto: StockCountDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    return this.inventory.count(id, dto, user.sub, user.fullName);
   }
 
   @UseGuards(RolesGuard)

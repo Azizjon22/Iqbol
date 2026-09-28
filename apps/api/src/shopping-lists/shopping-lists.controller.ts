@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -17,8 +19,9 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthPayload } from '../common/types/auth-payload';
 import { ShoppingListsService } from './shopping-lists.service';
 import { CreateShoppingListDto } from './dto/create-shopping-list.dto';
-import { MarkPurchasedDto } from './dto/mark-purchased.dto';
+import { MarkPurchasedDto, UpdateItemPriceDto } from './dto/mark-purchased.dto';
 import { UpdateShoppingListStatusDto } from './dto/update-status.dto';
+import { UpdateShoppingListItemsDto } from './dto/update-items.dto';
 
 @Controller('shopping-lists')
 export class ShoppingListsController {
@@ -31,6 +34,12 @@ export class ShoppingListsController {
   }
 
   @UseGuards(WorkerGuard)
+  @Delete(':id')
+  cancel(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
+    return this.lists.cancelByWorker(id, user.sub, user.fullName);
+  }
+
+  @UseGuards(WorkerGuard)
   @Get('mine')
   findMine(@CurrentUser() user: AuthPayload) {
     return this.lists.findMineForWorker(user.sub);
@@ -39,15 +48,18 @@ export class ShoppingListsController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @Get()
-  findAll(@Query('status') status?: ShoppingListStatus) {
-    return this.lists.findAll(status);
+  findAll(
+    @CurrentUser() user: AuthPayload,
+    @Query('status') status?: ShoppingListStatus,
+  ) {
+    return this.lists.findAll(user.role, status);
   }
 
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @Patch('mark-all-seen')
   markAllSeen(@CurrentUser() user: AuthPayload) {
-    return this.lists.markAllSeen(user.sub);
+    return this.lists.markAllSeen(user.role, user.sub);
   }
 
   @UseGuards(RolesGuard)
@@ -68,7 +80,25 @@ export class ShoppingListsController {
     if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
       throw new ForbiddenException("Bu amal uchun ruxsatingiz yo'q");
     }
-    return this.lists.findOne(id);
+    return this.lists.findOne(id, user.role);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Put(':id/items')
+  updateItems(
+    @Param('id') id: string,
+    @Body() dto: UpdateShoppingListItemsDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    return this.lists.updateItems(id, dto, user.sub, user.fullName);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Post(':id/approve')
+  approve(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
+    return this.lists.approve(id, user.sub, user.fullName);
   }
 
   @UseGuards(RolesGuard)
@@ -79,7 +109,32 @@ export class ShoppingListsController {
     @Body() dto: UpdateShoppingListStatusDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.lists.updateStatus(id, dto.status, user.sub, user.fullName);
+    return this.lists.updateStatus(
+      id,
+      dto.status,
+      user.sub,
+      user.fullName,
+      user.role,
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Patch(':id/items/:itemId/price')
+  updateItemPrice(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateItemPriceDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    return this.lists.updateItemPrice(
+      id,
+      itemId,
+      dto,
+      user.sub,
+      user.fullName,
+      user.role,
+    );
   }
 
   @UseGuards(RolesGuard)
@@ -91,6 +146,13 @@ export class ShoppingListsController {
     @Body() dto: MarkPurchasedDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.lists.markItemPurchased(id, itemId, dto, user.sub, user.fullName);
+    return this.lists.markItemPurchased(
+      id,
+      itemId,
+      dto,
+      user.sub,
+      user.fullName,
+      user.role,
+    );
   }
 }

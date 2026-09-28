@@ -95,6 +95,7 @@ enum InventoryTxnType {
 enum ShoppingListStatus {
   SUBMITTED
   REVIEWED
+  APPROVED
   PURCHASED
   CLOSED
 }
@@ -135,6 +136,7 @@ model StaffUser {
   approvedWorkers       Worker[]                 @relation("WorkerApprovedBy")
   inventoryTransactions InventoryTransaction[]
   reviewedShoppingLists ShoppingList[]           @relation("ShoppingListReviewedBy")
+  approvedShoppingLists ShoppingList[]           @relation("ShoppingListApprovedBy")
   payments              Payment[]
   expenses              EventExpense[]
 
@@ -224,6 +226,11 @@ model Event {
   menu          Menu        @relation(fields: [menuId], references: [id])
   totalPrice    Decimal     @db.Decimal(14, 2)
   status        EventStatus @default(PENDING)
+  // The couple's pick from the menu's options — chefs plan shopping around
+  // these and the guest count. Stored as names so later menu edits don't
+  // rewrite what was agreed. Set by SUPER_ADMIN only.
+  firstDish     String?
+  secondDish    String?
   notes         String?
   createdById   String
   createdBy     StaffUser   @relation("EventCreatedBy", fields: [createdById], references: [id])
@@ -304,6 +311,13 @@ model ShoppingList {
   reviewedById   String?
   reviewedBy     StaffUser?          @relation("ShoppingListReviewedBy", fields: [reviewedById], references: [id])
   reviewedAt     DateTime?
+  // Set when SUPER_ADMIN forwards the (possibly edited) list to ADMIN —
+  // ADMIN never sees a list before this.
+  approvedById   String?
+  approvedBy     StaffUser?          @relation("ShoppingListApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+  // Clears ADMIN's notification badge once they open the lists page.
+  adminSeenAt    DateTime?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -319,6 +333,9 @@ model ShoppingListItem {
   shoppingList   ShoppingList  @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   name           String
   quantity       Decimal       @db.Decimal(12, 3)
+  // What the chef originally asked for, recorded the first time SUPER_ADMIN
+  // changes the quantity. 0 means SUPER_ADMIN added the item themselves.
+  originalQuantity Decimal?    @db.Decimal(12, 3)
   unit           Unit
   unitPrice      Decimal?      @db.Decimal(12, 2)
   isPurchased    Boolean       @default(false)
