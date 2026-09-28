@@ -4,4 +4,4 @@ export interface Brand {
   logoUrl: string | null;
 }
 
-export const DEFAULT_BRAND: Brand = { brandName: "Shodiyora", logoUrl: null };
+export const DEFAULT_BRAND: Brand = { brandName: "Iqbol", logoUrl: null };

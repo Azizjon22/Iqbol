@@ -28,7 +28,7 @@ import {
   MENU_MEDIA_SECTION_LABELS_UZ,
   type MenuDishCategory,
   type MenuMediaSection,
-} from "@shodiyora/shared";
+} from "@iqbol/shared";
 import type { Menu, MenuDish, MenuMedia } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { SafeImage } from "@/components/menus/showcase/safe-image";
@@ -155,7 +155,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{menu.name}</h1>
                   {menu.isVip && (
-                    <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[#c99a52] via-[#f1d9a0] to-[#c99a52] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#24180a]">
+                    <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[#2b7ec4] via-[#d6efff] to-[#2b7ec4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#071422]">
                       <Crown className="h-3 w-3" /> VIP
                     </span>
                   )}
@@ -393,7 +393,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                                 </span>
                               )}
                               {isCover && (
-                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-[#f1d9a0] backdrop-blur">
+                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-[#d6efff] backdrop-blur">
                                   <Star className="h-3 w-3 fill-current" /> Muqova
                                 </span>
                               )}

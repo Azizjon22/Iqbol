@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { EVENT_STATUSES } from "@shodiyora/shared";
+import { EVENT_STATUSES } from "@iqbol/shared";
 import { Select } from "@/components/ui/input";
 import { updateEventStatusAction } from "@/lib/actions/events.actions";
 

@@ -1,4 +1,4 @@
-import type { ProductCategory, ShoppingListStatus } from "@shodiyora/shared";
+import type { ProductCategory, ShoppingListStatus } from "@iqbol/shared";
 import type { ProductCatalogItem, ShoppingList, ShoppingListItem } from "@/lib/types";
 
 export type Stage = "review" | "buying" | "done";

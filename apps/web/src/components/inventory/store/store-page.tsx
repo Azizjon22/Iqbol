@@ -21,7 +21,7 @@ import {
   PRODUCT_CATEGORY_LABELS_UZ,
   type ProductCategory,
   type StaffRole,
-} from "@shodiyora/shared";
+} from "@iqbol/shared";
 import type { InventoryItem, InventoryTxn, UpcomingEvent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";

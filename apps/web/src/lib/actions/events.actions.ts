@@ -7,7 +7,7 @@ import {
   updateEventSchema,
   createPaymentSchema,
   createEventExpenseSchema,
-} from "@shodiyora/shared";
+} from "@iqbol/shared";
 import { apiFetch } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 

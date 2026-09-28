@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { WORKER_GENDERS, WORKER_POSITIONS, workerRegisterSchema } from "@shodiyora/shared";
+import { WORKER_GENDERS, WORKER_POSITIONS, workerRegisterSchema } from "@iqbol/shared";
 import { Input, Label, Select, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ImageDropzone } from "@/components/uploads/image-dropzone";

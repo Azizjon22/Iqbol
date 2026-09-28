@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, PenLine, Soup, UtensilsCrossed } from "lucide-react";
-import type { MenuDishCategory } from "@shodiyora/shared";
+import type { MenuDishCategory } from "@iqbol/shared";
 import type { Menu } from "@/lib/types";
 import { Input, Label, Select } from "@/components/ui/input";
 import { formatSom, cn } from "@/lib/utils";

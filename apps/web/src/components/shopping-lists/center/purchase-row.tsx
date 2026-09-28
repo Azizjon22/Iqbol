@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Pencil, ShoppingBag, UtensilsCrossed, X } from "lucide-react";
-import { UNIT_LABELS_UZ } from "@shodiyora/shared";
+import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { ProductCatalogItem, ShoppingListItem } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { ItemQuantity } from "@/components/shopping-lists/item-quantity";

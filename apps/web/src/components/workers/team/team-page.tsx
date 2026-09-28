@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CalendarDays, ChefHat, Clock, LayoutGrid, List, Plus, Search, UserCheck, UserRound, Users, X } from "lucide-react";
-import { WORKER_GENDERS, WORKER_GENDER_LABELS_UZ, WORKER_POSITIONS, WORKER_POSITION_LABELS_UZ, type StaffRole, type WorkerGender, type WorkerPosition } from "@shodiyora/shared";
+import { WORKER_GENDERS, WORKER_GENDER_LABELS_UZ, WORKER_POSITIONS, WORKER_POSITION_LABELS_UZ, type StaffRole, type WorkerGender, type WorkerPosition } from "@iqbol/shared";
 import { approveWorkerAction, deleteWorkerAction, rejectWorkerAction } from "@/lib/actions/workers.actions";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";

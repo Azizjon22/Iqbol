@@ -1,4 +1,4 @@
-import { UNIT_LABELS_UZ } from "@shodiyora/shared";
+import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { ShoppingListItem } from "@/lib/types";
 
 /** "5 kg", or "8 → 5 kg" when SUPER_ADMIN corrected the chef's figure. */

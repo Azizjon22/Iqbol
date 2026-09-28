@@ -12,7 +12,7 @@ import type {
   WorkerGender,
   WorkerPosition,
   WorkerStatus,
-} from "@shodiyora/shared";
+} from "@iqbol/shared";
 
 export interface Menu {
   id: string;

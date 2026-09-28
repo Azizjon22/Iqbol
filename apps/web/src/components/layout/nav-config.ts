@@ -1,4 +1,4 @@
-import type { StaffRole } from "@shodiyora/shared";
+import type { StaffRole } from "@iqbol/shared";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,

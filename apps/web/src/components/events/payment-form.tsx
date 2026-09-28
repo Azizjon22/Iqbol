@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef } from "react";
-import { PAYMENT_METHODS } from "@shodiyora/shared";
+import { PAYMENT_METHODS } from "@iqbol/shared";
 import { addPaymentAction, addRefundAction, type FormActionState } from "@/lib/actions/events.actions";
 import { Input, Select, Label, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

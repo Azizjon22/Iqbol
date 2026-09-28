@@ -35,7 +35,7 @@ export function BrandMark({
         className,
       )}
     >
-      {(label.trim()[0] ?? "S").toUpperCase()}
+      {(label.trim()[0] ?? "I").toUpperCase()}
     </span>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { WORKER_GENDERS, WORKER_POSITIONS } from "@shodiyora/shared";
+import { WORKER_GENDERS, WORKER_POSITIONS } from "@iqbol/shared";
 import { createWorkerByStaffAction, type FormActionState } from "@/lib/actions/workers.actions";
 import { Input, Label, Select, FieldError } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";

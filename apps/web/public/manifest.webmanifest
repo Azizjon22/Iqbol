@@ -1,11 +1,11 @@
 {
-  "name": "Shodiyora — To'yxona boshqaruv tizimi",
-  "short_name": "Shodiyora",
-  "description": "Shodiyora to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.",
+  "name": "Iqbol — To'yxona boshqaruv tizimi",
+  "short_name": "Iqbol",
+  "description": "Iqbol to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf8f6",
-  "theme_color": "#8a2e3b",
+  "background_color": "#f3f7fc",
+  "theme_color": "#1565b8",
   "icons": [
     {
       "src": "/icon.svg",

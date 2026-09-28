@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, KeyRound, Link2, Palette, Phone, RotateCcw, ShieldCheck } from "lucide-react";
-import type { StaffRole } from "@shodiyora/shared";
+import type { StaffRole } from "@iqbol/shared";
 import { changeStaffPasswordAction } from "@/lib/actions/auth.actions";
 import type { Brand } from "@/lib/brand-shared";
 import { BrandMark } from "@/components/brand/brand-mark";
@@ -85,9 +85,9 @@ function BrandPreview({ name, logoUrl }: { name: string; logoUrl: string | null 
         <BrandMark name={shown} logoUrl={logoUrl} className="mx-auto h-12 w-12 text-xl shadow-lg shadow-primary/25" />
         <p className="font-display mt-2 truncate text-2xl font-semibold">{shown}</p>
       </div>
-      <div className="rounded-xl bg-[#0d0a0b] p-4 text-center text-white">
+      <div className="rounded-xl bg-[#071422] p-4 text-center text-white">
         <p className="mb-2 text-[10px] uppercase tracking-wider text-white/50">Mijozga taqdimot</p>
-        <p className="truncate text-[10px] font-medium uppercase tracking-[0.35em] text-[#e9cf98]">{shown} · To&apos;y menyusi</p>
+        <p className="truncate text-[10px] font-medium uppercase tracking-[0.35em] text-[#b7dff8]">{shown} · To&apos;y menyusi</p>
       </div>
     </div>
   );
@@ -164,7 +164,7 @@ function BrandCard({ brand }: { brand: Brand }) {
         <div className="space-y-5">
           <div>
             <Label htmlFor="brandName">Loyiha nomi</Label>
-            <Input id="brandName" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="masalan: Shodiyora" />
+            <Input id="brandName" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="masalan: Iqbol" />
             <p className={cn("mt-1 text-xs", validName ? "text-muted-foreground" : "text-destructive")}>{trimmed.length}/40 belgi</p>
           </div>
 

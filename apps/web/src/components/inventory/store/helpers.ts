@@ -1,4 +1,4 @@
-import { UNIT_LABELS_UZ } from "@shodiyora/shared";
+import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { InventoryItem } from "@/lib/types";
 
 export type StockLevel = "out" | "low" | "ok";

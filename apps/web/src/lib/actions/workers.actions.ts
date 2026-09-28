@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { workerRegisterSchema } from "@shodiyora/shared";
+import { workerRegisterSchema } from "@iqbol/shared";
 import { apiFetch } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 

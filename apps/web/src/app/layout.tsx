@@ -27,12 +27,12 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${brandName} | To'yxona boshqaruv tizimi`,
     description: `${brandName} to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.`,
     manifest: "/manifest.webmanifest",
-    icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : { icon: "/icon.svg", apple: "/icon.svg" },
+    icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : { icon: "/icon.svg?v=2", apple: "/icon.svg?v=2" },
   };
 }
 
 export const viewport: Viewport = {
-  themeColor: "#7a1f3d",
+  themeColor: "#1565b8",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

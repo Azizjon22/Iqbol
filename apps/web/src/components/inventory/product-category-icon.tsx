@@ -1,5 +1,5 @@
 import { Apple, Beef, Carrot, CupSoda, Droplet, FlaskConical, Leaf, Milk, Package, Wheat } from "lucide-react";
-import type { ProductCategory } from "@shodiyora/shared";
+import type { ProductCategory } from "@iqbol/shared";
 
 const ICONS: Record<ProductCategory, typeof Carrot> = {
   VEGETABLE: Carrot,

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Package, UtensilsCrossed } from "lucide-react";
-import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS_UZ, UNITS, UNIT_LABELS_UZ, type InventoryCategory } from "@shodiyora/shared";
+import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS_UZ, UNITS, UNIT_LABELS_UZ, type InventoryCategory } from "@iqbol/shared";
 import type { InventoryItem } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

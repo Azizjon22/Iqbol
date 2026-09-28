@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { MENU_DISH_CATEGORIES, MENU_DISH_CATEGORY_LABELS_UZ, type MenuDishCategory } from "@shodiyora/shared";
+import { MENU_DISH_CATEGORIES, MENU_DISH_CATEGORY_LABELS_UZ, type MenuDishCategory } from "@iqbol/shared";
 import type { MenuDish } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

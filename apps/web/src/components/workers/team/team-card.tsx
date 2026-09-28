@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarClock, CalendarPlus, Check, KeyRound, Pencil, Phone, RotateCcw, Trash2, UserX } from "lucide-react";
-import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@shodiyora/shared";
+import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@iqbol/shared";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { formatDate, formatTime, cn } from "@/lib/utils";
 import type { TeamWorker } from "./types";

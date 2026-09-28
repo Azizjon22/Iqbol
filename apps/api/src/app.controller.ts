@@ -6,6 +6,6 @@ export class AppController {
   @Public()
   @Get('health')
   health() {
-    return { status: 'ok', service: 'shodiyora-api' };
+    return { status: 'ok', service: 'iqbol-api' };
   }
 }

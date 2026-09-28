@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Check, ChevronDown, ClipboardList, Plus, UserCheck, Users, UtensilsCrossed } from "lucide-react";
-import { MENU_DISH_CATEGORIES, MENU_DISH_CATEGORY_LABELS_UZ } from "@shodiyora/shared";
+import { MENU_DISH_CATEGORIES, MENU_DISH_CATEGORY_LABELS_UZ } from "@iqbol/shared";
 import { formatDate, formatTime, cn } from "@/lib/utils";
 import { WEEKDAYS_SHORT, daysUntil, whenLabel, type ChefEvent } from "./types";
 

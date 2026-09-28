@@ -2,7 +2,7 @@ import type { Dictionary } from "../types";
 
 export const ru: Dictionary = {
   common: {
-    brand: "Shodiyora",
+    brand: "Iqbol",
     close: "Закрыть",
     openMenu: "Меню",
     closeMenu: "Закрыть меню",

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Send, Trash2, X } from "lucide-react";
-import { UNIT_LABELS_UZ, UNITS, type Unit } from "@shodiyora/shared";
+import { UNIT_LABELS_UZ, UNITS, type Unit } from "@iqbol/shared";
 import type { ShoppingList } from "@/lib/types";
 import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

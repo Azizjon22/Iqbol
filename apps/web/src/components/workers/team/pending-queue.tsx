@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Check, Clock, Phone, X } from "lucide-react";
-import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@shodiyora/shared";
+import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@iqbol/shared";
 import { approveWorkerAction, rejectWorkerAction } from "@/lib/actions/workers.actions";
 import { formatDate } from "@/lib/utils";
 import type { TeamWorker } from "./types";

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ClipboardCheck, Minus, Plus } from "lucide-react";
-import { UNIT_LABELS_UZ } from "@shodiyora/shared";
+import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { InventoryItem, UpcomingEvent } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

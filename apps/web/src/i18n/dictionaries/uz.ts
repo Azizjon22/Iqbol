@@ -1,6 +1,6 @@
 export const uz = {
   common: {
-    brand: "Shodiyora",
+    brand: "Iqbol",
     close: "Yopish",
     openMenu: "Menyu",
     closeMenu: "Menyuni yopish",

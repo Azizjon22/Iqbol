@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MENU_MEDIA_SECTIONS, MENU_MEDIA_SECTION_LABELS_UZ, type MenuMediaSection } from "@shodiyora/shared";
+import { MENU_MEDIA_SECTIONS, MENU_MEDIA_SECTION_LABELS_UZ, type MenuMediaSection } from "@iqbol/shared";
 import type { MenuMedia } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

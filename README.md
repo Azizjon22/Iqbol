@@ -1,4 +1,4 @@
-# Shodiyora — To'yxona boshqaruv tizimi
+# Iqbol — To'yxona boshqaruv tizimi
 
 Monorepo: `apps/api` (NestJS + Prisma + PostgreSQL), `apps/web` (Next.js 16),
 `packages/shared` (umumiy TypeScript turlari va zod sxemalari).
@@ -24,16 +24,16 @@ cp apps/web/.env.example apps/web/.env.local
 #   openssl rand -base64 32
 
 # Umumiy paketni build qilish
-pnpm --filter @shodiyora/shared build
+pnpm --filter @iqbol/shared build
 
 # Prisma sxema va boshlang'ich ma'lumotlar
-pnpm --filter @shodiyora/api prisma:generate
-pnpm --filter @shodiyora/api prisma:migrate
-pnpm --filter @shodiyora/api prisma:seed
+pnpm --filter @iqbol/api prisma:generate
+pnpm --filter @iqbol/api prisma:migrate
+pnpm --filter @iqbol/api prisma:seed
 ```
 
 Seed skripti bitta `super_admin` hisobi yaratadi:
-telefon `+998900000000`, parol `Shodiyora2024!` (`.env`dagi
+telefon `+998900000000`, parol `Iqbol2024!` (`.env`dagi
 `SEED_SUPER_ADMIN_PHONE`/`SEED_SUPER_ADMIN_PASSWORD` orqali o'zgartiriladi) —
 **production'ga chiqarishdan oldin bu parolni albatta almashtiring.**
 
@@ -67,6 +67,6 @@ brauzerdan bevosita R2'ga (presigned URL orqali) yuklanadi.
 ## Foydali buyruqlar
 
 ```bash
-pnpm --filter @shodiyora/api prisma:studio   # ma'lumotlar bazasini ko'rish
+pnpm --filter @iqbol/api prisma:studio   # ma'lumotlar bazasini ko'rish
 pnpm build                                    # barcha paketlarni build qilish
 ```

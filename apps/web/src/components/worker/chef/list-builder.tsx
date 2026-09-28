@@ -10,7 +10,7 @@ import {
   UNIT_LABELS_UZ,
   type ProductCategory,
   type Unit,
-} from "@shodiyora/shared";
+} from "@iqbol/shared";
 import type { ProductCatalogItem, ShoppingList } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

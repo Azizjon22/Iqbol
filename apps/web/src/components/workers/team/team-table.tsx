@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarPlus, Phone } from "lucide-react";
-import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@shodiyora/shared";
+import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@iqbol/shared";
 import { formatDate, formatTime, cn } from "@/lib/utils";
 import type { TeamWorker } from "./types";
 import { WorkerAvatar } from "./worker-avatar";

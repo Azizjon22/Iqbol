@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, RefreshCw } from "lucide-react";
-import type { StaffRole } from "@shodiyora/shared";
+import type { StaffRole } from "@iqbol/shared";
 import type { StaffUserSummary } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

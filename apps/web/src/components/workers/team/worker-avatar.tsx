@@ -1,5 +1,5 @@
 import { ChefHat } from "lucide-react";
-import type { WorkerPosition } from "@shodiyora/shared";
+import type { WorkerPosition } from "@iqbol/shared";
 import { cn } from "@/lib/utils";
 import { initials } from "./types";
 

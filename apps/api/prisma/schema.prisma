@@ -416,7 +416,7 @@ model AuditLog {
 /// client presentation). Editable by SUPER_ADMIN from the Profil page.
 model AppSettings {
   id        String   @id @default("app")
-  brandName String   @default("Shodiyora")
+  brandName String   @default("Iqbol")
   logoUrl   String?
   updatedAt DateTime @updatedAt
 

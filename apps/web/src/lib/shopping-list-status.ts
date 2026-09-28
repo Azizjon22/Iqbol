@@ -1,4 +1,4 @@
-import type { ShoppingListStatus } from "@shodiyora/shared";
+import type { ShoppingListStatus } from "@iqbol/shared";
 
 type BadgeVariant = "default" | "primary" | "success" | "accent";
 

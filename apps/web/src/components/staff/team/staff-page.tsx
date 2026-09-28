@@ -16,7 +16,7 @@ import {
   UserCheck,
   Users,
 } from "lucide-react";
-import { WORKER_GENDERS, WORKER_GENDER_LABELS_UZ, type StaffRole } from "@shodiyora/shared";
+import { WORKER_GENDERS, WORKER_GENDER_LABELS_UZ, type StaffRole } from "@iqbol/shared";
 import type { StaffUserSummary, WorkerSummary } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";

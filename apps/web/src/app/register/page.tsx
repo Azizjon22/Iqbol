@@ -19,7 +19,7 @@ export default function RegisterPage() {
         <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">{t("common.brand")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("authExtra.registerWelcome")}</p>
       </div>
-      <div className="relative w-full max-w-sm animate-soft-scale rounded-2xl border border-border/80 bg-card p-6 shadow-[0_12px_40px_rgba(28,25,23,0.06)]">
+      <div className="relative w-full max-w-sm animate-soft-scale rounded-2xl border border-border/80 bg-card p-6 shadow-[0_12px_40px_rgba(12,27,46,0.06)]">
         <RegisterForm />
       </div>
     </main>

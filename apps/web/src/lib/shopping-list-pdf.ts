@@ -1,7 +1,7 @@
 "use client";
 
 import { jsPDF } from "jspdf";
-import { UNIT_LABELS_UZ } from "@shodiyora/shared";
+import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { ShoppingList } from "@/lib/types";
 import { formatDate, formatDateTime, formatSom } from "@/lib/utils";
 

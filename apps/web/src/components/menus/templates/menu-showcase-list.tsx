@@ -55,7 +55,7 @@ export function MenuShowcaseList({ menus }: { menus: Menu[] }) {
       <PresentationHeader />
 
       {/* ---------- Hero ---------- */}
-      <section className="relative isolate overflow-hidden bg-[#0d0a0b] text-white">
+      <section className="relative isolate overflow-hidden bg-[#071422] text-white">
         {backdrop && (
           <div className="absolute inset-0 -z-20 animate-ken-burns">
             <SafeImage
@@ -66,18 +66,18 @@ export function MenuShowcaseList({ menus }: { menus: Menu[] }) {
             />
           </div>
         )}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0d0a0b]/70 via-[#0d0a0b]/60 to-[#0d0a0b]" />
-        <OrnamentalPattern id="list-hero-ornament" className="-z-10 text-[#d4a85c] opacity-[0.05]" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#071422]/70 via-[#071422]/60 to-[#071422]" />
+        <OrnamentalPattern id="list-hero-ornament" className="-z-10 text-[#5eb6ef] opacity-[0.05]" />
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(212,120,150,0.22),transparent)]" />
 
         <div className="mx-auto max-w-4xl px-4 pb-24 pt-16 text-center sm:px-6 sm:pb-32 sm:pt-24 2xl:max-w-5xl">
-          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-[#e9cf98] animate-fade-up">
+          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-[#b7dff8] animate-fade-up">
             {t("common.brand")} · {t("presentation.listEyebrow")}
           </p>
           <h1 className="font-display mt-5 text-[clamp(2.6rem,min(8vw,12svh),7rem)] font-semibold leading-[0.95] tracking-tight animate-fade-up">
             {t("presentation.heroTitle")}
           </h1>
-          <OrnamentDivider className="mt-7 text-[#d4a85c]" />
+          <OrnamentDivider className="mt-7 text-[#5eb6ef]" />
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg 2xl:max-w-2xl">
             {t("presentation.heroSubtitle")}
           </p>
@@ -86,7 +86,7 @@ export function MenuShowcaseList({ menus }: { menus: Menu[] }) {
               <span className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 backdrop-blur">
                 {t("presentation.packagesCount", { count: sorted.length })}
               </span>
-              <span className="rounded-full border border-[#e9cf98]/30 bg-[#e9cf98]/10 px-4 py-1.5 text-[#f1d9a0] lining-nums backdrop-blur">
+              <span className="rounded-full border border-[#b7dff8]/30 bg-[#b7dff8]/10 px-4 py-1.5 text-[#d6efff] lining-nums backdrop-blur">
                 {prices.length > 1 && prices[0] !== prices[prices.length - 1]
                   ? `${formatSom(prices[0], locale).replace(/\s\S+$/, "")} — ${formatSom(prices[prices.length - 1], locale)}`
                   : formatSom(prices[0], locale)}
@@ -171,11 +171,11 @@ export function MenuShowcaseList({ menus }: { menus: Menu[] }) {
                 <Link
                   href={`/showcase/${menu.id}?guests=${guests}`}
                   className={cn(
-                    "@container group relative flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-[26px] bg-[#0d0a0b] text-white shadow-xl shadow-black/15 transition-all duration-500",
+                    "@container group relative flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-[26px] bg-[#071422] text-white shadow-xl shadow-black/15 transition-all duration-500",
                     "hover:-translate-y-1.5 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:aspect-[3/4]",
                     menu.isVip
-                      ? "ring-1 ring-[#d4a85c]/70 shadow-[#d4a85c]/20 hover:shadow-[#d4a85c]/35"
-                      : "ring-1 ring-white/5 hover:ring-[#d4a85c]/40",
+                      ? "ring-1 ring-[#5eb6ef]/70 shadow-[#5eb6ef]/20 hover:shadow-[#5eb6ef]/35"
+                      : "ring-1 ring-white/5 hover:ring-[#5eb6ef]/40",
                   )}
                 >
                   <div className="absolute inset-0">
@@ -186,17 +186,17 @@ export function MenuShowcaseList({ menus }: { menus: Menu[] }) {
                       className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.06]"
                     />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a0b] from-35% via-[#0d0a0b]/70 via-60% to-[#0d0a0b]/10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#071422] from-35% via-[#071422]/70 via-60% to-[#071422]/10" />
                   {menu.isVip && (
-                    <div className="pointer-events-none absolute inset-2 rounded-[20px] border border-[#d4a85c]/40" />
+                    <div className="pointer-events-none absolute inset-2 rounded-[20px] border border-[#5eb6ef]/40" />
                   )}
 
                   <div className="absolute inset-x-0 top-0 flex items-start justify-between p-5">
-                    <span className="font-display flex h-11 w-11 items-center justify-center rounded-full border border-[#e9cf98]/40 bg-black/30 text-lg font-semibold text-[#f1d9a0] backdrop-blur-md">
+                    <span className="font-display flex h-11 w-11 items-center justify-center rounded-full border border-[#b7dff8]/40 bg-black/30 text-lg font-semibold text-[#d6efff] backdrop-blur-md">
                       {ROMAN[i] ?? i + 1}
                     </span>
                     {menu.isVip && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#c99a52] via-[#f1d9a0] to-[#c99a52] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#24180a] shadow-lg shadow-black/30">
+                      <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#2b7ec4] via-[#d6efff] to-[#2b7ec4] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#071422] shadow-lg shadow-black/30">
                         <Crown className="h-3.5 w-3.5" /> {t("common.vip")}
                       </span>
                     )}
@@ -207,7 +207,7 @@ export function MenuShowcaseList({ menus }: { menus: Menu[] }) {
                     {menu.description && (
                       <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/65">{menu.description}</p>
                     )}
-                    <div className="mt-4 h-px w-full bg-gradient-to-r from-[#d4a85c]/60 via-[#d4a85c]/20 to-transparent" />
+                    <div className="mt-4 h-px w-full bg-gradient-to-r from-[#5eb6ef]/60 via-[#5eb6ef]/20 to-transparent" />
                     <div className="mt-4 flex items-end justify-between gap-3">
                       <div>
                         <p className="font-display text-gilded text-[clamp(2rem,12cqw,3.5rem)] font-semibold leading-none lining-nums tabular-nums">
@@ -217,20 +217,20 @@ export function MenuShowcaseList({ menus }: { menus: Menu[] }) {
                           {t("common.som")} · {t("presentation.perGuest")}
                         </p>
                       </div>
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/5 backdrop-blur transition-all duration-300 group-hover:border-transparent group-hover:bg-[#f1d9a0] group-hover:text-[#24180a]">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/5 backdrop-blur transition-all duration-300 group-hover:border-transparent group-hover:bg-[#d6efff] group-hover:text-[#071422]">
                         <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5" />
                       </span>
                     </div>
                     <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 backdrop-blur-md">
                       <span className="text-xs text-white/60">{t("presentation.totalFor", { count: guests })}</span>
-                      <span key={guests} className="text-sm font-semibold lining-nums tabular-nums text-[#f1d9a0] animate-soft-scale">
+                      <span key={guests} className="text-sm font-semibold lining-nums tabular-nums text-[#d6efff] animate-soft-scale">
                         {formatSom(price * guests, locale)}
                       </span>
                     </div>
                     <p className="mt-3 text-xs text-white/50">
                       {t("presentation.dishesCount", { count: menu.dishes.length })}
-                      <span className="mx-2 text-[#d4a85c]">·</span>
-                      <span className="text-[#e9cf98] opacity-80 transition-opacity group-hover:opacity-100">
+                      <span className="mx-2 text-[#5eb6ef]">·</span>
+                      <span className="text-[#b7dff8] opacity-80 transition-opacity group-hover:opacity-100">
                         {t("presentation.viewMenu")}
                       </span>
                     </p>

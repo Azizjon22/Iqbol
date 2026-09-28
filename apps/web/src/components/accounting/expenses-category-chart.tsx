@@ -2,19 +2,19 @@
 
 import { useMemo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import type { EventExpenseCategory } from "@shodiyora/shared";
+import type { EventExpenseCategory } from "@iqbol/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { formatSom } from "@/lib/utils";
 
 const COLORS = [
-  "#7a1f3d",
-  "#9a6b2f",
-  "#2f6b4f",
-  "#b42318",
-  "#5c4d7a",
+  "#1565b8",
+  "#3aa0e0",
+  "#1f7a62",
+  "#c2342a",
+  "#5b6fd6",
   "#1d6a8a",
-  "#8a4b2f",
+  "#4c8ec4",
   "#3d5a80",
   "#6b7280",
 ];

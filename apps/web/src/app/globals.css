@@ -2,46 +2,46 @@
 
 :root,
 :root[data-theme="light"] {
-  --background: #f7f6f8;
-  --foreground: #1c1917;
+  --background: #f3f7fc;
+  --foreground: #0c1b2e;
   --card: #ffffff;
-  --card-foreground: #1c1917;
-  --border: #e7e2e4;
-  --input: #e7e2e4;
-  --muted: #f0ecef;
-  --muted-foreground: #6b6469;
-  --primary: #7a1f3d;
-  --primary-foreground: #fdf8fa;
-  --accent: #9a6b2f;
-  --accent-foreground: #1f1608;
-  --destructive: #b42318;
+  --card-foreground: #0c1b2e;
+  --border: #d4e2f0;
+  --input: #d4e2f0;
+  --muted: #e7f1f9;
+  --muted-foreground: #5a7088;
+  --primary: #1565b8;
+  --primary-foreground: #f4f9ff;
+  --accent: #3aa0e0;
+  --accent-foreground: #042033;
+  --destructive: #c2342a;
   --destructive-foreground: #fef3f2;
-  --success: #2f6b4f;
-  --success-foreground: #f0faf4;
-  --ring: #7a1f3d;
+  --success: #1f7a62;
+  --success-foreground: #f0faf6;
+  --ring: #1565b8;
   --radius: 0.75rem;
-  --surface-glow: rgba(122, 31, 61, 0.08);
+  --surface-glow: rgba(21, 101, 184, 0.12);
 }
 
 :root[data-theme="dark"] {
-  --background: #161214;
-  --foreground: #f5f0f2;
-  --card: #201a1d;
-  --card-foreground: #f5f0f2;
-  --border: #3a3034;
-  --input: #3a3034;
-  --muted: #2a2226;
-  --muted-foreground: #b0a6ab;
-  --primary: #d47896;
-  --primary-foreground: #2a0c16;
-  --accent: #d4a85c;
-  --accent-foreground: #24180a;
+  --background: #071422;
+  --foreground: #e7f2fb;
+  --card: #0e1e32;
+  --card-foreground: #e7f2fb;
+  --border: #1e334c;
+  --input: #1e334c;
+  --muted: #13263c;
+  --muted-foreground: #9bb3c9;
+  --primary: #6eb6f0;
+  --primary-foreground: #041018;
+  --accent: #8fd0f7;
+  --accent-foreground: #041422;
   --destructive: #f97066;
   --destructive-foreground: #2a0a08;
-  --success: #6fbf91;
-  --success-foreground: #0c1a12;
-  --ring: #d47896;
-  --surface-glow: rgba(212, 120, 150, 0.12);
+  --success: #5dcca0;
+  --success-foreground: #062016;
+  --ring: #6eb6f0;
+  --surface-glow: rgba(110, 182, 240, 0.16);
 }
 
 /* Presentation uses the same light/dark tokens as the dashboard */
@@ -81,7 +81,7 @@ body {
   font-family: var(--font-cormorant), Georgia, serif;
 }
 
-/* In a layer so border-* colour utilities (gold frames, selected states) can
+/* In a layer so border-* colour utilities (blue frames, selected states) can
    override it — unlayered, this beat every utility in Tailwind v4. */
 @layer base {
   * {
@@ -328,23 +328,23 @@ body {
   }
 }
 
-/* Gold-leaf text for prices and headings on the presentation. */
+/* Silk-blue text for prices and headings on the presentation. */
 .text-gilded {
-  background: linear-gradient(100deg, #b88a44 0%, #f1d9a0 38%, #c99a52 60%, #f5e3b5 82%, #b88a44 100%);
+  background: linear-gradient(100deg, #3d8ec8 0%, #d6efff 38%, #5eb6ef 60%, #eaf6ff 82%, #2b7ec4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 :root[data-theme="light"] .text-gilded-adaptive {
-  background: linear-gradient(100deg, #7a5320 0%, #b8873e 45%, #8a5f26 100%);
+  background: linear-gradient(100deg, #0c4a86 0%, #2a7ec8 45%, #1565b8 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 :root[data-theme="dark"] .text-gilded-adaptive {
-  background: linear-gradient(100deg, #b88a44 0%, #f1d9a0 38%, #c99a52 60%, #f5e3b5 82%, #b88a44 100%);
+  background: linear-gradient(100deg, #3d8ec8 0%, #d6efff 38%, #5eb6ef 60%, #eaf6ff 82%, #2b7ec4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

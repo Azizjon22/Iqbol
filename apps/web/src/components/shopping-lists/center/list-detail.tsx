@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarHeart, Check, CheckCheck, ChefHat, Lock } from "lucide-react";
-import { PRODUCT_CATEGORY_LABELS_UZ } from "@shodiyora/shared";
+import { PRODUCT_CATEGORY_LABELS_UZ } from "@iqbol/shared";
 import type { ProductCatalogItem, ShoppingList } from "@/lib/types";
 import { ShoppingListEditor } from "@/components/shopping-lists/shopping-list-editor";
 import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";

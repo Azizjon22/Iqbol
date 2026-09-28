@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, ChevronLeft, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
-import type { StaffRole } from "@shodiyora/shared";
+import type { StaffRole } from "@iqbol/shared";
 import { NAV_GROUPS, NAV_ITEMS, isNavActive } from "./nav-config";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/lib/actions/auth.actions";

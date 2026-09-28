@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { staffLoginSchema, workerLoginSchema } from "@shodiyora/shared";
+import { staffLoginSchema, workerLoginSchema } from "@iqbol/shared";
 import { clearSession, getSession, setSession, type SessionUser } from "@/lib/session";
 import { apiFetch, publicApiUrl } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";

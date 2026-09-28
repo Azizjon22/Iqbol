@@ -16,7 +16,7 @@ function daysAgo(days: number, hour = 18) {
 
 async function main() {
   const superAdminPhone = process.env.SEED_SUPER_ADMIN_PHONE ?? '+998900000000';
-  const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD ?? 'Shodiyora2024!';
+  const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD ?? 'Iqbol2024!';
 
   const passwordHash = await bcrypt.hash(superAdminPassword, 10);
   const adminHash = await bcrypt.hash('Admin2024!', 10);

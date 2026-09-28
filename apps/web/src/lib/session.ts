@@ -1,9 +1,9 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
-import type { StaffRole, WorkerPosition } from "@shodiyora/shared";
+import type { StaffRole, WorkerPosition } from "@iqbol/shared";
 
-export const SESSION_COOKIE = "shodiyora_session";
+export const SESSION_COOKIE = "iqbol_session";
 
 type StaffSessionUser = {
   kind: "STAFF";

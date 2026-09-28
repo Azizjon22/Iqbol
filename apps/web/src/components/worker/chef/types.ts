@@ -1,4 +1,4 @@
-import type { MenuDishCategory, ShoppingListStatus } from "@shodiyora/shared";
+import type { MenuDishCategory, ShoppingListStatus } from "@iqbol/shared";
 
 export interface ChefEvent {
   id: string;

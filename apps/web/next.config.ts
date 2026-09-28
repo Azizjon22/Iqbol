@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   // Phone and other LAN devices load dev scripts from these hosts.
   // 192.168.*.* covers Wi-Fi (192.168.0.146) and Ethernet (192.168.18.204).
   allowedDevOrigins: ["192.168.*.*"],
-  transpilePackages: ["@shodiyora/shared"],
+  transpilePackages: ["@iqbol/shared"],
   images: {
     remotePatterns: [
       {

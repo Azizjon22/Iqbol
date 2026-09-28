@@ -1,4 +1,4 @@
-import type { StaffRole } from "@shodiyora/shared";
+import type { StaffRole } from "@iqbol/shared";
 
 export const ROLE_META: Record<StaffRole, { label: string; tone: string; ring: string; can: string[] }> = {
   SUPER_ADMIN: {
