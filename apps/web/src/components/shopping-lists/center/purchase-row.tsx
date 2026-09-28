@@ -22,11 +22,13 @@ export function PurchaseRow({
   item,
   catalog,
   canBuy,
+  canFixPrice,
 }: {
   listId: string;
   item: ShoppingListItem;
   catalog?: ProductCatalogItem;
   canBuy: boolean;
+  canFixPrice: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -109,7 +111,7 @@ export function PurchaseRow({
                 1 {unit} · {formatSom(item.unitPrice ?? 0)}
               </p>
             </div>
-            {canBuy && !fixing && (
+            {canFixPrice && !fixing && (
               <button
                 type="button"
                 onClick={() => {
@@ -159,7 +161,7 @@ export function PurchaseRow({
                 </button>
               ))}
             </div>
-            {fixing && <span className="text-xs text-muted-foreground">Narxni tuzatish — omborga ta&apos;sir qilmaydi</span>}
+            <span className="text-xs text-muted-foreground">Faqat shu to&apos;y uchun — omborga tushmaydi</span>
           </div>
           <div className="mt-2.5 grid gap-2 min-[420px]:grid-cols-[1fr_auto]">
             <div className="relative">

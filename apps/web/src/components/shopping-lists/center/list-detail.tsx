@@ -40,7 +40,8 @@ export function ListDetail({
   const { total, bought, spent, complete } = listProgress(list);
   const current = STEPS.findIndex((s) => s.key === list.status);
   const sent = current >= 2;
-  const canBuy = sent && list.status !== "CLOSED";
+  const canBuy = !isSuperAdmin && list.status === "APPROVED";
+  const canFixPrice = !isSuperAdmin && (list.status === "APPROVED" || list.status === "PURCHASED");
   const groups = groupBySection(list.items, lookup);
   const stepTime: Partial<Record<(typeof STEPS)[number]["key"], string | null>> = {
     SUBMITTED: list.createdAt,
@@ -133,7 +134,7 @@ export function ListDetail({
           {isSuperAdmin && isShoppingListEditable(list.status) && <ShoppingListEditor list={list} />}
           {!sent && !isSuperAdmin && <p className="text-sm text-muted-foreground">Super admin tekshirib yuborgach xarid qilinadi.</p>}
           <div className="flex flex-wrap gap-2">
-            {list.status === "APPROVED" && complete && (
+            {list.status === "APPROVED" && complete && !isSuperAdmin && (
               <button
                 type="button"
                 onClick={() => setStatus("PURCHASED")}
@@ -174,7 +175,7 @@ export function ListDetail({
             </header>
             <ul className="divide-y divide-border border-b border-border last:border-b-0">
               {g.items.map((item) => (
-                <PurchaseRow key={item.id} listId={list.id} item={item} catalog={lookup(item.name)} canBuy={canBuy} />
+                <PurchaseRow key={item.id} listId={list.id} item={item} catalog={lookup(item.name)} canBuy={canBuy} canFixPrice={canFixPrice} />
               ))}
             </ul>
           </section>

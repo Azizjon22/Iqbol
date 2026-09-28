@@ -357,6 +357,17 @@ export class ShoppingListsService {
       );
     }
 
+    if (role !== 'ADMIN') {
+      throw new ForbiddenException(
+        "Mahsulotni faqat admin xarid qilgan deb belgilashi mumkin",
+      );
+    }
+    if (list.status !== 'APPROVED') {
+      throw new BadRequestException(
+        "Xarid faqat super admin yuborgan ro'yxatda qilinadi",
+      );
+    }
+
     const bought =
       dto.quantity !== undefined
         ? new Prisma.Decimal(dto.quantity)
@@ -364,29 +375,9 @@ export class ShoppingListsService {
     const { unitPrice, totalCost } = this.resolvePrice(dto, bought);
     const quantityChanged = !bought.equals(item.quantity);
 
-    // Stock-in and the purchase flag commit together or not at all, so a
-    // failure can never leave the store counted twice.
+    // Wedding purchases stay on the shopping list. They are spent on that
+    // event and must not change warehouse stock.
     await this.prisma.$transaction(async (tx) => {
-      // Match the store item regardless of how the chef capitalised it.
-      let stock = await tx.inventoryItem.findFirst({
-        where: { name: { equals: item.name.trim(), mode: 'insensitive' } },
-      });
-      if (stock && stock.unit !== item.unit) {
-        throw new BadRequestException(
-          `Omborda "${stock.name}" ${UNIT_UZ[stock.unit]}da hisoblanadi, ro'yxatda esa ${UNIT_UZ[item.unit]} — birlikni to'g'rilang`,
-        );
-      }
-      if (stock) {
-        stock = await tx.inventoryItem.update({
-          where: { id: stock.id },
-          data: { quantity: { increment: bought } },
-        });
-      } else {
-        stock = await tx.inventoryItem.create({
-          data: { name: item.name.trim(), unit: item.unit, quantity: bought },
-        });
-      }
-
       await tx.shoppingListItem.update({
         where: { id: itemId },
         data: {
@@ -403,22 +394,11 @@ export class ShoppingListsService {
             : {}),
         },
       });
-      await tx.inventoryTransaction.create({
-        data: {
-          itemId: stock.id,
-          type: 'IN',
-          quantity: bought,
-          note: `Bozorlik ro'yxatidan${list.event ? ` — ${list.event.clientName}` : ''}`,
-          sourceShoppingListItemId: itemId,
-          createdById: actorId,
-        },
-      });
 
-      // Last item bought → the whole list is done.
       const remaining = await tx.shoppingListItem.count({
         where: { shoppingListId: listId, isPurchased: false },
       });
-      if (remaining === 0 && list.status !== 'CLOSED') {
+      if (remaining === 0) {
         await tx.shoppingList.update({
           where: { id: listId },
           data: { status: 'PURCHASED' },
@@ -438,7 +418,7 @@ export class ShoppingListsService {
     return this.findOne(listId);
   }
 
-  /** Fix a mistyped price on an already-bought item; stock is untouched. */
+  /** Fix a mistyped price on an already-bought wedding item. */
   async updateItemPrice(
     listId: string,
     itemId: string,
