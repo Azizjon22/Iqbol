@@ -13,7 +13,7 @@ const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin", "cyrillic"],
   display: "swap",
-});
+})
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
