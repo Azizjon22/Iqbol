@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: iqbol-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: iqbol
+      POSTGRES_PASSWORD: iqbol
+      POSTGRES_DB: iqbol
+    ports:
+      - "5436:5432"
+    volumes:
+      - iqbol_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iqbol"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  iqbol_postgres_data:
+    name: iqbol_postgres_data

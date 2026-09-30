@@ -1,0 +1,403 @@
+@import "tailwindcss";
+
+:root,
+:root[data-theme="light"] {
+  --background: #f4f6f4;
+  --foreground: #111813;
+  --card: #ffffff;
+  --card-foreground: #111813;
+  --border: #d5ddd6;
+  --input: #d5ddd6;
+  --muted: #e7ece8;
+  --muted-foreground: #5c675f;
+  --primary: #111813;
+  --primary-foreground: #f4f6f4;
+  --accent: #3c4f44;
+  --accent-foreground: #f4f6f4;
+  --destructive: #c2342a;
+  --destructive-foreground: #fef3f2;
+  --success: #1f7a62;
+  --success-foreground: #f0faf6;
+  --ring: #111813;
+  --radius: 0.75rem;
+  --surface-glow: rgba(17, 24, 19, 0.08);
+}
+
+:root[data-theme="dark"] {
+  --background: #111813;
+  --foreground: #e7eee9;
+  --card: #1c2620;
+  --card-foreground: #e7eee9;
+  --border: #2c3a32;
+  --input: #2c3a32;
+  --muted: #24302a;
+  --muted-foreground: #a8b5ac;
+  --primary: #d5e0d8;
+  --primary-foreground: #111813;
+  --accent: #8fa898;
+  --accent-foreground: #111813;
+  --destructive: #f97066;
+  --destructive-foreground: #2a0a08;
+  --success: #5dcca0;
+  --success-foreground: #062016;
+  --ring: #d5e0d8;
+  --surface-glow: rgba(17, 24, 19, 0.45);
+}
+
+/* Presentation uses the same light/dark tokens as the dashboard */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-ring: var(--ring);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 0.2rem);
+  --radius-sm: calc(var(--radius) - 0.35rem);
+  --font-sans: var(--font-manrope);
+  --font-display: var(--font-cormorant);
+  --font-mono: var(--font-manrope);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-manrope), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-cormorant), Georgia, serif;
+}
+
+/* In a layer so border-* colour utilities (blue frames, selected states) can
+   override it — unlayered, this beat every utility in Tailwind v4. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+
+.animate-soft-scale {
+  animation: soft-scale 0.45s ease-out both;
+}
+
+@keyframes dissolve-fade {
+  0% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+  55% {
+    opacity: 0.4;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(6px);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes dissolve-particle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(1);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.25);
+  }
+}
+
+.animate-dissolve-fade {
+  animation: dissolve-fade 1.1s ease-in forwards;
+}
+
+.animate-dissolve-particle {
+  animation: dissolve-particle 1s ease-out forwards;
+}
+
+/* iOS-style toggle switch (Switch component) */
+.switch {
+  --switch-width: 46px;
+  --switch-height: 24px;
+  --switch-bg: rgb(131, 131, 131);
+  --switch-checked-bg: rgb(0, 218, 80);
+  --switch-offset: calc((var(--switch-height) - var(--circle-diameter)) / 2);
+  --switch-transition: all 0.2s cubic-bezier(0.27, 0.2, 0.25, 1.51);
+  --circle-diameter: 18px;
+  --circle-bg: #fff;
+  --circle-shadow: 1px 1px 2px rgba(146, 146, 146, 0.45);
+  --circle-checked-shadow: -1px 1px 2px rgba(163, 163, 163, 0.45);
+  --icon-cross-color: var(--switch-bg);
+  --icon-cross-size: 6px;
+  --icon-checkmark-color: var(--switch-checked-bg);
+  --icon-checkmark-size: 10px;
+  --effect-width: calc(var(--circle-diameter) / 2);
+  --effect-height: calc(var(--effect-width) / 2 - 1px);
+  --effect-bg: var(--circle-bg);
+  --effect-border-radius: 1px;
+  --effect-transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.switch input {
+  display: none;
+}
+
+.switch svg {
+  transition: var(--icon-transition, all 0.2s cubic-bezier(0.27, 0.2, 0.25, 1.51));
+  position: absolute;
+  height: auto;
+}
+
+.switch .checkmark {
+  width: var(--icon-checkmark-size);
+  color: var(--icon-checkmark-color);
+  transform: scale(0);
+}
+
+.switch .cross {
+  width: var(--icon-cross-size);
+  color: var(--icon-cross-color);
+}
+
+.switch .slider {
+  box-sizing: border-box;
+  width: var(--switch-width);
+  height: var(--switch-height);
+  background: var(--switch-bg);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  transition: var(--switch-transition);
+  flex-shrink: 0;
+}
+
+.switch .circle {
+  width: var(--circle-diameter);
+  height: var(--circle-diameter);
+  background: var(--circle-bg);
+  border-radius: inherit;
+  box-shadow: var(--circle-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--circle-transition, var(--switch-transition));
+  z-index: 1;
+  position: absolute;
+  left: var(--switch-offset);
+}
+
+.switch .slider::before {
+  content: "";
+  position: absolute;
+  width: var(--effect-width);
+  height: var(--effect-height);
+  left: calc(var(--switch-offset) + (var(--effect-width) / 2));
+  background: var(--effect-bg);
+  border-radius: var(--effect-border-radius);
+  transition: var(--effect-transition);
+}
+
+.switch input:disabled + .slider {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.switch input:checked + .slider {
+  background: var(--switch-checked-bg);
+}
+
+.switch input:checked + .slider .checkmark {
+  transform: scale(1);
+}
+
+.switch input:checked + .slider .cross {
+  transform: scale(0);
+}
+
+.switch input:checked + .slider::before {
+  left: calc(100% - var(--effect-width) - (var(--effect-width) / 2) - var(--switch-offset));
+}
+
+.switch input:checked + .slider .circle {
+  left: calc(100% - var(--circle-diameter) - var(--switch-offset));
+  box-shadow: var(--circle-checked-shadow);
+}
+
+/* ---------- Client presentation ("Zarhal taklifnoma") ---------- */
+
+@keyframes ken-burns {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 14s ease-out both;
+}
+
+@keyframes scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+
+.animate-scroll-cue {
+  animation: scroll-cue 2.2s ease-in-out infinite;
+}
+
+/* Scroll-triggered reveal; <Reveal> flips data-shown once it enters view. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal[data-shown="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .animate-ken-burns,
+  .animate-scroll-cue {
+    animation: none;
+  }
+}
+
+/* Silk-blue text for prices and headings on the presentation. */
+.text-gilded {
+  background: linear-gradient(100deg, #3c4f44 0%, #e4eee7 38%, #8fa898 60%, #f4f7f5 82%, #243028 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme="light"] .text-gilded-adaptive {
+  background: linear-gradient(100deg, #111813 0%, #3c4f44 45%, #243028 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme="dark"] .text-gilded-adaptive {
+  background: linear-gradient(100deg, #3c4f44 0%, #e4eee7 38%, #8fa898 60%, #f4f7f5 82%, #243028 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gold-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--fill, 50%),
+    var(--muted) var(--fill, 50%),
+    var(--muted) 100%
+  );
+  outline: none;
+}
+
+.gold-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+
+.gold-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+
+.gold-range:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/*
+ * Big screens (Full HD TVs, 2K/4K monitors in the hall): grow the root size
+ * so the whole rem-based presentation scales up proportionally instead of
+ * floating small in the middle. Scoped to presentation pages only.
+ */
+@media (min-width: 1600px) {
+  :root:has(.presentation-root) {
+    font-size: clamp(16px, calc(0.4vw + 9px), 22px);
+  }
+}

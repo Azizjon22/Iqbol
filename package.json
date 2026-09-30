@@ -1,0 +1,15 @@
+{
+  "name": "iqbol",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:api": "pnpm --filter @iqbol/api start:dev",
+    "dev:web": "pnpm --filter @iqbol/web dev",
+    "build": "pnpm --filter @iqbol/shared build && pnpm --filter @iqbol/api build && pnpm --filter @iqbol/web build",
+    "prisma:generate": "pnpm --filter @iqbol/api prisma:generate",
+    "prisma:migrate": "pnpm --filter @iqbol/api prisma:migrate",
+    "prisma:seed": "pnpm --filter @iqbol/api prisma:seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  }
+}

@@ -1,0 +1,110 @@
+import { getTr } from "@/i18n/server-tr";
+import { getLocale } from "@/i18n/locale";
+import Link from "next/link";
+import { CalendarHeart, ChefHat, Plus, ShoppingCart } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { getSession } from "@/lib/session";
+import type { ShoppingList } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { ChefEventCard } from "@/components/worker/chef/chef-event-card";
+import { ChefListCard } from "@/components/worker/chef/chef-list-card";
+import { WEEKDAYS, daysUntil, type ChefEvent } from "@/components/worker/chef/types";
+
+function greeting() {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Tashkent", hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  return hour < 12 ? "Xayrli tong" : hour < 18 ? "Xayrli kun" : "Xayrli kech";
+}
+
+export default async function WorkerHomePage() {
+  const tr = await getTr();
+  const locale = await getLocale();
+
+  const session = await getSession();
+  const isChef = session?.user.kind === "WORKER" && session.user.position === "CHEF";
+  const [myLists, agenda] = await Promise.all([
+    apiFetch<ShoppingList[]>("/shopping-lists/mine"),
+    isChef ? apiFetch<ChefEvent[]>("/events/chef-agenda").catch(() => []) : Promise.resolve<ChefEvent[]>([]),
+  ]);
+
+  const next = agenda[0];
+  const week = agenda.filter((e) => daysUntil(e.eventDate) < 7);
+  const withoutList = agenda.filter((e) => e.shoppingLists.length === 0 && daysUntil(e.eventDate) < 7);
+  const active = myLists.filter((l) => l.status !== "CLOSED").slice(0, 2);
+  const today = new Date();
+
+  return (
+    <div className="space-y-6 animate-fade-up">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
+          {tr(WEEKDAYS[today.getDay()])} · {formatDate(today, locale)}
+        </p>
+        <h1 className="font-display mt-1.5 text-3xl font-semibold tracking-tight sm:text-4xl">
+          {tr(greeting())}, {session?.user.fullName.split(" ")[0]}
+        </h1>
+        {isChef && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            {week.length > 0 ? tr(`Bu hafta ${week.length} ta to'y`) : tr("Bu hafta to'y yo'q")}
+            {withoutList.length > 0 && tr(` · ${withoutList.length} tasiga bozorlik yozilmagan`)}
+          </p>
+        )}
+      </div>
+
+      {isChef && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <CalendarHeart className="h-4 w-4 text-primary" />  {tr("Keyingi to'y")}
+            </h2>
+            <Link href="/worker/events" className="text-sm text-primary hover:underline">
+              
+              {tr(`Hammasi (${agenda.length})`)} →
+            </Link>
+          </div>
+          {next ? (
+            <ChefEventCard event={next} defaultOpen />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+              
+              {tr("Rejada to'y yo'q.")}
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          href="/worker/shopping"
+          className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card p-4 transition hover:shadow-md"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Plus className="h-5 w-5" />
+          </span>
+          <span className="text-sm font-semibold leading-tight">{tr("Yangi bozorlik ro'yxati")}</span>
+        </Link>
+        <Link
+          href="/worker/shopping?tab=mine"
+          className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-md"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
+            <ShoppingCart className="h-5 w-5" />
+          </span>
+          <span className="text-sm font-semibold leading-tight">
+            
+            {tr("Ro'yxatlarim")} <span className="text-muted-foreground">({myLists.length})</span>
+          </span>
+        </Link>
+      </div>
+
+      {active.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <ChefHat className="h-4 w-4 text-accent" />  {tr("Ro'yxatlarim holati")}
+          </h2>
+          {active.map((l) => (
+            <ChefListCard key={l.id} list={l} compact />
+          ))}
+        </section>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep

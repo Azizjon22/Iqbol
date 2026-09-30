@@ -1,0 +1,17 @@
+{
+  "name": "Iqbol — To'yxona boshqaruv tizimi",
+  "short_name": "Iqbol",
+  "description": "Iqbol to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f4",
+  "theme_color": "#111813",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
