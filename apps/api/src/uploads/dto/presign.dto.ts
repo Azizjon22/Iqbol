@@ -1,7 +1,7 @@
 import { IsIn } from 'class-validator';
 
 export class PresignDto {
-  @IsIn(['image/jpeg', 'image/png', 'image/webp', 'video/mp4'])
+  @IsIn(['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime'])
   contentType!: string;
 }
 

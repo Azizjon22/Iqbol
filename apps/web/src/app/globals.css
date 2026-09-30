@@ -2,46 +2,46 @@
 
 :root,
 :root[data-theme="light"] {
-  --background: #f3f7fc;
-  --foreground: #0c1b2e;
+  --background: #f4f6f4;
+  --foreground: #111813;
   --card: #ffffff;
-  --card-foreground: #0c1b2e;
-  --border: #d4e2f0;
-  --input: #d4e2f0;
-  --muted: #e7f1f9;
-  --muted-foreground: #5a7088;
-  --primary: #1565b8;
-  --primary-foreground: #f4f9ff;
-  --accent: #3aa0e0;
-  --accent-foreground: #042033;
+  --card-foreground: #111813;
+  --border: #d5ddd6;
+  --input: #d5ddd6;
+  --muted: #e7ece8;
+  --muted-foreground: #5c675f;
+  --primary: #111813;
+  --primary-foreground: #f4f6f4;
+  --accent: #3c4f44;
+  --accent-foreground: #f4f6f4;
   --destructive: #c2342a;
   --destructive-foreground: #fef3f2;
   --success: #1f7a62;
   --success-foreground: #f0faf6;
-  --ring: #1565b8;
+  --ring: #111813;
   --radius: 0.75rem;
-  --surface-glow: rgba(21, 101, 184, 0.12);
+  --surface-glow: rgba(17, 24, 19, 0.08);
 }
 
 :root[data-theme="dark"] {
-  --background: #071422;
-  --foreground: #e7f2fb;
-  --card: #0e1e32;
-  --card-foreground: #e7f2fb;
-  --border: #1e334c;
-  --input: #1e334c;
-  --muted: #13263c;
-  --muted-foreground: #9bb3c9;
-  --primary: #6eb6f0;
-  --primary-foreground: #041018;
-  --accent: #8fd0f7;
-  --accent-foreground: #041422;
+  --background: #111813;
+  --foreground: #e7eee9;
+  --card: #1c2620;
+  --card-foreground: #e7eee9;
+  --border: #2c3a32;
+  --input: #2c3a32;
+  --muted: #24302a;
+  --muted-foreground: #a8b5ac;
+  --primary: #d5e0d8;
+  --primary-foreground: #111813;
+  --accent: #8fa898;
+  --accent-foreground: #111813;
   --destructive: #f97066;
   --destructive-foreground: #2a0a08;
   --success: #5dcca0;
   --success-foreground: #062016;
-  --ring: #6eb6f0;
-  --surface-glow: rgba(110, 182, 240, 0.16);
+  --ring: #d5e0d8;
+  --surface-glow: rgba(17, 24, 19, 0.45);
 }
 
 /* Presentation uses the same light/dark tokens as the dashboard */
@@ -330,21 +330,21 @@ body {
 
 /* Silk-blue text for prices and headings on the presentation. */
 .text-gilded {
-  background: linear-gradient(100deg, #3d8ec8 0%, #d6efff 38%, #5eb6ef 60%, #eaf6ff 82%, #2b7ec4 100%);
+  background: linear-gradient(100deg, #3c4f44 0%, #e4eee7 38%, #8fa898 60%, #f4f7f5 82%, #243028 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 :root[data-theme="light"] .text-gilded-adaptive {
-  background: linear-gradient(100deg, #0c4a86 0%, #2a7ec8 45%, #1565b8 100%);
+  background: linear-gradient(100deg, #111813 0%, #3c4f44 45%, #243028 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 :root[data-theme="dark"] .text-gilded-adaptive {
-  background: linear-gradient(100deg, #3d8ec8 0%, #d6efff 38%, #5eb6ef 60%, #eaf6ff 82%, #2b7ec4 100%);
+  background: linear-gradient(100deg, #3c4f44 0%, #e4eee7 38%, #8fa898 60%, #f4f7f5 82%, #243028 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -22,6 +24,8 @@ export function ItemModal({
   defaultCategory?: InventoryCategory;
   onClose: () => void;
 }) {
+  const tr = useTr();
+
   const router = useRouter();
   const [category, setCategory] = useState<InventoryCategory>(item?.category ?? defaultCategory);
   const [busy, setBusy] = useState(false);
@@ -32,7 +36,7 @@ export function ItemModal({
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
-    if (name.length < 2) return setError("Nomini kiriting");
+    if (name.length < 2) return setError(tr("Nomini kiriting"));
     const min = String(form.get("minThreshold") ?? "").trim();
     const photo = String(form.get("photoUrl") ?? "");
     const body: Record<string, unknown> = {
@@ -67,15 +71,16 @@ export function ItemModal({
     <Modal
       open
       onClose={onClose}
-      title={item ? "Mahsulotni tahrirlash" : "Omborga yangi qo'shish"}
+      title={item ? tr("Mahsulotni tahrirlash") : tr("Omborga yangi qo'shish")}
       size="lg"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="submit" form="item-form" disabled={busy}>
-            {busy ? "Saqlanmoqda..." : "Saqlash"}
+            {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
           </Button>
         </>
       }
@@ -84,7 +89,7 @@ export function ItemModal({
         {(
           [
             ["PRODUCT", "Oziq-ovqat mahsuloti", <Package key="p" className="h-4 w-4" />],
-            ["DISHWARE", "Idish-tovoq", <UtensilsCrossed key="d" className="h-4 w-4" />],
+            ["DISHWARE", tr("Idish-tovoq"), <UtensilsCrossed key="d" className="h-4 w-4" />],
           ] as const
         ).map(([key, label, icon]) => (
           <button
@@ -103,20 +108,20 @@ export function ItemModal({
 
       <form id="item-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[180px_1fr]">
         <div className="sm:row-span-4">
-          <UploadField name="photoUrl" label="Rasm" folder="inventory" aspect="square" defaultValue={item?.photoUrl} />
-          {category === "PRODUCT" && <p className="mt-1.5 text-xs text-muted-foreground">Oshpaz bozorlik yozishda shu rasmni ko&apos;radi</p>}
+          <UploadField name="photoUrl" label={tr("Rasm")} folder="inventory" aspect="square" defaultValue={item?.photoUrl} />
+          {category === "PRODUCT" && <p className="mt-1.5 text-xs text-muted-foreground">{tr("Oshpaz bozorlik yozishda shu rasmni ko'radi")}</p>}
         </div>
         <div>
-          <Label htmlFor="inv-name">Nomi</Label>
+          <Label htmlFor="inv-name">{tr("Nomi")}</Label>
           <Input id="inv-name" name="name" defaultValue={item?.name} placeholder={category === "DISHWARE" ? "masalan: Tarelka (katta)" : "masalan: Guruch"} required />
         </div>
         {category === "PRODUCT" && (
           <div>
-            <Label htmlFor="inv-pcat">Bo&apos;lim</Label>
+            <Label htmlFor="inv-pcat">{tr("Bo'lim")}</Label>
             <Select id="inv-pcat" name="productCategory" defaultValue={item?.productCategory ?? "VEGETABLE"}>
               {PRODUCT_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {PRODUCT_CATEGORY_LABELS_UZ[c]}
+                  {tr(PRODUCT_CATEGORY_LABELS_UZ[c])}
                 </option>
               ))}
             </Select>
@@ -124,35 +129,35 @@ export function ItemModal({
         )}
         <div className="grid gap-4 min-[420px]:grid-cols-2">
           <div>
-            <Label htmlFor="inv-unit">O&apos;lchov birligi</Label>
+            <Label htmlFor="inv-unit">{tr("O'lchov birligi")}</Label>
             <Select id="inv-unit" name="unit" defaultValue={item?.unit ?? (category === "DISHWARE" ? "DONA" : "KG")} disabled={hasStock}>
               {UNITS.map((u) => (
                 <option key={u} value={u}>
-                  {UNIT_LABELS_UZ[u]}
+                  {tr(UNIT_LABELS_UZ[u])}
                 </option>
               ))}
             </Select>
             {hasStock && (
               <>
                 <input type="hidden" name="unit" value={item!.unit} />
-                <p className="mt-1 text-xs text-muted-foreground">Qoldiq bor paytda birlik o&apos;zgarmaydi</p>
+                <p className="mt-1 text-xs text-muted-foreground">{tr("Qoldiq bor paytda birlik o'zgarmaydi")}</p>
               </>
             )}
           </div>
           <div>
-            <Label htmlFor="inv-min">Minimal qoldiq</Label>
+            <Label htmlFor="inv-min">{tr("Minimal qoldiq")}</Label>
             <Input
               id="inv-min"
               name="minThreshold"
               inputMode="decimal"
               defaultValue={item?.minThreshold != null ? String(Number(item.minThreshold)) : ""}
-              placeholder="ogohlantirish chegarasi"
+              placeholder={tr("ogohlantirish chegarasi")}
             />
           </div>
         </div>
         {!item && (
           <div>
-            <Label htmlFor="inv-qty">Boshlang&apos;ich qoldiq (ixtiyoriy)</Label>
+            <Label htmlFor="inv-qty">{tr("Boshlang'ich qoldiq (ixtiyoriy)")}</Label>
             <Input id="inv-qty" name="quantity" inputMode="decimal" placeholder="0" />
           </div>
         )}

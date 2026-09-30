@@ -22,6 +22,8 @@ export class SettingsService {
     return {
       brandName: row.brandName,
       logoUrl: row.logoUrl,
+      heroMediaUrl: row.heroMediaUrl,
+      heroMediaKind: row.heroMediaKind,
       updatedAt: row.updatedAt,
     };
   }
@@ -29,14 +31,24 @@ export class SettingsService {
   async updateBrand(dto: UpdateBrandDto, actorId: string, actorName: string) {
     const before = await this.getBrand();
     const brandName = dto.brandName?.trim();
+    const heroMediaUrl = dto.heroMediaUrl === undefined ? undefined : dto.heroMediaUrl;
+    const heroMediaKind =
+      heroMediaUrl === null ? null : heroMediaUrl === undefined ? undefined : (dto.heroMediaKind ?? null);
     const row = await this.prisma.appSettings.upsert({
       where: { id: ID },
       create: {
         id: ID,
         brandName: brandName || undefined,
         logoUrl: dto.logoUrl ?? null,
+        heroMediaUrl: heroMediaUrl ?? null,
+        heroMediaKind: heroMediaKind ?? null,
       },
-      update: { brandName: brandName || undefined, logoUrl: dto.logoUrl },
+      update: {
+        brandName: brandName || undefined,
+        logoUrl: dto.logoUrl,
+        heroMediaUrl,
+        heroMediaKind,
+      },
     });
 
     const changes: string[] = [];
@@ -44,6 +56,9 @@ export class SettingsService {
       changes.push(`nom: "${before.brandName}" → "${brandName}"`);
     if (dto.logoUrl !== undefined && dto.logoUrl !== before.logoUrl) {
       changes.push(dto.logoUrl ? 'logo yangilandi' : 'logo olib tashlandi');
+    }
+    if (heroMediaUrl !== undefined && heroMediaUrl !== before.heroMediaUrl) {
+      changes.push(heroMediaUrl ? 'taqdimot foni yangilandi' : 'taqdimot foni olib tashlandi');
     }
     if (changes.length) {
       await this.auditLog.record({
@@ -58,6 +73,8 @@ export class SettingsService {
     return {
       brandName: row.brandName,
       logoUrl: row.logoUrl,
+      heroMediaUrl: row.heroMediaUrl,
+      heroMediaKind: row.heroMediaKind,
       updatedAt: row.updatedAt,
     };
   }

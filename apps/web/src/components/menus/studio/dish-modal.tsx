@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useRef, useState } from "react";
 import { MENU_DISH_CATEGORIES, MENU_DISH_CATEGORY_LABELS_UZ, type MenuDishCategory } from "@iqbol/shared";
@@ -24,6 +26,8 @@ export function DishModal({
   dish?: MenuDish;
   category?: MenuDishCategory;
 }) {
+  const tr = useTr();
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   // A ref, not state: the button click and the submit run in the same tick.
@@ -34,7 +38,7 @@ export function DishModal({
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
-    if (name.length < 2) return setError("Taom nomini kiriting");
+    if (name.length < 2) return setError(tr("Taom nomini kiriting"));
     const photo = String(form.get("photoUrl") ?? "");
     const body = {
       category: form.get("category"),
@@ -65,50 +69,52 @@ export function DishModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={dish ? "Taomni tahrirlash" : "Taom qo'shish"}
+      title={dish ? tr("Taomni tahrirlash") : tr("Taom qo'shish")}
       size="lg"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           {!dish && (
             <Button type="submit" form="dish-form" variant="outline" disabled={busy} onClick={() => (again.current = true)}>
-              Saqlab, yana qo&apos;shish
+              
+              {tr("Saqlab, yana qo'shish")}
             </Button>
           )}
           <Button type="submit" form="dish-form" disabled={busy} onClick={() => (again.current = false)}>
-            {busy ? "Saqlanmoqda..." : "Saqlash"}
+            {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
           </Button>
         </>
       }
     >
       <form key={formKey} id="dish-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[220px_1fr]">
         <div className="sm:row-span-3">
-          <UploadField name="photoUrl" label="Rasm" folder="menus" aspect="square" defaultValue={dish?.photoUrl} />
+          <UploadField name="photoUrl" label={tr("Rasm")} folder="menus" aspect="square" defaultValue={dish?.photoUrl} />
         </div>
         <div>
-          <Label htmlFor="dish-category">Turkum</Label>
+          <Label htmlFor="dish-category">{tr("Turkum")}</Label>
           <Select id="dish-category" name="category" defaultValue={defaultCategory}>
             {MENU_DISH_CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {MENU_DISH_CATEGORY_LABELS_UZ[c]}
+                {tr(MENU_DISH_CATEGORY_LABELS_UZ[c])}
               </option>
             ))}
           </Select>
         </div>
         <div>
-          <Label htmlFor="dish-name">Taom nomi</Label>
-          <Input id="dish-name" name="name" defaultValue={dish?.name} placeholder="masalan: Olivye" autoFocus required />
+          <Label htmlFor="dish-name">{tr("Taom nomi")}</Label>
+          <Input id="dish-name" name="name" defaultValue={dish?.name} placeholder={tr("masalan: Olivye")} autoFocus required />
         </div>
         <div>
-          <Label htmlFor="dish-description">Qisqa tavsif (ixtiyoriy)</Label>
+          <Label htmlFor="dish-description">{tr("Qisqa tavsif (ixtiyoriy)")}</Label>
           <Textarea
             id="dish-description"
             name="description"
             rows={3}
             defaultValue={dish?.description ?? ""}
-            placeholder="masalan: Klassik olivye salati"
+            placeholder={tr("masalan: Klassik olivye salati")}
           />
         </div>
         {error && <p className="text-sm text-destructive sm:col-span-2">{error}</p>}

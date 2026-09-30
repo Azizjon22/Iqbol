@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -15,7 +17,6 @@ import {
   ExternalLink,
   ImageIcon,
   Pencil,
-  Play,
   Plus,
   Star,
   Trash2,
@@ -76,6 +77,9 @@ const iconButton =
   "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30";
 
 export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; usedInEvents: number; canDelete: boolean }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("dishes");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -126,7 +130,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
   return (
     <div className="mx-auto max-w-7xl space-y-6 animate-fade-up">
       <Link href="/dashboard/menus" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Barcha menyular
+        <ArrowLeft className="h-4 w-4" />  {tr("Barcha menyular")}
       </Link>
 
       {/* ---------- Header ---------- */}
@@ -136,15 +140,15 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
             type="button"
             onClick={() => setDialog({ kind: "info" })}
             className="group relative aspect-[16/10] overflow-hidden bg-muted md:aspect-auto md:min-h-64"
-            title="Muqovani almashtirish"
+            title={tr("Muqovani almashtirish")}
           >
             <SafeImage src={menu.coverImageUrl} alt={menu.name} className="absolute inset-0 h-full w-full object-cover" />
             <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-black/45 group-hover:opacity-100">
-              <ImageIcon className="mr-2 h-4 w-4" /> Muqovani almashtirish
+              <ImageIcon className="mr-2 h-4 w-4" />  {tr("Muqovani almashtirish")}
             </span>
             {(!menu.coverImageUrl || coverBroken) && (
               <span className="absolute left-3 top-3 rounded-full bg-destructive/90 px-2.5 py-1 text-[11px] font-medium text-white">
-                {coverBroken ? "Muqova ochilmayapti" : "Muqova yo'q"}
+                {coverBroken ? tr("Muqova ochilmayapti") : tr("Muqova yo'q")}
               </span>
             )}
           </button>
@@ -155,17 +159,17 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{menu.name}</h1>
                   {menu.isVip && (
-                    <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[#2b7ec4] via-[#d6efff] to-[#2b7ec4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#071422]">
+                    <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[#111813] via-[#e4eee7] to-[#111813] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#111813]">
                       <Crown className="h-3 w-3" /> VIP
                     </span>
                   )}
                 </div>
                 <p className="mt-1 text-xl font-semibold text-primary tabular-nums">
-                  {formatSom(menu.pricePerPerson)} <span className="text-sm font-normal text-muted-foreground">/ kishi</span>
+                  {formatSom(menu.pricePerPerson, locale)} <span className="text-sm font-normal text-muted-foreground">{tr("/ kishi")}</span>
                 </p>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={() => setDialog({ kind: "info" })}>
-                <Pencil className="h-4 w-4" /> Tahrirlash
+                <Pencil className="h-4 w-4" />  {tr("Tahrirlash")}
               </Button>
             </div>
 
@@ -177,14 +181,15 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 onClick={() => setDialog({ kind: "info" })}
                 className="w-fit text-sm text-accent underline-offset-4 hover:underline"
               >
-                + Mijoz uchun tavsif qo&apos;shing
+                
+                {tr("+ Mijoz uchun tavsif qo'shing")}
               </button>
             )}
 
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-muted px-3 py-1">{menu.dishes.length} ta taom</span>
               <span className="rounded-full bg-muted px-3 py-1">{menu.media.length} ta fayl</span>
-              <span className="rounded-full bg-muted px-3 py-1">{usedInEvents} ta to&apos;yda ishlatilgan</span>
+              <span className="rounded-full bg-muted px-3 py-1">{usedInEvents}  {tr("ta to'yda ishlatilgan")}</span>
             </div>
 
             <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-4">
@@ -193,7 +198,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 target="_blank"
                 className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:brightness-95"
               >
-                <ExternalLink className="h-4 w-4" /> Taqdimotda ko&apos;rish
+                <ExternalLink className="h-4 w-4" />  {tr("Taqdimotda ko'rish")}
               </Link>
               <Button type="button" variant="outline" size="sm" onClick={duplicate} disabled={busy}>
                 <Copy className="h-4 w-4" /> Nusxa olish
@@ -205,12 +210,12 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                   size="sm"
                   className="text-destructive hover:bg-destructive/10"
                   disabled={busy || usedInEvents > 0}
-                  title={usedInEvents > 0 ? `${usedInEvents} ta to'yda ishlatilgan — o'chirib bo'lmaydi` : undefined}
+                  title={usedInEvents > 0 ? tr(`${usedInEvents} ta to'yda ishlatilgan — o'chirib bo'lmaydi`) : undefined}
                   onClick={() =>
                     setDialog({
                       kind: "confirm",
-                      title: "Menyuni o'chirish",
-                      message: `"${menu.name}" menyusi barcha taomlari va rasmlari bilan butunlay o'chiriladi.`,
+                      title: tr("Menyuni o'chirish"),
+                      message: tr(`"${menu.name}" menyusi barcha taomlari va rasmlari bilan butunlay o'chiriladi.`),
                       run: async () => {
                         await menuApi(`/${menu.id}`, "DELETE");
                         router.push("/dashboard/menus");
@@ -218,11 +223,11 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                     })
                   }
                 >
-                  <Trash2 className="h-4 w-4" /> O&apos;chirish
+                  <Trash2 className="h-4 w-4" />  {tr("O'chirish")}
                 </Button>
               )}
               {canDelete && usedInEvents > 0 && (
-                <span className="self-center text-xs text-muted-foreground">To&apos;ylarda ishlatilgani uchun o&apos;chirib bo&apos;lmaydi</span>
+                <span className="self-center text-xs text-muted-foreground">{tr("To'ylarda ishlatilgani uchun o'chirib bo'lmaydi")}</span>
               )}
             </div>
           </div>
@@ -238,8 +243,8 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
             <div className="inline-flex rounded-xl border border-border bg-card p-1">
               {(
                 [
-                  ["dishes", "Taomlar", menu.dishes.length, UtensilsCrossed],
-                  ["gallery", "Galereya", menu.media.length, ImageIcon],
+                  ["dishes", tr("Taomlar"), menu.dishes.length, UtensilsCrossed],
+                  ["gallery", tr("Galereya"), menu.media.length, ImageIcon],
                 ] as const
               ).map(([key, label, count, Icon]) => (
                 <button
@@ -268,7 +273,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
               size="sm"
               onClick={() => setDialog(tab === "dishes" ? { kind: "dish" } : { kind: "media" })}
             >
-              <Plus className="h-4 w-4" /> {tab === "dishes" ? "Taom" : "Fayl"}
+              <Plus className="h-4 w-4" /> {tab === "dishes" ? tr("Taom") : "Fayl"}
             </Button>
           </div>
 
@@ -278,7 +283,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 <section key={category} className="rounded-2xl border border-border bg-card">
                   <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                     <h2 className="flex items-center gap-2 text-sm font-semibold">
-                      {MENU_DISH_CATEGORY_LABELS_UZ[category]}
+                      {tr(MENU_DISH_CATEGORY_LABELS_UZ[category])}
                       <span className="rounded-full bg-muted px-2 text-xs font-normal tabular-nums text-muted-foreground">{items.length}</span>
                       {items.length === 0 && readiness.missingCourses.includes(category) && (
                         <span className="text-xs font-normal text-accent">— mijoz bu turkumni kutadi</span>
@@ -289,7 +294,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                       onClick={() => setDialog({ kind: "dish", category })}
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-primary hover:bg-primary/10"
                     >
-                      <Plus className="h-4 w-4" /> Qo&apos;shish
+                      <Plus className="h-4 w-4" />  {tr("Qo'shish")}
                     </button>
                   </header>
                   {items.length > 0 && (
@@ -311,30 +316,30 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                               <p className="truncate text-sm font-medium">{dish.name}</p>
                               {dish.description && <p className="truncate text-xs text-muted-foreground">{dish.description}</p>}
                               <div className="mt-1 flex flex-wrap gap-1">
-                                {!dish.photoUrl && <Tag tone="warn">Rasm yo&apos;q</Tag>}
-                                {isBroken && <Tag tone="danger">Rasm ochilmayapti</Tag>}
-                                {shared && !isBroken && <Tag tone="warn">Boshqa taomlar bilan bir xil rasm</Tag>}
+                                {!dish.photoUrl && <Tag tone="warn">{tr("Rasm yo'q")}</Tag>}
+                                {isBroken && <Tag tone="danger">{tr("Rasm ochilmayapti")}</Tag>}
+                                {shared && !isBroken && <Tag tone="warn">{tr("Boshqa taomlar bilan bir xil rasm")}</Tag>}
                               </div>
                             </div>
                             <div className="flex shrink-0 items-center">
-                              <button type="button" className={cn(iconButton, "hidden sm:inline-flex")} disabled={busy || i === 0} onClick={() => moveDish(dish.id, -1)} aria-label="Yuqoriga">
+                              <button type="button" className={cn(iconButton, "hidden sm:inline-flex")} disabled={busy || i === 0} onClick={() => moveDish(dish.id, -1)} aria-label={tr("Yuqoriga")}>
                                 <ArrowUp className="h-4 w-4" />
                               </button>
-                              <button type="button" className={cn(iconButton, "hidden sm:inline-flex")} disabled={busy || i === items.length - 1} onClick={() => moveDish(dish.id, 1)} aria-label="Pastga">
+                              <button type="button" className={cn(iconButton, "hidden sm:inline-flex")} disabled={busy || i === items.length - 1} onClick={() => moveDish(dish.id, 1)} aria-label={tr("Pastga")}>
                                 <ArrowDown className="h-4 w-4" />
                               </button>
-                              <button type="button" className={iconButton} onClick={() => setDialog({ kind: "dish", dish })} aria-label="Tahrirlash">
+                              <button type="button" className={iconButton} onClick={() => setDialog({ kind: "dish", dish })} aria-label={tr("Tahrirlash")}>
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
                                 className={cn(iconButton, "hover:bg-destructive/10 hover:text-destructive")}
-                                aria-label="O'chirish"
+                                aria-label={tr("O'chirish")}
                                 onClick={() =>
                                   setDialog({
                                     kind: "confirm",
-                                    title: "Taomni o'chirish",
-                                    message: `"${dish.name}" menyudan olib tashlanadi.`,
+                                    title: tr("Taomni o'chirish"),
+                                    message: tr(`"${dish.name}" menyudan olib tashlanadi.`),
                                     run: async () => {
                                       await menuApi(`/${menu.id}/dishes/${dish.id}`, "DELETE");
                                       refresh();
@@ -361,7 +366,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 <section key={section} className="rounded-2xl border border-border bg-card">
                   <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                     <h2 className="flex items-center gap-2 text-sm font-semibold">
-                      {MENU_MEDIA_SECTION_LABELS_UZ[section]}
+                      {tr(MENU_MEDIA_SECTION_LABELS_UZ[section])}
                       <span className="rounded-full bg-muted px-2 text-xs font-normal tabular-nums text-muted-foreground">{items.length}</span>
                     </h2>
                     <button
@@ -369,64 +374,64 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                       onClick={() => setDialog({ kind: "media", section })}
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-primary hover:bg-primary/10"
                     >
-                      <Plus className="h-4 w-4" /> Qo&apos;shish
+                      <Plus className="h-4 w-4" />  {tr("Qo'shish")}
                     </button>
                   </header>
                   {items.length > 0 && (
                     <div className="grid grid-cols-1 gap-3 p-4 min-[480px]:grid-cols-2 xl:grid-cols-3">
                       {items.map((item, i) => {
-                        const isBroken = item.mediaType === "PHOTO" && broken.has(item.url);
+                        const isVideo = item.mediaType === "VIDEO" || /\.(?:mp4|mov)(?:$|\?)/i.test(item.url);
+                        const isBroken = !isVideo && broken.has(item.url);
                         const isCover = item.url === menu.coverImageUrl;
                         return (
                           <div key={item.id} className={cn("overflow-hidden rounded-xl border bg-background", isBroken ? "border-destructive/50" : "border-border")}>
                             <div className="relative aspect-video bg-muted">
-                              {item.mediaType === "PHOTO" ? (
-                                <SafeImage src={item.url} alt={item.caption ?? ""} className="h-full w-full object-cover" />
+                              {isVideo ? (
+                                <video src={item.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                               ) : (
-                                <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-accent/20">
-                                  <Play className="h-8 w-8 fill-current text-white" />
-                                </span>
+                                <SafeImage src={item.url} alt={item.caption ?? ""} className="h-full w-full object-cover" />
                               )}
                               {isBroken && (
                                 <span className="absolute inset-x-0 bottom-0 bg-destructive/90 px-3 py-1.5 text-xs font-medium text-white">
-                                  Rasm ochilmayapti — almashtiring yoki o&apos;chiring
+                                  
+                                  {tr("Rasm ochilmayapti — almashtiring yoki o'chiring")}
                                 </span>
                               )}
                               {isCover && (
-                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-[#d6efff] backdrop-blur">
-                                  <Star className="h-3 w-3 fill-current" /> Muqova
+                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-[#e4eee7] backdrop-blur">
+                                  <Star className="h-3 w-3 fill-current" />  {tr("Muqova")}
                                 </span>
                               )}
                             </div>
                             <p className={cn("truncate px-3 pt-2.5 text-sm font-medium", !item.caption && "font-normal italic text-muted-foreground")}>
-                              {item.caption || "Izoh yo'q — qo'shing"}
+                              {item.caption || tr("Izoh yo'q — qo'shing")}
                             </p>
                             <div className="flex items-center gap-0.5 px-1.5 pb-1.5 pt-1">
-                              <button type="button" className={iconButton} disabled={busy || i === 0} onClick={() => moveMedia(item.id, -1)} aria-label="Oldinga">
+                              <button type="button" className={iconButton} disabled={busy || i === 0} onClick={() => moveMedia(item.id, -1)} aria-label={tr("Oldinga")}>
                                 <ArrowLeft className="h-4 w-4" />
                               </button>
-                              <button type="button" className={iconButton} disabled={busy || i === items.length - 1} onClick={() => moveMedia(item.id, 1)} aria-label="Orqaga">
+                              <button type="button" className={iconButton} disabled={busy || i === items.length - 1} onClick={() => moveMedia(item.id, 1)} aria-label={tr("Orqaga")}>
                                 <ArrowRight className="h-4 w-4" />
                               </button>
                               <span className="flex-1" />
                               {item.mediaType === "PHOTO" && !isCover && !isBroken && (
-                                <button type="button" className={iconButton} disabled={busy} onClick={() => makeCover(item.url)} title="Muqova qilish" aria-label="Muqova qilish">
+                                <button type="button" className={iconButton} disabled={busy} onClick={() => makeCover(item.url)} title={tr("Muqova qilish")} aria-label={tr("Muqova qilish")}>
                                   <Star className="h-4 w-4" />
                                 </button>
                               )}
-                              <button type="button" className={iconButton} onClick={() => setDialog({ kind: "media", item })} aria-label="Tahrirlash">
+                              <button type="button" className={iconButton} onClick={() => setDialog({ kind: "media", item })} aria-label={tr("Tahrirlash")}>
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
                                 className={cn(iconButton, "hover:bg-destructive/10 hover:text-destructive")}
-                                aria-label="O'chirish"
+                                aria-label={tr("O'chirish")}
                                 onClick={() =>
                                   setDialog({
                                     kind: "confirm",
-                                    title: "Faylni o'chirish",
+                                    title: tr("Faylni o'chirish"),
                                     message: isCover
-                                      ? "Bu rasm muqova sifatida ham ishlatilyapti. Galereyadan o'chirilgach muqovada qolaveradi."
+                                      ? tr("Bu rasm muqova sifatida ham ishlatilyapti. Galereyadan o'chirilgach muqovada qolaveradi.")
                                       : "Fayl galereyadan olib tashlanadi.",
                                     run: async () => {
                                       await menuApi(`/${menu.id}/media/${item.id}`, "DELETE");
@@ -455,9 +460,9 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
             <div className="flex items-center gap-4">
               <ReadinessRing percent={readiness.percent} size={76} />
               <div>
-                <p className="font-semibold">Taqdimotga tayyorlik</p>
+                <p className="font-semibold">{tr("Taqdimotga tayyorlik")}</p>
                 <p className="text-xs text-muted-foreground">
-                  {readiness.percent >= 85 ? "Mijozga ko'rsatsa bo'ladi" : "Quyidagilarni to'ldiring"}
+                  {readiness.percent >= 85 ? tr("Mijozga ko'rsatsa bo'ladi") : tr("Quyidagilarni to'ldiring")}
                 </p>
               </div>
             </div>
@@ -484,8 +489,8 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                         {done ? <Check className="h-3 w-3" strokeWidth={3} /> : <AlertTriangle className="h-3 w-3" />}
                       </span>
                       <span className="min-w-0">
-                        <span className={cn("block text-sm", done && "text-muted-foreground")}>{c.label}</span>
-                        {!done && c.hint && <span className="block text-xs text-accent">{c.hint}</span>}
+                        <span className={cn("block text-sm", done && "text-muted-foreground")}>{tr(c.label)}</span>
+                        {!done && c.hint && <span className="block text-xs text-accent">{tr(c.hint)}</span>}
                       </span>
                     </button>
                   </li>

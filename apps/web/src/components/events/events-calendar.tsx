@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -43,6 +45,8 @@ function buildMonthGrid(year: number, month: number) {
 type Filter = "all" | "free" | "booked";
 
 export function EventsCalendar({ events, readOnly = false }: { events: CalendarEvent[]; readOnly?: boolean }) {
+  const tr = useTr();
+
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [filter, setFilter] = useState<Filter>("all");
@@ -71,7 +75,7 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
             type="button"
             variant="outline"
             size="sm"
-            aria-label="Oldingi oy"
+            aria-label={tr("Oldingi oy")}
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -83,7 +87,7 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
             type="button"
             variant="outline"
             size="sm"
-            aria-label="Keyingi oy"
+            aria-label={tr("Keyingi oy")}
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
           >
             <ChevronRight className="h-4 w-4" />
@@ -92,9 +96,9 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
         <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted p-1 text-xs font-medium">
           {(
             [
-              ["all", "Barchasi"],
-              ["free", "Bo'sh kunlar"],
-              ["booked", "Band kunlar"],
+              ["all", tr("Barchasi")],
+              ["free", tr("Bo'sh kunlar")],
+              ["booked", tr("Band kunlar")],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -170,7 +174,7 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
                     href={`/dashboard/events/new?date=${key}`}
                     className="mt-auto flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary"
                   >
-                    <Plus className="h-3 w-3" /> to&apos;y
+                    <Plus className="h-3 w-3" />  {tr("to'y")}
                   </Link>
                 )}
               </div>

@@ -1,11 +1,12 @@
 import {
+  IsIn,
   IsOptional,
   IsString,
-  IsUrl,
   MaxLength,
   MinLength,
   ValidateIf,
 } from 'class-validator';
+import { IsMediaUrl } from '../../common/validators/is-media-url';
 
 export class UpdateBrandDto {
   @IsOptional()
@@ -17,6 +18,17 @@ export class UpdateBrandDto {
   /** null resets to the default letter mark. */
   @IsOptional()
   @ValidateIf((_, v) => v !== null)
-  @IsUrl()
+  @IsMediaUrl()
   logoUrl?: string | null;
+
+  /** null restores the menu-cover backdrop on the package list. */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsMediaUrl()
+  heroMediaUrl?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsIn(['IMAGE', 'VIDEO'])
+  heroMediaKind?: 'IMAGE' | 'VIDEO' | null;
 }

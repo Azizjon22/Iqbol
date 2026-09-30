@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +20,8 @@ const TABS = [
 
 /** App-like frame for chefs: slim header on top, thumb-reachable tab bar at the bottom. */
 export function ChefShell({ name, isChef, children }: { name: string; isChef: boolean; children: React.ReactNode }) {
+  const tr = useTr();
+
   const pathname = usePathname();
   const brand = useBrand();
   const tabs = TABS.filter((t) => !t.chefOnly || isChef);
@@ -50,7 +54,7 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
                       active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {t.label}
+                    {tr(t.label)}
                   </Link>
                 );
               })}
@@ -64,7 +68,7 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
               <button
                 type="submit"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Chiqish"
+                aria-label={tr("Chiqish")}
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -89,7 +93,7 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
                 <span className={cn("flex h-8 w-14 items-center justify-center rounded-full transition", active && "bg-primary/10")}>
                   <Icon className="h-5 w-5" />
                 </span>
-                {t.label}
+                {tr(t.label)}
               </Link>
             );
           })}

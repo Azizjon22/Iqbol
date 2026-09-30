@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useMemo, useState } from "react";
 import { CalendarDays, ChefHat, Clock, LayoutGrid, List, Plus, Search, UserCheck, UserRound, Users, X } from "lucide-react";
@@ -48,6 +50,8 @@ export function TeamPage({
   role: StaffRole;
   busyThisWeek: number;
 }) {
+  const tr = useTr();
+
   const canManage = role === "SUPER_ADMIN" || role === "ADMIN";
   const perms = { canManage, canDelete: role === "SUPER_ADMIN", canAssign: true };
 
@@ -89,33 +93,33 @@ export function TeamPage({
     onDeactivate: (worker) =>
       setDialog({
         kind: "confirm",
-        title: "Faolsizlantirish",
-        message: `${worker.fullName} ishdan ketgan deb belgilanadi va to'ylarga biriktirish ro'yxatidan chiqadi. Tarixi saqlanib qoladi, istalgan payt qayta faollashtirish mumkin.`,
-        label: "Faolsizlantirish",
+        title: tr("Faolsizlantirish"),
+        message: tr(`${worker.fullName} ishdan ketgan deb belgilanadi va to'ylarga biriktirish ro'yxatidan chiqadi. Tarixi saqlanib qoladi, istalgan payt qayta faollashtirish mumkin.`),
+        label: tr("Faolsizlantirish"),
         run: () => unwrap(rejectWorkerAction(worker.id)),
       }),
     onReactivate: (worker) =>
       setDialog({
         kind: "confirm",
         title: "Qayta faollashtirish",
-        message: `${worker.fullName} yana faol ishchilar qatoriga qaytadi.`,
-        label: "Faollashtirish",
+        message: tr(`${worker.fullName} yana faol ishchilar qatoriga qaytadi.`),
+        label: tr("Faollashtirish"),
         safe: true,
         run: () => unwrap(approveWorkerAction(worker.id)),
       }),
     onDelete: (worker) =>
       setDialog({
         kind: "confirm",
-        title: "Ishchini o'chirish",
-        message: `${worker.fullName} butunlay o'chiriladi. Agar u ishdan ketgan bo'lsa, o'chirish o'rniga "Faolsizlantirish"dan foydalaning — tarixi saqlanadi.`,
-        label: "O'chirish",
+        title: tr("Ishchini o'chirish"),
+        message: tr(`${worker.fullName} butunlay o'chiriladi. Agar u ishdan ketgan bo'lsa, o'chirish o'rniga "Faolsizlantirish"dan foydalaning — tarixi saqlanadi.`),
+        label: tr("O'chirish"),
         run: () => unwrap(deleteWorkerAction(worker.id)),
       }),
   };
 
   const stats = [
-    { label: "Jami ishchilar", value: workers.length, icon: <Users className="h-5 w-5" /> },
-    { label: "Faol", value: active.length, icon: <UserCheck className="h-5 w-5" /> },
+    { label: tr("Jami ishchilar"), value: workers.length, icon: <Users className="h-5 w-5" /> },
+    { label: tr("Faol"), value: active.length, icon: <UserCheck className="h-5 w-5" /> },
     { label: "Kutilmoqda", value: pending.length, icon: <Clock className="h-5 w-5" />, warn: pending.length > 0 },
     { label: "Bu hafta band", value: busyThisWeek, icon: <CalendarDays className="h-5 w-5" /> },
   ];
@@ -130,11 +134,11 @@ export function TeamPage({
     <div className="space-y-6 animate-fade-up">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Ishchilar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Afitsantlar va oshpazlar jamoasi, ularning bandligi va to&apos;ylarga biriktirish.</p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{tr("Ishchilar")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{tr("Afitsantlar va oshpazlar jamoasi, ularning bandligi va to'ylarga biriktirish.")}</p>
         </div>
         <Button type="button" onClick={() => setDialog({ kind: "create" })}>
-          <Plus className="h-4 w-4" /> Ishchi qo&apos;shish
+          <Plus className="h-4 w-4" />  {tr("Ishchi qo'shish")}
         </Button>
       </div>
 
@@ -148,7 +152,7 @@ export function TeamPage({
             )}
           >
             <div>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-xs text-muted-foreground">{tr(s.label)}</p>
               <p className={cn("font-display mt-0.5 text-3xl font-semibold leading-none lining-nums tabular-nums", s.warn && "text-accent")}>
                 {s.value}
               </p>
@@ -168,8 +172,8 @@ export function TeamPage({
           <div className="inline-flex rounded-xl bg-muted p-1">
             {(
               [
-                ["active", `Faol (${active.length})`],
-                ["inactive", `Faol emas (${inactive.length})`],
+                ["active", tr(`Faol (${active.length})`)],
+                ["inactive", tr(`Faol emas (${inactive.length})`)],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -187,12 +191,12 @@ export function TeamPage({
           </div>
           <div className="relative min-w-0 flex-1 basis-56">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ism yoki telefon..." className="pl-9 pr-9" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Ism yoki telefon...")} className="pl-9 pr-9" />
             {q && (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                aria-label="Tozalash"
+                aria-label={tr("Tozalash")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -203,7 +207,7 @@ export function TeamPage({
             {(
               [
                 ["card", <LayoutGrid key="c" className="h-4 w-4" />, "Kartochka"],
-                ["table", <List key="t" className="h-4 w-4" />, "Jadval"],
+                ["table", <List key="t" className="h-4 w-4" />, tr("Jadval")],
               ] as const
             ).map(([key, icon, label]) => (
               <button
@@ -225,29 +229,30 @@ export function TeamPage({
 
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setPosition("ALL")} className={chip(position === "ALL")}>
-            Barchasi {pool.length}
+            
+            {tr("Barchasi")} {pool.length}
           </button>
           {WORKER_POSITIONS.map((p) => {
             const count = pool.filter((w) => w.position === p).length;
             if (count === 0) return null;
             return (
               <button key={p} type="button" onClick={() => setPosition(p)} className={chip(position === p)}>
-                {POSITION_ICON[p]} {WORKER_POSITION_LABELS_UZ[p]} {count}
+                {POSITION_ICON[p]} {tr(WORKER_POSITION_LABELS_UZ[p])} {count}
               </button>
             );
           })}
           <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
           <Select value={gender} onChange={(e) => setGender(e.target.value as WorkerGender | "ALL")} className="h-8 w-auto rounded-full py-0 text-xs">
-            <option value="ALL">Jinsi: barchasi</option>
+            <option value="ALL">{tr("Jinsi: barchasi")}</option>
             {WORKER_GENDERS.map((g) => (
               <option key={g} value={g}>
-                {WORKER_GENDER_LABELS_UZ[g]}
+                {tr(WORKER_GENDER_LABELS_UZ[g])}
               </option>
             ))}
           </Select>
           <label className="flex h-8 items-center gap-2 rounded-full border border-border px-3 text-xs text-muted-foreground">
             <CalendarDays className="h-3.5 w-3.5" />
-            <span className="hidden min-[420px]:inline">Bandlik:</span>
+            <span className="hidden min-[420px]:inline">{tr("Bandlik:")}</span>
             <input
               type="date"
               value={date}
@@ -260,7 +265,8 @@ export function TeamPage({
           </label>
           {date && (
             <button type="button" onClick={() => setFreeOnly((f) => !f)} className={chip(freeOnly)}>
-              Faqat bo&apos;shlar
+              
+              {tr("Faqat bo'shlar")}
             </button>
           )}
           {hasFilters && (
@@ -286,7 +292,7 @@ export function TeamPage({
         <div className="rounded-2xl border border-dashed border-border py-14 text-center">
           <Users className="mx-auto h-8 w-8 text-muted-foreground/60" />
           <p className="mt-3 text-sm text-muted-foreground">
-            {hasFilters ? "Filtrga mos ishchi topilmadi." : tab === "active" ? "Hozircha faol ishchi yo'q." : "Faol bo'lmagan ishchi yo'q."}
+            {hasFilters ? tr("Filtrga mos ishchi topilmadi.") : tab === "active" ? tr("Hozircha faol ishchi yo'q.") : tr("Faol bo'lmagan ishchi yo'q.")}
           </p>
         </div>
       ) : view === "card" ? (
@@ -300,7 +306,7 @@ export function TeamPage({
                     busyOn.has(w.id) ? "bg-accent text-accent-foreground" : "bg-success text-success-foreground",
                   )}
                 >
-                  {busyOn.has(w.id) ? "Shu kuni band" : "Shu kuni bo'sh"}
+                  {busyOn.has(w.id) ? tr("Shu kuni band") : tr("Shu kuni bo'sh")}
                 </span>
               )}
               <TeamCard worker={w} perms={perms} on={on} />

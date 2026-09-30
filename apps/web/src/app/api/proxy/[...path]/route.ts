@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiFetch, ApiError } from "@/lib/api";
+import { getLocale } from "@/i18n/locale";
+import { trText } from "@/i18n/tr";
+
+function localizeBody(body: unknown, locale: Awaited<ReturnType<typeof getLocale>>) {
+  if (!body || typeof body !== "object") return body;
+  const message = (body as { message?: unknown }).message;
+  if (typeof message === "string") return { ...(body as object), message: trText(locale, message) };
+  if (Array.isArray(message)) {
+    return {
+      ...(body as object),
+      message: message.map((item) => (typeof item === "string" ? trText(locale, item) : item)),
+    };
+  }
+  return body;
+}
 
 async function handle(req: NextRequest, path: string[]) {
   const search = req.nextUrl.search;
@@ -9,6 +24,7 @@ async function handle(req: NextRequest, path: string[]) {
   const hasBody = method !== "GET" && method !== "HEAD";
   const body = hasBody ? await req.text() : undefined;
 
+  const locale = await getLocale();
   try {
     const data = await apiFetch(targetPath, {
       method,
@@ -17,9 +33,9 @@ async function handle(req: NextRequest, path: string[]) {
     return NextResponse.json(data ?? {});
   } catch (error) {
     if (error instanceof ApiError) {
-      return NextResponse.json(error.body ?? { message: error.message }, { status: error.status });
+      return NextResponse.json(localizeBody(error.body ?? { message: error.message }, locale), { status: error.status });
     }
-    return NextResponse.json({ message: "Kutilmagan xatolik yuz berdi" }, { status: 500 });
+    return NextResponse.json({ message: trText(locale, "Kutilmagan xatolik yuz berdi") }, { status: 500 });
   }
 }
 

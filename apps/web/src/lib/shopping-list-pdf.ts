@@ -4,6 +4,8 @@ import { jsPDF } from "jspdf";
 import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { ShoppingList } from "@/lib/types";
 import { formatDate, formatDateTime, formatSom } from "@/lib/utils";
+import { trText } from "@/i18n/tr";
+import type { Locale } from "@/i18n/types";
 
 function slug(value: string) {
   return value
@@ -12,32 +14,33 @@ function slug(value: string) {
     .replace(/^_+|_+$/g, "");
 }
 
-export function downloadShoppingListPdf(list: ShoppingList) {
+export function downloadShoppingListPdf(list: ShoppingList, locale: Locale = "uz") {
+  const tr = (text: string) => trText(locale, text);
   const doc = new jsPDF();
   const left = 14;
   const right = 196;
   let y = 18;
 
   doc.setFontSize(16);
-  doc.text("Bozorlik ro'yxati", left, y);
+  doc.text(tr("Bozorlik ro'yxati"), left, y);
   y += 9;
 
   doc.setFontSize(10);
-  doc.text(`Yuborilgan: ${formatDateTime(list.createdAt)}`, left, y);
+  doc.text(tr(`Yuborilgan: ${formatDateTime(list.createdAt, locale)}`), left, y);
   y += 6;
-  doc.text(`Yubordi: ${list.createdByWorker.fullName}`, left, y);
+  doc.text(tr(`Yubordi: ${list.createdByWorker.fullName}`), left, y);
   y += 6;
   if (list.event) {
-    doc.text(`To'y: ${list.event.clientName} — ${formatDate(list.event.eventDate)}`, left, y);
+    doc.text(tr(`To'y: ${list.event.clientName} — ${formatDate(list.event.eventDate, locale)}`), left, y);
     y += 6;
   }
   y += 4;
 
   doc.setFontSize(11);
-  doc.text("Mahsulot", left, y);
-  doc.text("Miqdor", 105, y);
-  doc.text("1 dona narxi", 140, y);
-  doc.text("Holati", 175, y);
+  doc.text(tr("Mahsulot"), left, y);
+  doc.text(tr("Miqdor"), 105, y);
+  doc.text(tr("1 dona narxi"), 140, y);
+  doc.text(tr("Holati"), 175, y);
   y += 2;
   doc.line(left, y, right, y);
   y += 7;
@@ -54,9 +57,9 @@ export function downloadShoppingListPdf(list: ShoppingList) {
     total += itemTotal;
 
     doc.text(item.name, left, y, { maxWidth: 88 });
-    doc.text(`${item.quantity} ${UNIT_LABELS_UZ[item.unit]}`, 105, y);
-    doc.text(item.unitPrice ? formatSom(item.unitPrice) : "-", 140, y);
-    doc.text(item.isPurchased ? "Olindi" : "Kutilmoqda", 175, y);
+    doc.text(`${item.quantity} ${tr(UNIT_LABELS_UZ[item.unit])}`, 105, y);
+    doc.text(item.unitPrice ? formatSom(item.unitPrice, locale) : "-", 140, y);
+    doc.text(item.isPurchased ? tr("Olindi") : tr("Kutilmoqda"), 175, y);
     y += 7;
   }
 
@@ -64,7 +67,7 @@ export function downloadShoppingListPdf(list: ShoppingList) {
   doc.line(left, y, right, y);
   y += 8;
   doc.setFontSize(12);
-  doc.text(`Jami: ${formatSom(total)}`, left, y);
+  doc.text(tr(`Jami: ${formatSom(total, locale)}`), left, y);
 
   const parts = ["bozorlik", list.event ? slug(list.event.clientName) : "royxat", slug(formatDate(list.createdAt))];
   doc.save(`${parts.join("_")}.pdf`);

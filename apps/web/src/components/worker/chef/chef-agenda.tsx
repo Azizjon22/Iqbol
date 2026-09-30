@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { CalendarDays, List } from "lucide-react";
@@ -14,6 +16,8 @@ const BUCKETS = [
 ];
 
 export function ChefAgenda({ events }: { events: ChefEvent[] }) {
+  const tr = useTr();
+
   const [view, setView] = useState<"list" | "calendar">("list");
   const [onlyMissing, setOnlyMissing] = useState(false);
   const shown = onlyMissing ? events.filter((e) => e.shoppingLists.length === 0) : events;
@@ -23,16 +27,16 @@ export function ChefAgenda({ events }: { events: ChefEvent[] }) {
     <div className="space-y-5 animate-fade-up">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">To&apos;ylar</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{tr("To'ylar")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {events.length} ta to&apos;y rejada{missing > 0 && ` · ${missing} tasiga bozorlik yozilmagan`}
+            {events.length}  {tr("ta to'y rejada")}{missing > 0 && tr(` · ${missing} tasiga bozorlik yozilmagan`)}
           </p>
         </div>
         <div className="inline-flex rounded-xl bg-muted p-1">
           {(
             [
-              ["list", <List key="l" className="h-4 w-4" />, "Ro'yxat"],
-              ["calendar", <CalendarDays key="c" className="h-4 w-4" />, "Kalendar"],
+              ["list", <List key="l" className="h-4 w-4" />, tr("Ro'yxat")],
+              ["calendar", <CalendarDays key="c" className="h-4 w-4" />, tr("Kalendar")],
             ] as const
           ).map(([key, icon, label]) => (
             <button
@@ -63,11 +67,12 @@ export function ChefAgenda({ events }: { events: ChefEvent[] }) {
                 onlyMissing ? "border-accent bg-accent text-accent-foreground" : "border-border text-muted-foreground hover:text-foreground",
               )}
             >
-              Faqat bozorlik yozilmaganlar ({missing})
+              
+              {tr("Faqat bozorlik yozilmaganlar (")}{missing})
             </button>
           )}
           {shown.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">Rejada to&apos;y yo&apos;q.</div>
+            <div className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">{tr("Rejada to'y yo'q.")}</div>
           )}
           {BUCKETS.map((b) => {
             const items = shown.filter((e) => b.test(daysUntil(e.eventDate)));
@@ -75,7 +80,7 @@ export function ChefAgenda({ events }: { events: ChefEvent[] }) {
             return (
               <section key={b.key} className="space-y-3">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  {b.label} · {items.length}
+                  {tr(b.label)} · {items.length}
                 </h2>
                 {items.map((e) => (
                   <ChefEventCard key={e.id} event={e} />

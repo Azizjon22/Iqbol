@@ -1,4 +1,6 @@
 "use server";
+import { getTr } from "@/i18n/server-tr";
+
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -30,6 +32,8 @@ export async function createEventAction(
   _prev: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  const tr = await getTr();
+
   const parsed = createEventSchema.safeParse({
     clientName: formData.get("clientName"),
     clientPhone: formData.get("clientPhone"),
@@ -40,11 +44,11 @@ export async function createEventAction(
     notes: formData.get("notes") || undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
   }
 
   const dishes = readDishes(formData);
-  if (dishes.error) return { error: dishes.error };
+  if (dishes.error) return { error: tr(dishes.error) };
 
   let eventId: string;
   try {
@@ -54,7 +58,7 @@ export async function createEventAction(
     });
     eventId = event.id;
   } catch (err) {
-    return { error: extractErrorMessage(err, "To'y buyurtmasini yaratib bo'lmadi") };
+    return { error: tr(extractErrorMessage(err, "To'y buyurtmasini yaratib bo'lmadi")) };
   }
 
   revalidatePath("/dashboard/events");
@@ -66,6 +70,8 @@ export async function updateEventAction(
   _prev: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  const tr = await getTr();
+
   const parsed = updateEventSchema.safeParse({
     clientName: formData.get("clientName"),
     clientPhone: formData.get("clientPhone"),
@@ -76,11 +82,11 @@ export async function updateEventAction(
     notes: formData.get("notes") || undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
   }
 
   const dishes = readDishes(formData);
-  if (dishes.error) return { error: dishes.error };
+  if (dishes.error) return { error: tr(dishes.error) };
 
   try {
     await apiFetch(`/events/${eventId}`, {
@@ -88,7 +94,7 @@ export async function updateEventAction(
       body: JSON.stringify({ ...parsed.data, ...dishes.dishes, eventDate: parsed.data.eventDate?.toISOString() }),
     });
   } catch (err) {
-    return { error: extractErrorMessage(err, "To'y buyurtmasini yangilab bo'lmadi") };
+    return { error: tr(extractErrorMessage(err, "To'y buyurtmasini yangilab bo'lmadi")) };
   }
 
   revalidatePath(`/dashboard/events/${eventId}`);
@@ -133,13 +139,15 @@ export async function addPaymentAction(
   _prev: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  const tr = await getTr();
+
   const parsed = createPaymentSchema.safeParse({
     amount: formData.get("amount"),
     method: formData.get("method"),
     note: formData.get("note") || undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
   }
 
   try {
@@ -148,7 +156,7 @@ export async function addPaymentAction(
       body: JSON.stringify(parsed.data),
     });
   } catch (err) {
-    return { error: extractErrorMessage(err, "To'lovni saqlab bo'lmadi") };
+    return { error: tr(extractErrorMessage(err, "To'lovni saqlab bo'lmadi")) };
   }
 
   revalidatePath(`/dashboard/events/${eventId}`);
@@ -161,18 +169,20 @@ export async function addRefundAction(
   _prev: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  const tr = await getTr();
+
   const parsed = createPaymentSchema.safeParse({
     amount: formData.get("amount"),
     method: formData.get("method"),
     note: formData.get("note") || undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
   }
   try {
     await apiFetch(`/events/${eventId}/refunds`, { method: "POST", body: JSON.stringify(parsed.data) });
   } catch (err) {
-    return { error: extractErrorMessage(err, "Qaytarishni saqlab bo'lmadi") };
+    return { error: tr(extractErrorMessage(err, "Qaytarishni saqlab bo'lmadi")) };
   }
   revalidatePath(`/dashboard/events/${eventId}`);
   revalidatePath("/dashboard/accounting");
@@ -190,13 +200,15 @@ export async function addExpenseAction(
   _prev: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  const tr = await getTr();
+
   const parsed = createEventExpenseSchema.safeParse({
     category: formData.get("category"),
     amount: formData.get("amount"),
     note: formData.get("note") || undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
   }
 
   try {
@@ -205,7 +217,7 @@ export async function addExpenseAction(
       body: JSON.stringify(parsed.data),
     });
   } catch (err) {
-    return { error: extractErrorMessage(err, "Xarajatni saqlab bo'lmadi") };
+    return { error: tr(extractErrorMessage(err, "Xarajatni saqlab bo'lmadi")) };
   }
 
   revalidatePath(`/dashboard/events/${eventId}`);

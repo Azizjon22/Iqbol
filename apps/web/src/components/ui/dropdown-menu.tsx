@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTr } from "@/components/i18n/locale-provider";
 
 export interface MenuItem {
   label: string;
@@ -14,6 +15,7 @@ export interface MenuItem {
 
 /** "⋯" button with a small popover of actions; closes on outside click / Esc. */
 export function DropdownMenu({ items, label = "Amallar" }: { items: MenuItem[]; label?: string }) {
+  const tr = useTr();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const visible = items.filter((i) => !i.hidden);
@@ -39,7 +41,7 @@ export function DropdownMenu({ items, label = "Amallar" }: { items: MenuItem[]; 
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label={label}
+        aria-label={tr(label)}
         aria-expanded={open}
         className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
       >
@@ -65,7 +67,7 @@ export function DropdownMenu({ items, label = "Amallar" }: { items: MenuItem[]; 
               )}
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center">{item.icon}</span>
-              {item.label}
+              {tr(item.label)}
             </button>
           ))}
         </div>

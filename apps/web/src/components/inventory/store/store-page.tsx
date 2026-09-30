@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -78,6 +80,8 @@ export function StorePage({
   events: UpcomingEvent[];
   role: StaffRole;
 }) {
+  const tr = useTr();
+
   const router = useRouter();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [tab, setTab] = useState<Tab>("PRODUCT");
@@ -127,13 +131,13 @@ export function StorePage({
 
   const stats = [
     {
-      label: "Mahsulot turlari",
+      label: tr("Mahsulot turlari"),
       value: products.length,
-      hint: `${sectionCounts.length} bo'limda`,
+      hint: tr(`${sectionCounts.length} bo'limda`),
       icon: <Package className="h-5 w-5" />,
     },
     {
-      label: "Idish-tovoq",
+      label: tr("Idish-tovoq"),
       value: dishware.length,
       hint: `jami ${dishwarePieces.toLocaleString("ru-RU")} dona`,
       icon: <UtensilsCrossed className="h-5 w-5" />,
@@ -167,15 +171,16 @@ export function StorePage({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">
-            Ombor
+            
+            {tr("Ombor")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Mahsulotlar va idish-tovoqlar qoldig&apos;i, kirim-chiqim va
-            inventarizatsiya.
+            
+            {tr("Mahsulotlar va idish-tovoqlar qoldig'i, kirim-chiqim va\r\n            inventarizatsiya.")}
           </p>
         </div>
         <Button type="button" onClick={() => setDialog({ kind: "item" })}>
-          <Plus className="h-4 w-4" /> Yangi qo&apos;shish
+          <Plus className="h-4 w-4" />  {tr("Yangi qo'shish")}
         </Button>
       </div>
 
@@ -200,7 +205,7 @@ export function StorePage({
             )}
           >
             <div>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-xs text-muted-foreground">{tr(s.label)}</p>
               <p
                 className={cn(
                   "font-display mt-0.5 text-3xl font-semibold leading-none lining-nums tabular-nums",
@@ -232,7 +237,7 @@ export function StorePage({
         <section className="rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/10 via-card to-card p-4">
           <div className="mb-3 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-accent" />
-            <h2 className="text-sm font-semibold">To&apos;ldirish kerak</h2>
+            <h2 className="text-sm font-semibold">{tr("To'ldirish kerak")}</h2>
             <span className="rounded-full bg-accent px-2 text-xs font-semibold text-accent-foreground tabular-nums">
               {attention.length}
             </span>
@@ -270,7 +275,7 @@ export function StorePage({
                   }
                   className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-success/15 px-2.5 text-xs font-semibold text-success transition hover:bg-success hover:text-success-foreground"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Kirim
+                  <Plus className="h-3.5 w-3.5" />  {tr("Kirim")}
                 </button>
               </div>
             ))}
@@ -286,8 +291,8 @@ export function StorePage({
               <div className="inline-flex rounded-xl bg-muted p-1">
                 {(
                   [
-                    ["PRODUCT", `Mahsulotlar (${products.length})`],
-                    ["DISHWARE", `Idish-tovoq (${dishware.length})`],
+                    ["PRODUCT", tr(`Mahsulotlar (${products.length})`)],
+                    ["DISHWARE", tr(`Idish-tovoq (${dishware.length})`)],
                   ] as const
                 ).map(([key, label]) => (
                   <button
@@ -313,14 +318,14 @@ export function StorePage({
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Qidirish..."
+                  placeholder={tr("Qidirish...")}
                   className="pl-9 pr-9"
                 />
                 {q && (
                   <button
                     type="button"
                     onClick={() => setQuery("")}
-                    aria-label="Tozalash"
+                    aria-label={tr("Tozalash")}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
@@ -332,8 +337,8 @@ export function StorePage({
                 onChange={(e) => setSort(e.target.value as "name" | "stock")}
                 className="w-auto"
               >
-                <option value="name">Bo&apos;lim / nom bo&apos;yicha</option>
-                <option value="stock">Qoldiq kamidan</option>
+                <option value="name">{tr("Bo'lim / nom bo'yicha")}</option>
+                <option value="stock">{tr("Qoldiq kamidan")}</option>
               </Select>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -344,7 +349,8 @@ export function StorePage({
                     onClick={() => setSection("ALL")}
                     className={chip(section === "ALL")}
                   >
-                    Barchasi
+                    
+                    {tr("Barchasi")}
                   </button>
                   {sectionCounts.map(({ c, n }) => (
                     <button
@@ -357,7 +363,7 @@ export function StorePage({
                         category={c}
                         className="h-3.5 w-3.5"
                       />{" "}
-                      {PRODUCT_CATEGORY_LABELS_UZ[c]} {n}
+                      {tr(PRODUCT_CATEGORY_LABELS_UZ[c])} {n}
                     </button>
                   ))}
                   <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
@@ -379,7 +385,7 @@ export function StorePage({
               <Package className="mx-auto h-8 w-8 text-muted-foreground/60" />
               <p className="mt-3 text-sm text-muted-foreground">
                 {pool.length === 0
-                  ? "Hali hech narsa qo'shilmagan."
+                  ? tr("Hali hech narsa qo'shilmagan.")
                   : "Filtrga mos mahsulot topilmadi."}
               </p>
             </div>
@@ -395,7 +401,7 @@ export function StorePage({
                       category={g.key as ProductCategory}
                       className="h-4 w-4 text-muted-foreground"
                     />
-                    {PRODUCT_CATEGORY_LABELS_UZ[g.key as ProductCategory]}
+                    {tr(PRODUCT_CATEGORY_LABELS_UZ[g.key as ProductCategory])}
                     <span className="rounded-full bg-muted px-2 text-xs font-normal text-muted-foreground tabular-nums">
                       {g.items.length}
                     </span>
@@ -414,7 +420,7 @@ export function StorePage({
                           type="button"
                           onClick={() => setDialog({ kind: "history", item })}
                           className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                          title="Tarixni ko'rish"
+                          title={tr("Tarixni ko'rish")}
                         >
                           <ItemThumb item={item} />
                           <span className="min-w-0 flex-1">
@@ -476,8 +482,8 @@ export function StorePage({
                               setDialog({ kind: "stock", item, mode: "OUT" })
                             }
                             disabled={level === "out"}
-                            aria-label="Chiqim"
-                            title="Chiqim"
+                            title={tr("Chiqim")}
+                            aria-label={tr("Chiqim")}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-destructive transition hover:bg-destructive/10 disabled:opacity-30"
                           >
                             <Minus className="h-4 w-4" />
@@ -487,8 +493,8 @@ export function StorePage({
                             onClick={() =>
                               setDialog({ kind: "stock", item, mode: "IN" })
                             }
-                            aria-label="Kirim"
-                            title="Kirim"
+                            title={tr("Kirim")}
+                            aria-label={tr("Kirim")}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-success transition hover:bg-success/10"
                           >
                             <Plus className="h-4 w-4" />
@@ -496,7 +502,7 @@ export function StorePage({
                           <DropdownMenu
                             items={[
                               {
-                                label: "Sanash (inventarizatsiya)",
+                                label: tr("Sanash (inventarizatsiya)"),
                                 icon: <ClipboardCheck className="h-4 w-4" />,
                                 onSelect: () =>
                                   setDialog({
@@ -512,13 +518,13 @@ export function StorePage({
                                   setDialog({ kind: "history", item }),
                               },
                               {
-                                label: "Tahrirlash",
+                                label: tr("Tahrirlash"),
                                 icon: <Pencil className="h-4 w-4" />,
                                 onSelect: () =>
                                   setDialog({ kind: "item", item }),
                               },
                               {
-                                label: "O'chirish",
+                                label: tr("O'chirish"),
                                 icon: <Trash2 className="h-4 w-4" />,
                                 tone: "danger",
                                 hidden: role !== "SUPER_ADMIN",
@@ -541,12 +547,12 @@ export function StorePage({
         <aside className="xl:sticky xl:top-20 xl:self-start">
           <section className="rounded-2xl border border-border bg-card p-4">
             <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <History className="h-4 w-4 text-muted-foreground" /> So&apos;nggi
-              harakatlar
+              <History className="h-4 w-4 text-muted-foreground" />  {tr("So'nggi\r\n              harakatlar")}
             </h2>
             {recent.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                Hali kirim-chiqim bo&apos;lmagan.
+                
+                {tr("Hali kirim-chiqim bo'lmagan.")}
               </p>
             ) : (
               <ul className="mt-1 divide-y divide-border">
@@ -587,8 +593,8 @@ export function StorePage({
         <ConfirmDialog
           open
           onClose={() => setDialog(null)}
-          title="O'chirish"
-          message={`"${dialog.item.name}" ombordan o'chiriladi. Kirim-chiqim tarixi bor mahsulotni o'chirib bo'lmaydi — tarix saqlanishi kerak.`}
+          title={tr("O'chirish")}
+          message={tr(`"${dialog.item.name}" ombordan o'chiriladi. Kirim-chiqim tarixi bor mahsulotni o'chirib bo'lmaydi — tarix saqlanishi kerak.`)}
           onConfirm={async () => {
             await inventoryApi(`/${dialog.item.id}`, "DELETE");
             router.refresh();

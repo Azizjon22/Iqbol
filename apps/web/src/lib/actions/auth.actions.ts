@@ -1,4 +1,6 @@
 "use server";
+import { getTr } from "@/i18n/server-tr";
+
 
 import { redirect } from "next/navigation";
 import { staffLoginSchema, workerLoginSchema } from "@iqbol/shared";
@@ -14,12 +16,14 @@ export async function loginStaffAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const tr = await getTr();
+
   const parsed = staffLoginSchema.safeParse({
     phone: formData.get("phone"),
     password: formData.get("password"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
   }
 
   const res = await fetch(publicApiUrl("/auth/staff/login"), {
@@ -31,7 +35,7 @@ export async function loginStaffAction(
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    return { error: body?.message ?? "Login yoki parol noto'g'ri" };
+    return { error: tr(body?.message ?? "Login yoki parol noto'g'ri") };
   }
 
   const data = await res.json();
@@ -43,12 +47,14 @@ export async function loginWorkerAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const tr = await getTr();
+
   const parsed = workerLoginSchema.safeParse({
     phone: formData.get("phone"),
     pin: formData.get("pin"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
   }
 
   const res = await fetch(publicApiUrl("/auth/worker/login"), {
@@ -60,7 +66,7 @@ export async function loginWorkerAction(
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    return { error: body?.message ?? "Login yoki PIN noto'g'ri" };
+    return { error: tr(body?.message ?? "Login yoki PIN noto'g'ri") };
   }
 
   const data = await res.json();
@@ -77,18 +83,20 @@ export async function changeStaffPasswordAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const tr = await getTr();
+
   const currentPassword = String(formData.get("currentPassword") ?? "");
   const newPassword = String(formData.get("newPassword") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
   if (newPassword.length < 6) {
-    return { error: "Yangi parol kamida 6 belgidan iborat bo'lishi kerak" };
+    return { error: tr("Yangi parol kamida 6 belgidan iborat bo'lishi kerak") };
   }
   if (newPassword !== confirmPassword) {
-    return { error: "Yangi parol va tasdiqlash mos kelmadi" };
+    return { error: tr("Yangi parol va tasdiqlash mos kelmadi") };
   }
   if (newPassword === currentPassword) {
-    return { error: "Yangi parol avvalgisidan farq qilishi kerak" };
+    return { error: tr("Yangi parol avvalgisidan farq qilishi kerak") };
   }
 
   const session = await getSession();
@@ -101,7 +109,7 @@ export async function changeStaffPasswordAction(
       body: JSON.stringify({ currentPassword, newPassword }),
     });
   } catch (err) {
-    return { error: extractErrorMessage(err, "Parolni yangilab bo'lmadi") };
+    return { error: tr(extractErrorMessage(err, "Parolni yangilab bo'lmadi")) };
   }
 
   await setSession(data);
@@ -114,18 +122,20 @@ export async function changeWorkerPinAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const tr = await getTr();
+
   const currentPin = String(formData.get("currentPin") ?? "");
   const newPin = String(formData.get("newPin") ?? "");
   const confirmPin = String(formData.get("confirmPin") ?? "");
 
   if (!/^[0-9]{4}$/.test(newPin)) {
-    return { error: "Yangi PIN 4 ta raqamdan iborat bo'lishi kerak" };
+    return { error: tr("Yangi PIN 4 ta raqamdan iborat bo'lishi kerak") };
   }
   if (newPin !== confirmPin) {
-    return { error: "Yangi PIN va tasdiqlash mos kelmadi" };
+    return { error: tr("Yangi PIN va tasdiqlash mos kelmadi") };
   }
   if (newPin === currentPin) {
-    return { error: "Yangi PIN avvalgisidan farq qilishi kerak" };
+    return { error: tr("Yangi PIN avvalgisidan farq qilishi kerak") };
   }
 
   const session = await getSession();
@@ -138,7 +148,7 @@ export async function changeWorkerPinAction(
       body: JSON.stringify({ currentPin, newPin }),
     });
   } catch (err) {
-    return { error: extractErrorMessage(err, "PIN kodni yangilab bo'lmadi") };
+    return { error: tr(extractErrorMessage(err, "PIN kodni yangilab bo'lmadi")) };
   }
 
   await setSession(data);

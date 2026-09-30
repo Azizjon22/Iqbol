@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,12 +15,14 @@ import { ROLE_META, generatePassword, staffApi } from "./helpers";
 
 /** A temporary password field with a generator and copy button. */
 export function TempPassword({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const tr = useTr();
+
   const [copied, setCopied] = useState(false);
   return (
     <div>
       <div className="flex gap-2">
         <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono tracking-wide" minLength={6} />
-        <Button type="button" variant="outline" onClick={() => onChange(generatePassword())} title="Yangi parol yaratish" aria-label="Yangi parol yaratish">
+        <Button type="button" variant="outline" onClick={() => onChange(generatePassword())} title={tr("Yangi parol yaratish")} aria-label={tr("Yangi parol yaratish")}>
           <RefreshCw className="h-4 w-4" />
         </Button>
         <Button
@@ -29,18 +33,20 @@ export function TempPassword({ value, onChange }: { value: string; onChange: (v:
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          title="Nusxalash"
-          aria-label="Nusxalash"
+          title={tr("Nusxalash")}
+          aria-label={tr("Nusxalash")}
         >
           {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
         </Button>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">Vaqtinchalik parol — xodim birinchi kirishda o&apos;zi almashtiradi.</p>
+      <p className="mt-1 text-xs text-muted-foreground">{tr("Vaqtinchalik parol — xodim birinchi kirishda o'zi almashtiradi.")}</p>
     </div>
   );
 }
 
 export function AccountModal({ account, isSelf, onClose }: { account?: StaffUserSummary; isSelf?: boolean; onClose: () => void }) {
+  const tr = useTr();
+
   const router = useRouter();
   const [fullName, setFullName] = useState(account?.fullName ?? "");
   const [phone, setPhone] = useState(account?.phone ?? "+998");
@@ -51,9 +57,9 @@ export function AccountModal({ account, isSelf, onClose }: { account?: StaffUser
 
   async function save() {
     const cleanPhone = phone.replace(/\s/g, "");
-    if (fullName.trim().length < 3) return setError("Ism-familiyani to'liq kiriting");
-    if (!/^\+?[0-9]{9,15}$/.test(cleanPhone)) return setError("Telefon raqami noto'g'ri");
-    if (!account && password.length < 6) return setError("Parol kamida 6 belgi");
+    if (fullName.trim().length < 3) return setError(tr("Ism-familiyani to'liq kiriting"));
+    if (!/^\+?[0-9]{9,15}$/.test(cleanPhone)) return setError(tr("Telefon raqami noto'g'ri"));
+    if (!account && password.length < 6) return setError(tr("Parol kamida 6 belgi"));
     setBusy(true);
     setError(undefined);
     try {
@@ -79,23 +85,24 @@ export function AccountModal({ account, isSelf, onClose }: { account?: StaffUser
     <Modal
       open
       onClose={onClose}
-      title={account ? "Hisobni tahrirlash" : "Yangi hisob"}
-      description={account ? undefined : "Xodim telefon raqami va shu parol bilan kiradi."}
+      title={account ? tr("Hisobni tahrirlash") : tr("Yangi hisob")}
+      description={account ? undefined : tr("Xodim telefon raqami va shu parol bilan kiradi.")}
       size="lg"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="button" onClick={save} disabled={busy}>
-            {busy ? "Saqlanmoqda..." : account ? "Saqlash" : "Hisob yaratish"}
+            {busy ? tr("Saqlanmoqda...") : account ? tr("Saqlash") : tr("Hisob yaratish")}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         <div>
-          <p className="mb-2 text-sm font-medium">Rol</p>
+          <p className="mb-2 text-sm font-medium">{tr("Rol")}</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {(Object.keys(ROLE_META) as StaffRole[]).map((r) => {
               const meta = ROLE_META[r];
@@ -112,31 +119,31 @@ export function AccountModal({ account, isSelf, onClose }: { account?: StaffUser
                     isSelf && !on && "opacity-40",
                   )}
                 >
-                  <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", meta.tone)}>{meta.label}</span>
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", meta.tone)}>{tr(meta.label)}</span>
                   <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                     {meta.can.map((c) => (
-                      <li key={c}>• {c}</li>
+                      <li key={c}>• {tr(c)}</li>
                     ))}
                   </ul>
                 </button>
               );
             })}
           </div>
-          {isSelf && <p className="mt-1.5 text-xs text-muted-foreground">O&apos;z rolingizni o&apos;zgartira olmaysiz.</p>}
+          {isSelf && <p className="mt-1.5 text-xs text-muted-foreground">{tr("O'z rolingizni o'zgartira olmaysiz.")}</p>}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="acc-name">Ism-familiya</Label>
-            <Input id="acc-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="masalan: Dilnoza Karimova" />
+            <Label htmlFor="acc-name">{tr("Ism-familiya")}</Label>
+            <Input id="acc-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={tr("masalan: Dilnoza Karimova")} />
           </div>
           <div>
-            <Label htmlFor="acc-phone">Telefon (login)</Label>
+            <Label htmlFor="acc-phone">{tr("Telefon (login)")}</Label>
             <Input id="acc-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
           </div>
         </div>
         {!account && (
           <div>
-            <Label>Parol</Label>
+            <Label>{tr("Parol")}</Label>
             <TempPassword value={password} onChange={setPassword} />
           </div>
         )}
@@ -147,6 +154,8 @@ export function AccountModal({ account, isSelf, onClose }: { account?: StaffUser
 }
 
 export function ResetPasswordModal({ account, onClose }: { account: StaffUserSummary; onClose: () => void }) {
+  const tr = useTr();
+
   const router = useRouter();
   const [password, setPassword] = useState(() => generatePassword());
   const [busy, setBusy] = useState(false);
@@ -154,7 +163,7 @@ export function ResetPasswordModal({ account, onClose }: { account: StaffUserSum
   const [error, setError] = useState<string | undefined>();
 
   async function save() {
-    if (password.length < 6) return setError("Parol kamida 6 belgi");
+    if (password.length < 6) return setError(tr("Parol kamida 6 belgi"));
     setBusy(true);
     setError(undefined);
     try {
@@ -172,7 +181,7 @@ export function ResetPasswordModal({ account, onClose }: { account: StaffUserSum
     <Modal
       open
       onClose={onClose}
-      title="Parolni tiklash"
+      title={tr("Parolni tiklash")}
       description={account.fullName}
       size="sm"
       footer={
@@ -183,10 +192,11 @@ export function ResetPasswordModal({ account, onClose }: { account: StaffUserSum
         ) : (
           <>
             <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-              Bekor qilish
+              
+              {tr("Bekor qilish")}
             </Button>
             <Button type="button" onClick={save} disabled={busy}>
-              {busy ? "Saqlanmoqda..." : "Parolni o'rnatish"}
+              {busy ? tr("Saqlanmoqda...") : tr("Parolni o'rnatish")}
             </Button>
           </>
         )
@@ -195,10 +205,10 @@ export function ResetPasswordModal({ account, onClose }: { account: StaffUserSum
       {done ? (
         <div className="space-y-2">
           <p className="flex items-center gap-2 text-sm text-success">
-            <Check className="h-4 w-4" /> Parol yangilandi. Xodimga yetkazing:
+            <Check className="h-4 w-4" />  {tr("Parol yangilandi. Xodimga yetkazing:")}
           </p>
           <p className="rounded-xl bg-muted px-3 py-2 font-mono text-lg tracking-wide">{password}</p>
-          <p className="text-xs text-muted-foreground">Keyingi kirishda u parolni o&apos;zi almashtiradi.</p>
+          <p className="text-xs text-muted-foreground">{tr("Keyingi kirishda u parolni o'zi almashtiradi.")}</p>
         </div>
       ) : (
         <>

@@ -416,9 +416,11 @@ model AuditLog {
 /// client presentation). Editable by SUPER_ADMIN from the Profil page.
 model AppSettings {
   id        String   @id @default("app")
-  brandName String   @default("Iqbol")
-  logoUrl   String?
-  updatedAt DateTime @updatedAt
+  brandName     String   @default("Iqbol")
+  logoUrl       String?
+  heroMediaUrl  String?
+  heroMediaKind String?
+  updatedAt     DateTime @updatedAt
 
   @@map("app_settings")
 }

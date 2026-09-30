@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,6 +16,9 @@ const PREVIEW = 6;
 
 /** One of the chef's own lists: where it is in the pipeline, what changed, what's bought. No prices. */
 export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: boolean }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -28,10 +33,10 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-semibold">{list.event?.clientName ?? "To'ysiz ro'yxat"}</p>
+            <p className="truncate font-semibold">{list.event?.clientName ?? tr("To'ysiz ro'yxat")}</p>
             <p className="text-xs text-muted-foreground">
-              {list.event ? `To'y: ${formatDate(list.event.eventDate)} · ` : ""}
-              {formatDateTime(list.createdAt)}
+              {list.event ? tr(`To'y: ${formatDate(list.event.eventDate, locale)} · `) : ""}
+              {formatDateTime(list.createdAt, locale)}
             </p>
           </div>
           <ShoppingListPdfButton list={list} />
@@ -41,7 +46,7 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
           {LIST_STEPS.map((s, i) => (
             <li key={s.key}>
               <div className={cn("h-1.5 rounded-full", i <= step ? (i === step ? "bg-primary" : "bg-primary/45") : "bg-muted")} />
-              <p className={cn("mt-1 truncate text-[11px] font-medium", i <= step ? "text-foreground" : "text-muted-foreground")}>{s.label}</p>
+              <p className={cn("mt-1 truncate text-[11px] font-medium", i <= step ? "text-foreground" : "text-muted-foreground")}>{tr(s.label)}</p>
             </li>
           ))}
         </ol>
@@ -54,10 +59,10 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
           )}
           {changed > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 font-medium text-accent">
-              <PencilLine className="h-3 w-3" /> Super admin {changed} ta o&apos;zgartirdi
+              <PencilLine className="h-3 w-3" /> Super admin {changed}  {tr("ta o'zgartirdi")}
             </span>
           )}
-          {step < 2 && <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">Super admin tekshirmoqda</span>}
+          {step < 2 && <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">{tr("Super admin tekshirmoqda")}</span>}
         </div>
       </div>
 
@@ -88,7 +93,7 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
               onClick={() => setExpanded((v) => !v)}
               className="flex w-full items-center justify-center gap-1 border-t border-border py-2 text-xs font-medium text-muted-foreground hover:bg-muted"
             >
-              {expanded ? "Yig'ish" : `Yana ${list.items.length - PREVIEW} ta`}
+              {expanded ? tr("Yig'ish") : tr(`Yana ${list.items.length - PREVIEW} ta`)}
               <ChevronDown className={cn("h-3.5 w-3.5 transition", expanded && "rotate-180")} />
             </button>
           )}
@@ -98,7 +103,7 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
               onClick={() => setConfirm(true)}
               className="flex w-full items-center justify-center gap-1.5 border-t border-border py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
             >
-              <X className="h-4 w-4" /> Ro&apos;yxatni bekor qilish
+              <X className="h-4 w-4" />  {tr("Ro'yxatni bekor qilish")}
             </button>
           )}
         </>
@@ -108,14 +113,14 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
         <ConfirmDialog
           open
           onClose={() => setConfirm(false)}
-          title="Ro'yxatni bekor qilish"
-          message="Bu ro'yxat o'chiriladi. Kerak bo'lsa yangisini yozishingiz mumkin."
-          confirmLabel="Bekor qilish"
+          title={tr("Ro'yxatni bekor qilish")}
+          message={tr("Bu ro'yxat o'chiriladi. Kerak bo'lsa yangisini yozishingiz mumkin.")}
+          confirmLabel={tr("Bekor qilish")}
           onConfirm={async () => {
             const res = await fetch(`/api/proxy/shopping-lists/${list.id}`, { method: "DELETE" });
             if (!res.ok) {
               const data = await res.json().catch(() => null);
-              throw new Error(data?.message ?? "Bekor qilib bo'lmadi");
+              throw new Error(data?.message ?? tr("Bekor qilib bo'lmadi"));
             }
             router.refresh();
           }}

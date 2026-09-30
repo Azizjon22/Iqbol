@@ -1,3 +1,4 @@
+import { getTr } from "@/i18n/server-tr";
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { cookies } from "next/headers";
@@ -22,17 +23,19 @@ const cormorant = Cormorant_Garamond({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
+  const tr = await getTr();
+
   const { brandName, logoUrl } = await getBrand();
   return {
-    title: `${brandName} | To'yxona boshqaruv tizimi`,
-    description: `${brandName} to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.`,
+    title: tr(`${brandName} | To'yxona boshqaruv tizimi`),
+    description: tr(`${brandName} to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.`),
     manifest: "/manifest.webmanifest",
     icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : { icon: "/icon.svg?v=2", apple: "/icon.svg?v=2" },
   };
 }
 
 export const viewport: Viewport = {
-  themeColor: "#1565b8",
+  themeColor: "#111813",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { CalendarPlus, Phone } from "lucide-react";
 import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@iqbol/shared";
@@ -20,16 +22,19 @@ export function TeamTable({
   /** When a date is picked: which workers are booked that day. */
   busyOn?: Set<string>;
 }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <th className="px-4 py-3">Ishchi</th>
-            <th className="px-4 py-3">Lavozim</th>
-            <th className="px-4 py-3">Telefon</th>
-            <th className="px-4 py-3">Keyingi to&apos;y</th>
-            <th className="px-4 py-3 text-center">Rejada</th>
+            <th className="px-4 py-3">{tr("Ishchi")}</th>
+            <th className="px-4 py-3">{tr("Lavozim")}</th>
+            <th className="px-4 py-3">{tr("Telefon")}</th>
+            <th className="px-4 py-3">{tr("Keyingi to'y")}</th>
+            <th className="px-4 py-3 text-center">{tr("Rejada")}</th>
             <th className="px-4 py-3 text-right" />
           </tr>
         </thead>
@@ -46,15 +51,15 @@ export function TeamTable({
                       <span className="block font-medium">{w.fullName}</span>
                       {busyOn && (
                         <span className={cn("text-xs", busyOn.has(w.id) ? "text-accent" : "text-success")}>
-                          {busyOn.has(w.id) ? "Shu kuni band" : "Shu kuni bo'sh"}
+                          {busyOn.has(w.id) ? tr("Shu kuni band") : tr("Shu kuni bo'sh")}
                         </span>
                       )}
                     </span>
                   </button>
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
-                  {WORKER_POSITION_LABELS_UZ[w.position]}
-                  {w.gender && <span className="text-xs"> · {WORKER_GENDER_LABELS_UZ[w.gender]}</span>}
+                  {tr(WORKER_POSITION_LABELS_UZ[w.position])}
+                  {w.gender && <span className="text-xs"> · {tr(WORKER_GENDER_LABELS_UZ[w.gender])}</span>}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5">
                   <a href={`tel:${w.phone}`} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary">
@@ -65,7 +70,7 @@ export function TeamTable({
                   {next ? (
                     <span className="block">
                       <span className="block whitespace-nowrap">
-                        {formatDate(next.eventDate)}, {formatTime(next.eventDate)}
+                        {formatDate(next.eventDate, locale)}, {formatTime(next.eventDate)}
                       </span>
                       <span className="block max-w-56 truncate text-xs text-muted-foreground">{next.clientName}</span>
                     </span>

@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,6 +14,8 @@ import { menuApi, errorText } from "./api";
 
 /** Create a menu (menu = undefined) or edit its name, price, text, cover, VIP flag. */
 export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose: () => void; menu?: Menu }) {
+  const tr = useTr();
+
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -21,8 +25,8 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const price = Number(form.get("pricePerPerson"));
-    if (name.length < 2) return setError("Menyu nomini kiriting");
-    if (!(price > 0)) return setError("Narx 0 dan katta bo'lishi kerak");
+    if (name.length < 2) return setError(tr("Menyu nomini kiriting"));
+    if (!(price > 0)) return setError(tr("Narx 0 dan katta bo'lishi kerak"));
 
     const cover = String(form.get("coverImageUrl") ?? "");
     const body = {
@@ -55,31 +59,32 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
     <Modal
       open={open}
       onClose={onClose}
-      title={menu ? "Menyu ma'lumotlari" : "Yangi menyu"}
-      description={menu ? undefined : "Asosiy ma'lumotlar — taomlar va rasmlarni keyingi qadamda qo'shasiz."}
+      title={menu ? tr("Menyu ma'lumotlari") : tr("Yangi menyu")}
+      description={menu ? undefined : tr("Asosiy ma'lumotlar — taomlar va rasmlarni keyingi qadamda qo'shasiz.")}
       size="lg"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="submit" form="menu-info-form" disabled={busy}>
-            {busy ? "Saqlanmoqda..." : menu ? "Saqlash" : "Menyuni yaratish"}
+            {busy ? tr("Saqlanmoqda...") : menu ? tr("Saqlash") : tr("Menyuni yaratish")}
           </Button>
         </>
       }
     >
       <form id="menu-info-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[260px_1fr]">
         <div className="sm:row-span-2">
-          <UploadField name="coverImageUrl" label="Muqova rasmi" folder="menus" defaultValue={menu?.coverImageUrl} />
-          <p className="mt-1.5 text-xs text-muted-foreground">Taqdimotning birinchi ekrani va menyu kartasi</p>
+          <UploadField name="coverImageUrl" label={tr("Muqova rasmi")} folder="menus" defaultValue={menu?.coverImageUrl} />
+          <p className="mt-1.5 text-xs text-muted-foreground">{tr("Taqdimotning birinchi ekrani va menyu kartasi")}</p>
         </div>
         <div>
-          <Label htmlFor="menu-name">Menyu nomi</Label>
-          <Input id="menu-name" name="name" defaultValue={menu?.name} placeholder="masalan: 200 ming menyu" required />
+          <Label htmlFor="menu-name">{tr("Menyu nomi")}</Label>
+          <Input id="menu-name" name="name" defaultValue={menu?.name} placeholder={tr("masalan: 200 ming menyu")} required />
         </div>
         <div>
-          <Label htmlFor="menu-price">1 kishiga narx (so&apos;m)</Label>
+          <Label htmlFor="menu-price">{tr("1 kishiga narx (so'm)")}</Label>
           <Input
             id="menu-price"
             name="pricePerPerson"
@@ -89,21 +94,21 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
             required
           />
           {menu && (
-            <p className="mt-1 text-xs text-muted-foreground">Allaqachon band qilingan to&apos;ylarning narxi o&apos;zgarmaydi.</p>
+            <p className="mt-1 text-xs text-muted-foreground">{tr("Allaqachon band qilingan to'ylarning narxi o'zgarmaydi.")}</p>
           )}
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="menu-description">Tavsif — mijoz taqdimotda ko&apos;radi</Label>
+          <Label htmlFor="menu-description">{tr("Tavsif — mijoz taqdimotda ko'radi")}</Label>
           <Textarea
             id="menu-description"
             name="description"
             rows={3}
             defaultValue={menu?.description ?? ""}
-            placeholder="masalan: Standart to'y menyusi — salatlar, birinchi va ikkinchi ovqatlar, meva va ichimliklar."
+            placeholder={tr("masalan: Standart to'y menyusi — salatlar, birinchi va ikkinchi ovqatlar, meva va ichimliklar.")}
           />
         </div>
         <div className="sm:col-span-2">
-          <Switch name="isVip" defaultChecked={menu?.isVip} label="VIP menyu — taqdimotda oltin ramka bilan ajratiladi" />
+          <Switch name="isVip" defaultChecked={menu?.isVip} label={tr("VIP menyu — taqdimotda oltin ramka bilan ajratiladi")} />
         </div>
         {error && <p className="text-sm text-destructive sm:col-span-2">{error}</p>}
       </form>

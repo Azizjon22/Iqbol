@@ -1,4 +1,5 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -33,6 +34,9 @@ export function ListDetail({
   isSuperAdmin: boolean;
   onBack?: () => void;
 }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -68,7 +72,7 @@ export function ListDetail({
       <div className="border-b border-border p-4 sm:p-5">
         {onBack && (
           <button type="button" onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground lg:hidden">
-            <ArrowLeft className="h-4 w-4" /> Ro&apos;yxatlar
+            <ArrowLeft className="h-4 w-4" />  {tr("Ro'yxatlar")}
           </button>
         )}
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -79,10 +83,10 @@ export function ListDetail({
                 <span className="font-display truncate text-2xl font-semibold group-hover:underline">{list.event.clientName}</span>
               </Link>
             ) : (
-              <p className="font-display text-2xl font-semibold">To&apos;ysiz ro&apos;yxat</p>
+              <p className="font-display text-2xl font-semibold">{tr("To'ysiz ro'yxat")}</p>
             )}
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              {list.event && <span>To&apos;y: {formatDate(list.event.eventDate)}</span>}
+              {list.event && <span>{tr("To'y:")} {formatDate(list.event.eventDate, locale)}</span>}
               <span className="inline-flex items-center gap-1">
                 <ChefHat className="h-3.5 w-3.5" /> {list.createdByWorker.fullName}
               </span>
@@ -99,8 +103,8 @@ export function ListDetail({
             return (
               <li key={step.key} className="min-w-0">
                 <div className={cn("h-1.5 rounded-full", done ? (i === current ? "bg-primary" : "bg-primary/50") : "bg-muted")} />
-                <p className={cn("mt-1.5 truncate text-[11px] font-medium", done ? "text-foreground" : "text-muted-foreground")}>{step.label}</p>
-                {done && time && <p className="hidden truncate text-[10px] text-muted-foreground sm:block">{formatDateTime(time)}</p>}
+                <p className={cn("mt-1.5 truncate text-[11px] font-medium", done ? "text-foreground" : "text-muted-foreground")}>{tr(step.label)}</p>
+                {done && time && <p className="hidden truncate text-[10px] text-muted-foreground sm:block">{formatDateTime(time, locale)}</p>}
               </li>
             );
           })}
@@ -109,7 +113,7 @@ export function ListDetail({
         {/* Progress + money */}
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-xl bg-muted/60 px-3 py-2.5">
-            <p className="text-xs text-muted-foreground">Olindi</p>
+            <p className="text-xs text-muted-foreground">{tr("Olindi")}</p>
             <p className="font-semibold tabular-nums">
               {bought} / {total}
             </p>
@@ -118,13 +122,13 @@ export function ListDetail({
             </div>
           </div>
           <div className="rounded-xl bg-muted/60 px-3 py-2.5">
-            <p className="text-xs text-muted-foreground">Sarflandi</p>
-            <p className="font-semibold tabular-nums">{formatSom(spent)}</p>
+            <p className="text-xs text-muted-foreground">{tr("Sarflandi")}</p>
+            <p className="font-semibold tabular-nums">{formatSom(spent, locale)}</p>
           </div>
           <div className="col-span-2 rounded-xl bg-muted/60 px-3 py-2.5 sm:col-span-1">
-            <p className="text-xs text-muted-foreground">Holat</p>
+            <p className="text-xs text-muted-foreground">{tr("Holat")}</p>
             <p className="font-semibold">
-              {!sent ? "Tekshirilmoqda" : list.status === "APPROVED" ? (complete ? "Hammasi olindi" : `${total - bought} ta qoldi`) : STEPS[current]?.label}
+              {!sent ? tr("Tekshirilmoqda") : list.status === "APPROVED" ? (complete ? tr("Hammasi olindi") : tr(`${total - bought} ta qoldi`)) : tr(STEPS[current]?.label ?? "")}
             </p>
           </div>
         </div>
@@ -132,7 +136,7 @@ export function ListDetail({
         {/* Actions */}
         <div className="mt-4 space-y-3">
           {isSuperAdmin && isShoppingListEditable(list.status) && <ShoppingListEditor list={list} />}
-          {!sent && !isSuperAdmin && <p className="text-sm text-muted-foreground">Super admin tekshirib yuborgach xarid qilinadi.</p>}
+          {!sent && !isSuperAdmin && <p className="text-sm text-muted-foreground">{tr("Super admin tekshirib yuborgach xarid qilinadi.")}</p>}
           <div className="flex flex-wrap gap-2">
             {list.status === "APPROVED" && complete && !isSuperAdmin && (
               <button
@@ -151,7 +155,7 @@ export function ListDetail({
                 disabled={busy}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
               >
-                <Lock className="h-4 w-4" /> Ro&apos;yxatni yopish
+                <Lock className="h-4 w-4" />  {tr("Ro'yxatni yopish")}
               </button>
             )}
           </div>
@@ -168,10 +172,10 @@ export function ListDetail({
             <header className="flex items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <span className="flex items-center gap-2">
                 <ProductCategoryIcon category={g.section} className="h-3.5 w-3.5" />
-                {PRODUCT_CATEGORY_LABELS_UZ[g.section]}
+                {tr(PRODUCT_CATEGORY_LABELS_UZ[g.section])}
                 {sectionDone && <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />}
               </span>
-              {sectionSpent > 0 && <span className="normal-case tracking-normal tabular-nums">{formatSom(sectionSpent)}</span>}
+              {sectionSpent > 0 && <span className="normal-case tracking-normal tabular-nums">{formatSom(sectionSpent, locale)}</span>}
             </header>
             <ul className="divide-y divide-border border-b border-border last:border-b-0">
               {g.items.map((item) => (
@@ -184,8 +188,8 @@ export function ListDetail({
 
       {spent > 0 && (
         <div className="flex items-center justify-between bg-muted/40 px-4 py-3">
-          <span className="text-sm font-medium">Jami bozorlik</span>
-          <span className="font-display text-xl font-semibold lining-nums tabular-nums">{formatSom(spent)}</span>
+          <span className="text-sm font-medium">{tr("Jami bozorlik")}</span>
+          <span className="font-display text-xl font-semibold lining-nums tabular-nums">{formatSom(spent, locale)}</span>
         </div>
       )}
     </div>

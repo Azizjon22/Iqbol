@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Dictionary, Locale } from "@/i18n/types";
 import { translate, type TranslationKey } from "@/i18n/get-dictionary";
 import { setLocaleAction } from "@/i18n/locale";
+import { trText } from "@/i18n/tr";
 
 type TFunction = (key: TranslationKey | string, params?: Record<string, string | number>) => string;
 
@@ -58,4 +59,9 @@ export function useLocale() {
 
 export function useT() {
   return useLocale().t;
+}
+
+export function useTr() {
+  const { locale } = useLocale();
+  return useCallback((text: string) => trText(locale, text), [locale]);
 }

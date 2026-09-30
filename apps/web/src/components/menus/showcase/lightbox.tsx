@@ -97,7 +97,7 @@ export function Lightbox({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#102033] text-white"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#1a221c] text-white"
             aria-label={t("presentation.close")}
           >
             <X className="h-5 w-5" />

@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -15,6 +17,9 @@ import { useBrokenImages } from "./use-broken-images";
 import { menuApi, errorText } from "./api";
 
 export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record<string, number> }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -41,10 +46,10 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
     <div className="space-y-6 animate-fade-up">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Menyular</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{tr("Menyular")}</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Har bir menyu mijozga taqdimotda shu ko&apos;rinishda chiqadi. Foiz — menyu taqdimotga qanchalik tayyor ekanini
-            ko&apos;rsatadi.
+            
+            {tr("Har bir menyu mijozga taqdimotda shu ko'rinishda chiqadi. Foiz — menyu taqdimotga qanchalik tayyor ekanini\r\n            ko'rsatadi.")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -56,7 +61,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
             <ExternalLink className="h-4 w-4" /> Taqdimotni ochish
           </Link>
           <Button type="button" onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> Yangi menyu
+            <Plus className="h-4 w-4" />  {tr("Yangi menyu")}
           </Button>
         </div>
       </div>
@@ -64,13 +69,13 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
       {sorted.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Menyular", value: sorted.length },
-            { label: "Narx oralig'i", value: `${Number(sorted[0].pricePerPerson) / 1000}–${Number(sorted[sorted.length - 1].pricePerPerson) / 1000} ming` },
-            { label: "Jami to'ylarda", value: Object.values(usage).reduce((s, n) => s + n, 0) },
+            { label: tr("Menyular"), value: sorted.length },
+            { label: tr("Narx oralig'i"), value: tr(`${Number(sorted[0].pricePerPerson) / 1000}–${Number(sorted[sorted.length - 1].pricePerPerson) / 1000} ming`) },
+            { label: tr("Jami to'ylarda"), value: Object.values(usage).reduce((s, n) => s + n, 0) },
             { label: "E'tibor kerak", value: needAttention, warn: needAttention > 0 },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-border bg-card px-4 py-3">
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-xs text-muted-foreground">{tr(s.label)}</p>
               <p className={cn("mt-1 text-xl font-semibold tabular-nums", s.warn && "text-accent")}>{s.value}</p>
             </div>
           ))}
@@ -102,18 +107,18 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
                 {menu.isVip && (
-                  <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-[#2b7ec4] via-[#d6efff] to-[#2b7ec4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#071422]">
+                  <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-[#111813] via-[#e4eee7] to-[#111813] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#111813]">
                     <Crown className="h-3 w-3" /> VIP
                   </span>
                 )}
                 {(!menu.coverImageUrl || broken.has(menu.coverImageUrl)) && (
                   <span className="absolute right-3 top-3 rounded-full bg-destructive/90 px-2.5 py-1 text-[11px] font-medium text-white">
-                    {menu.coverImageUrl ? "Muqova ochilmayapti" : "Muqova yo'q"}
+                    {menu.coverImageUrl ? tr("Muqova ochilmayapti") : tr("Muqova yo'q")}
                   </span>
                 )}
                 <div className="absolute inset-x-0 bottom-0 p-4 text-white">
                   <p className="font-display text-2xl font-semibold leading-tight">{menu.name}</p>
-                  <p className="text-sm text-white/80 tabular-nums">{formatSom(menu.pricePerPerson)} / kishi</p>
+                  <p className="text-sm text-white/80 tabular-nums">{formatSom(menu.pricePerPerson, locale)} {tr("/ kishi")}</p>
                 </div>
               </Link>
 
@@ -122,7 +127,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                   <ReadinessRing percent={r.percent} />
                   <div className="min-w-0 flex-1 space-y-1">
                     {issues.length === 0 ? (
-                      <p className="text-sm font-medium text-success">Taqdimotga tayyor</p>
+                      <p className="text-sm font-medium text-success">{tr("Taqdimotga tayyor")}</p>
                     ) : (
                       issues.map((c) => (
                         <p key={c.key} className="flex items-start gap-1.5 text-xs text-muted-foreground">
@@ -144,7 +149,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                   </div>
                   <div className="rounded-lg bg-muted/60 px-2 py-2">
                     <CalendarHeart className="mx-auto mb-1 h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-semibold tabular-nums">{used}</span> to&apos;y
+                    <span className="font-semibold tabular-nums">{used}</span>  {tr("to'y")}
                   </div>
                 </div>
 
@@ -153,24 +158,24 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                     href={`/dashboard/menus/${menu.id}`}
                     className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:brightness-95"
                   >
-                    <Pencil className="h-3.5 w-3.5" /> Tahrirlash
+                    <Pencil className="h-3.5 w-3.5" />  {tr("Tahrirlash")}
                   </Link>
                   <button
                     type="button"
                     onClick={() => duplicate(menu)}
                     disabled={busyId !== null}
-                    title="Nusxa olish — yangi narx darajasi uchun"
+                    title={tr("Nusxa olish — yangi narx darajasi uchun")}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
-                    aria-label="Nusxa olish"
+                    aria-label={tr("Nusxa olish")}
                   >
                     <Copy className={cn("h-4 w-4", busyId === menu.id && "animate-pulse")} />
                   </button>
                   <Link
                     href={`/showcase/${menu.id}`}
                     target="_blank"
-                    title="Taqdimotda ko'rish"
+                    title={tr("Taqdimotda ko'rish")}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                    aria-label="Taqdimotda ko'rish"
+                    aria-label={tr("Taqdimotda ko'rish")}
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Link>
@@ -188,7 +193,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <Plus className="h-6 w-6" />
           </span>
-          <span className="text-sm font-medium">Yangi menyu qo&apos;shish</span>
+          <span className="text-sm font-medium">{tr("Yangi menyu qo'shish")}</span>
         </button>
       </div>
 

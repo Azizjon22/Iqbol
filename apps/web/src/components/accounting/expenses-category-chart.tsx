@@ -8,13 +8,13 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { formatSom } from "@/lib/utils";
 
 const COLORS = [
-  "#1565b8",
-  "#3aa0e0",
+  "#111813",
+  "#3c4f44",
   "#1f7a62",
   "#c2342a",
   "#5b6fd6",
   "#1d6a8a",
-  "#4c8ec4",
+  "#5d7364",
   "#3d5a80",
   "#6b7280",
 ];

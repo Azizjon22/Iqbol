@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState, useTransition } from "react";
 import { AlertTriangle, Users } from "lucide-react";
@@ -13,6 +15,9 @@ const WEEKDAYS = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
 
 /** Toggle a worker onto upcoming weddings, warning about same-day double bookings. */
 export function AssignModal({ worker, events, onClose }: { worker: TeamWorker; events: StaffingEvent[]; onClose: () => void }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | undefined>();
   const [assigned, setAssigned] = useState<Set<string>>(
@@ -31,7 +36,7 @@ export function AssignModal({ worker, events, onClose }: { worker: TeamWorker; e
         await toggleEventAssignmentAction(eventId, worker.id, value);
       } catch {
         setAssigned(prev);
-        setError("Saqlab bo'lmadi, qaytadan urinib ko'ring");
+        setError(tr("Saqlab bo'lmadi, qaytadan urinib ko'ring"));
       }
     });
   }
@@ -40,18 +45,18 @@ export function AssignModal({ worker, events, onClose }: { worker: TeamWorker; e
   for (const e of events) if (assigned.has(e.id)) bookedDays.set(dayKey(e.eventDate), (bookedDays.get(dayKey(e.eventDate)) ?? 0) + 1);
 
   return (
-    <Modal open onClose={onClose} title="To'yga biriktirish" size="md">
+    <Modal open onClose={onClose} title={tr("To'yga biriktirish")} size="md">
       <div className="mb-4 flex items-center gap-3 rounded-xl bg-muted/60 p-3">
         <WorkerAvatar name={worker.fullName} photoUrl={worker.photoUrl} position={worker.position} size="sm" />
         <div className="min-w-0">
           <p className="truncate font-semibold">{worker.fullName}</p>
           <p className="text-xs text-muted-foreground">
-            {assigned.size > 0 ? `${assigned.size} ta to'yga biriktirilgan` : "Hali hech bir to'yga biriktirilmagan"}
+            {assigned.size > 0 ? tr(`${assigned.size} ta to'yga biriktirilgan`) : tr("Hali hech bir to'yga biriktirilmagan")}
           </p>
         </div>
       </div>
 
-      {events.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Kelgusi to&apos;ylar yo&apos;q.</p>}
+      {events.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{tr("Kelgusi to'ylar yo'q.")}</p>}
       {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
       <ul className="space-y-2">
@@ -75,14 +80,14 @@ export function AssignModal({ worker, events, onClose }: { worker: TeamWorker; e
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{event.clientName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatDate(date)}, {formatTime(date)} · {event.guestCount} mehmon
+                  {formatDate(date, locale)}, {formatTime(date)} · {tr(`${event.guestCount} mehmon`)}
                 </p>
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Users className="h-3 w-3" /> {staffed} ta ishchi
+                  <Users className="h-3 w-3" /> {staffed}  {tr("ta ishchi")}
                 </p>
                 {clash && (
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-accent">
-                    <AlertTriangle className="h-3 w-3" /> Shu kuni boshqa to&apos;yga ham biriktirilgan
+                    <AlertTriangle className="h-3 w-3" />  {tr("Shu kuni boshqa to'yga ham biriktirilgan")}
                   </p>
                 )}
               </div>

@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { MENU_MEDIA_SECTIONS, MENU_MEDIA_SECTION_LABELS_UZ, type MenuMediaSection } from "@iqbol/shared";
@@ -7,8 +9,11 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { UploadField } from "@/components/uploads/upload-field";
-import { cn } from "@/lib/utils";
 import { menuApi, errorText } from "./api";
+
+function mediaKind(url: string): "PHOTO" | "VIDEO" {
+  return /\.(?:mp4|mov)(?:$|\?)/i.test(url) ? "VIDEO" : "PHOTO";
+}
 
 export function MediaModal({
   open,
@@ -25,7 +30,8 @@ export function MediaModal({
   item?: MenuMedia;
   section?: MenuMediaSection;
 }) {
-  const [kind, setKind] = useState<"PHOTO" | "VIDEO">(item?.mediaType ?? "PHOTO");
+  const tr = useTr();
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -33,10 +39,10 @@ export function MediaModal({
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const url = String(form.get("url") ?? "");
-    if (!url) return setError(kind === "PHOTO" ? "Rasmni yuklang" : "Videoni yuklang");
+    if (!url) return setError(tr("Rasm yoki videoni yuklang"));
     const body = {
       section: form.get("section"),
-      mediaType: kind,
+      mediaType: mediaKind(url),
       url,
       caption: String(form.get("caption") ?? "").trim(),
     };
@@ -59,63 +65,47 @@ export function MediaModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={item ? "Faylni tahrirlash" : "Galereyaga qo'shish"}
+      title={item ? tr("Faylni tahrirlash") : tr("Galereyaga qo'shish")}
       size="lg"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="submit" form="media-form" disabled={busy}>
-            {busy ? "Saqlanmoqda..." : "Saqlash"}
+            {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
           </Button>
         </>
       }
     >
       <form id="media-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
-        {!item && (
-          <div className="sm:col-span-2">
-            <div className="inline-flex rounded-lg border border-border p-1">
-              {(["PHOTO", "VIDEO"] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setKind(k)}
-                  className={cn(
-                    "rounded-md px-4 py-1.5 text-sm font-medium transition",
-                    kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {k === "PHOTO" ? "Rasm" : "Video"}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
         <div className="sm:col-span-2">
           <UploadField
-            key={kind}
             name="url"
-            label={kind === "PHOTO" ? "Rasm" : "Video (mp4)"}
-            kind={kind === "PHOTO" ? "image" : "video"}
+            label={tr("Rasm yoki video")}
             folder="menus"
-            accept={kind === "PHOTO" ? "image/jpeg,image/png,image/webp" : "video/mp4"}
+            kind={item?.mediaType === "VIDEO" ? "video" : "image"}
+            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.mov"
+            browse
+            formats="JPG, PNG, WebP, MP4, MOV"
             defaultValue={item?.url}
           />
+          <p className="mt-2 text-xs text-muted-foreground">{tr("Video galereyada ovozsiz ko'rsatiladi.")}</p>
         </div>
         <div>
-          <Label htmlFor="media-section">Bo&apos;lim</Label>
+          <Label htmlFor="media-section">{tr("Bo'lim")}</Label>
           <Select id="media-section" name="section" defaultValue={item?.section ?? section ?? "HALL"}>
             {MENU_MEDIA_SECTIONS.map((s) => (
               <option key={s} value={s}>
-                {MENU_MEDIA_SECTION_LABELS_UZ[s]}
+                {tr(MENU_MEDIA_SECTION_LABELS_UZ[s])}
               </option>
             ))}
           </Select>
         </div>
         <div>
-          <Label htmlFor="media-caption">Izoh — taqdimotda rasm ustida chiqadi</Label>
-          <Input id="media-caption" name="caption" defaultValue={item?.caption ?? ""} placeholder="masalan: Asosiy zal" />
+          <Label htmlFor="media-caption">{tr("Izoh — taqdimotda rasm ustida chiqadi")}</Label>
+          <Input id="media-caption" name="caption" defaultValue={item?.caption ?? ""} placeholder={tr("masalan: Asosiy zal")} />
         </div>
         {error && <p className="text-sm text-destructive sm:col-span-2">{error}</p>}
       </form>

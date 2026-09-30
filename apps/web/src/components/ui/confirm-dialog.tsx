@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
@@ -22,6 +24,8 @@ export function ConfirmDialog({
   destructive?: boolean;
   onConfirm: () => Promise<void>;
 }) {
+  const tr = useTr();
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -42,21 +46,22 @@ export function ConfirmDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title={title}
+      title={tr(title)}
       size="sm"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="button" variant={destructive ? "destructive" : "primary"} onClick={run} disabled={busy}>
-            {busy ? "..." : confirmLabel}
+            {busy ? "..." : tr(confirmLabel)}
           </Button>
         </>
       }
     >
-      <p className="text-sm text-muted-foreground">{message}</p>
-      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      <p className="text-sm text-muted-foreground">{tr(message)}</p>
+      {error && <p className="mt-3 text-sm text-destructive">{tr(error)}</p>}
     </Modal>
   );
 }

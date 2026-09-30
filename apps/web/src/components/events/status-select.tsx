@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useTr } from "@/components/i18n/locale-provider";
 import { EVENT_STATUSES } from "@iqbol/shared";
 import { Select } from "@/components/ui/input";
 import { updateEventStatusAction } from "@/lib/actions/events.actions";
@@ -13,6 +14,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function StatusSelect({ eventId, status }: { eventId: string; status: string }) {
+  const tr = useTr();
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -29,7 +31,7 @@ export function StatusSelect({ eventId, status }: { eventId: string; status: str
     >
       {EVENT_STATUSES.map((s) => (
         <option key={s} value={s}>
-          {STATUS_LABEL[s]}
+          {tr(STATUS_LABEL[s])}
         </option>
       ))}
     </Select>

@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { resetWorkerPinAction } from "@/lib/actions/workers.actions";
@@ -7,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
 export function PinModal({ worker, onClose }: { worker: { id: string; fullName: string }; onClose: () => void }) {
+  const tr = useTr();
+
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -24,21 +28,22 @@ export function PinModal({ worker, onClose }: { worker: { id: string; fullName: 
     <Modal
       open
       onClose={onClose}
-      title="PIN kodni tiklash"
-      description={`${worker.fullName} keyingi kirishda PIN'ni o'zi almashtiradi.`}
+      title={tr("PIN kodni tiklash")}
+      description={tr(`${worker.fullName} keyingi kirishda PIN'ni o'zi almashtiradi.`)}
       size="sm"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="button" onClick={save} disabled={busy || pin.length !== 4}>
-            {busy ? "Saqlanmoqda..." : "Saqlash"}
+            {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
           </Button>
         </>
       }
     >
-      <Label htmlFor="new-pin">Yangi vaqtinchalik PIN (4 raqam)</Label>
+      <Label htmlFor="new-pin">{tr("Yangi vaqtinchalik PIN (4 raqam)")}</Label>
       <Input
         id="new-pin"
         value={pin}

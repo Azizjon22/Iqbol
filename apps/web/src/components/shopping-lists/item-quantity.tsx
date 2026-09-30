@@ -1,15 +1,19 @@
+"use client";
+
 import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { ShoppingListItem } from "@/lib/types";
+import { useTr } from "@/components/i18n/locale-provider";
 
 /** "5 kg", or "8 → 5 kg" when SUPER_ADMIN corrected the chef's figure. */
 export function ItemQuantity({ item }: { item: Pick<ShoppingListItem, "quantity" | "originalQuantity" | "unit"> }) {
-  const unit = UNIT_LABELS_UZ[item.unit];
+  const tr = useTr();
+  const unit = tr(UNIT_LABELS_UZ[item.unit]);
   const original = item.originalQuantity === null ? null : Number(item.originalQuantity);
 
   if (original === 0) {
     return (
       <span>
-        {Number(item.quantity)} {unit} <span className="text-xs text-accent">(qo&apos;shildi)</span>
+        {Number(item.quantity)} {unit} <span className="text-xs text-accent">{tr("(qo'shildi)")}</span>
       </span>
     );
   }

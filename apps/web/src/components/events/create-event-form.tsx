@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { startTransition, useActionState } from "react";
 import { createEventAction, type FormActionState } from "@/lib/actions/events.actions";
@@ -18,6 +20,8 @@ export function CreateEventForm({
   defaultDate?: string;
   canSetDishes: boolean;
 }) {
+  const tr = useTr();
+
   const [state, formAction, isPending] = useActionState(createEventAction, initialState);
   const defaultDateTime = defaultDate ? `${defaultDate}T18:00` : undefined;
 
@@ -35,26 +39,26 @@ export function CreateEventForm({
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor="clientName">Mijoz ismi</Label>
+          <Label htmlFor="clientName">{tr("Mijoz ismi")}</Label>
           <Input id="clientName" name="clientName" required />
         </div>
         <div>
-          <Label htmlFor="clientPhone">Mijoz telefoni</Label>
+          <Label htmlFor="clientPhone">{tr("Mijoz telefoni")}</Label>
           <Input id="clientPhone" name="clientPhone" placeholder="+998901234567" required />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
-          <Label htmlFor="eventDate">Sana va vaqt</Label>
+          <Label htmlFor="eventDate">{tr("Sana va vaqt")}</Label>
           <Input id="eventDate" name="eventDate" type="datetime-local" defaultValue={defaultDateTime} required />
         </div>
         <div>
-          <Label htmlFor="guestCount">Mehmonlar soni</Label>
+          <Label htmlFor="guestCount">{tr("Mehmonlar soni")}</Label>
           <Input id="guestCount" name="guestCount" type="number" min={1} required />
         </div>
         <div>
-          <Label htmlFor="tableCapacity">Stol turi</Label>
+          <Label htmlFor="tableCapacity">{tr("Stol turi")}</Label>
           <Select id="tableCapacity" name="tableCapacity" required>
             <option value="10">10 kishilik</option>
             <option value="12">12 kishilik</option>
@@ -65,13 +69,13 @@ export function CreateEventForm({
       <MenuAndDishes menus={menus} canSetDishes={canSetDishes} />
 
       <div>
-        <Label htmlFor="notes">Izoh (ixtiyoriy)</Label>
+        <Label htmlFor="notes">{tr("Izoh (ixtiyoriy)")}</Label>
         <Textarea id="notes" name="notes" rows={3} />
       </div>
 
       <FieldError>{state?.error}</FieldError>
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Yaratilmoqda..." : <>To&apos;yni yaratish</>}
+        {isPending ? "Yaratilmoqda..." : <>{tr("To'yni yaratish")}</>}
       </Button>
     </form>
   );

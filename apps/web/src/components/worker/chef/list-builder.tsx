@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -50,6 +52,9 @@ export function ListBuilder({
   previous: ShoppingList[];
   initialEventId?: string;
 }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [eventId, setEventId] = useState(() => (events.some((e) => e.id === initialEventId) ? initialEventId! : ""));
   const [cart, setCart] = useState<Map<string, CartLine>>(() => new Map());
@@ -116,8 +121,8 @@ export function ListBuilder({
     setCart(next);
     setScaledNote(
       ratio !== 1
-        ? `${list.event?.clientName} ro'yxatidan: ${from} → ${to} mehmon, miqdorlar ×${ratio.toFixed(2)}`
-        : `${list.event?.clientName ?? "Oldingi"} ro'yxatidan nusxa olindi`,
+        ? tr(`${list.event?.clientName} ro'yxatidan: ${from} → ${to} mehmon, miqdorlar ×${ratio.toFixed(2)}`)
+        : tr(`${list.event?.clientName ?? "Oldingi"} ro'yxatidan nusxa olindi`),
     );
     setCopying(false);
   }
@@ -125,7 +130,7 @@ export function ListBuilder({
   async function submit() {
     if (lines.length === 0) return;
     if (events.length > 0 && !eventId) {
-      setError("Qaysi to'y uchun ekanini tanlang");
+      setError(tr("Qaysi to'y uchun ekanini tanlang"));
       return;
     }
     setBusy(true);
@@ -141,7 +146,7 @@ export function ListBuilder({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error((Array.isArray(data?.message) ? data.message[0] : data?.message) ?? "Yuborib bo'lmadi");
+        throw new Error((Array.isArray(data?.message) ? data.message[0] : data?.message) ?? tr("Yuborib bo'lmadi"));
       }
       setCart(new Map());
       setReviewing(false);
@@ -162,7 +167,8 @@ export function ListBuilder({
       {events.length > 0 && (
         <section>
           <p className="mb-2 text-sm font-semibold">
-            1. Qaysi to&apos;y uchun? <span className="text-destructive">*</span>
+            
+            {tr("1. Qaysi to'y uchun?")} <span className="text-destructive">*</span>
           </p>
           <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
             {events.map((e) => {
@@ -185,14 +191,14 @@ export function ListBuilder({
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold">{e.clientName}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {whenLabel(d)} · {e.guestCount} mehmon
+                      {tr(whenLabel(d))} · {tr(`${e.guestCount} mehmon`)}
                     </span>
                     {(e.firstDish || e.secondDish) && (
                       <span className="block truncate text-[11px] text-accent">
                         {[e.firstDish, e.secondDish].filter(Boolean).join(" · ")}
                       </span>
                     )}
-                    {e.shoppingLists.length > 0 && <span className="block text-[11px] text-success">Ro&apos;yxat bor</span>}
+                    {e.shoppingLists.length > 0 && <span className="block text-[11px] text-success">{tr("Ro'yxat bor")}</span>}
                   </span>
                 </button>
               );
@@ -204,21 +210,21 @@ export function ListBuilder({
       {/* ---------- 2. Products ---------- */}
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold">{events.length > 0 ? "2. " : ""}Mahsulotlarni tanlang</p>
+          <p className="text-sm font-semibold">{events.length > 0 ? "2. " : ""}{tr("Mahsulotlarni tanlang")}</p>
           {copySources.length > 0 && (
             <button
               type="button"
               onClick={() => setCopying(true)}
               className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
             >
-              <Copy className="h-3.5 w-3.5" /> Oldingi ro&apos;yxatdan nusxa
+              <Copy className="h-3.5 w-3.5" />  {tr("Oldingi ro'yxatdan nusxa")}
             </button>
           )}
         </div>
         {scaledNote && (
           <p className="flex items-start justify-between gap-2 rounded-xl bg-accent/10 px-3 py-2 text-xs text-accent">
-            <span>{scaledNote}. Kerak bo&apos;lsa miqdorlarni to&apos;g&apos;rilang.</span>
-            <button type="button" onClick={() => setScaledNote(undefined)} aria-label="Yopish">
+            <span>{scaledNote}{tr(". Kerak bo'lsa miqdorlarni to'g'rilang.")}</span>
+            <button type="button" onClick={() => setScaledNote(undefined)} aria-label={tr("Yopish")}>
               <X className="h-3.5 w-3.5" />
             </button>
           </p>
@@ -226,9 +232,9 @@ export function ListBuilder({
 
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Qidirish: kartoshka, sabzi..." className="h-11 pl-9 pr-9" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Qidirish: kartoshka, sabzi...")} className="h-11 pl-9 pr-9" />
           {q && (
-            <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-label="Tozalash">
+            <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-label={tr("Tozalash")}>
               <X className="h-4 w-4" />
             </button>
           )}
@@ -247,7 +253,7 @@ export function ListBuilder({
                 )}
               >
                 {s !== "ALL" && <ProductCategoryIcon category={s} className="h-3.5 w-3.5" />}
-                {s === "ALL" ? "Hammasi" : PRODUCT_CATEGORY_LABELS_UZ[s]}
+                {s === "ALL" ? tr("Hammasi") : tr(PRODUCT_CATEGORY_LABELS_UZ[s])}
                 {picked > 0 && <span className={cn("rounded-full px-1.5 text-[10px]", section === s ? "bg-primary-foreground/20" : "bg-primary/15 text-primary")}>{picked}</span>}
               </button>
             );
@@ -256,7 +262,7 @@ export function ListBuilder({
 
         {products.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-            &quot;{query}&quot; topilmadi — pastdan qo&apos;lda qo&apos;shing.
+            {tr(`"${query}" topilmadi — pastdan qo'lda qo'shing.`)}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-2.5 min-[480px]:grid-cols-3">
@@ -283,7 +289,7 @@ export function ListBuilder({
                         </span>
                       )}
                       <span className="min-w-0 flex-1 truncate text-sm font-medium">{p.name}</span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{UNIT_LABELS_UZ[p.unit]}</span>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{tr(UNIT_LABELS_UZ[p.unit])}</span>
                     </button>
                     <div className="mt-1.5 flex items-center gap-1">
                       <button
@@ -291,7 +297,7 @@ export function ListBuilder({
                         onClick={() => step(p, -1)}
                         disabled={!on}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border disabled:opacity-30"
-                        aria-label="Kamaytirish"
+                        aria-label={tr("Kamaytirish")}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -310,7 +316,7 @@ export function ListBuilder({
                         type="button"
                         onClick={() => step(p, 1)}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-                        aria-label="Ko'paytirish"
+                        aria-label={tr("Ko'paytirish")}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -323,9 +329,9 @@ export function ListBuilder({
         )}
 
         <div className="rounded-2xl border border-dashed border-border p-3">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Katalogda yo&apos;q mahsulot</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">{tr("Katalogda yo'q mahsulot")}</p>
           <div className="grid grid-cols-[1fr_70px_80px_auto] gap-1.5">
-            <Input value={custom.name} onChange={(e) => setCustom({ ...custom, name: e.target.value })} placeholder="nomi" className="h-10" />
+            <Input value={custom.name} onChange={(e) => setCustom({ ...custom, name: e.target.value })} placeholder={tr("nomi")} className="h-10" />
             <Input
               value={custom.quantity}
               onChange={(e) => setCustom({ ...custom, quantity: e.target.value })}
@@ -336,11 +342,11 @@ export function ListBuilder({
             <Select value={custom.unit} onChange={(e) => setCustom({ ...custom, unit: e.target.value as Unit })} className="h-10 px-2">
               {UNITS.map((u) => (
                 <option key={u} value={u}>
-                  {UNIT_LABELS_UZ[u]}
+                  {tr(UNIT_LABELS_UZ[u])}
                 </option>
               ))}
             </Select>
-            <button type="button" onClick={addCustom} className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-border" aria-label="Qo'shish">
+            <button type="button" onClick={addCustom} className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-border" aria-label={tr("Qo'shish")}>
               <Plus className="h-4 w-4" />
             </button>
           </div>
@@ -350,8 +356,8 @@ export function ListBuilder({
                 .filter((l) => !byName.has(key(l.name)))
                 .map((l) => (
                   <span key={l.name} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">
-                    {l.name} · {fmt(l.quantity)} {UNIT_LABELS_UZ[l.unit]}
-                    <button type="button" onClick={() => setQty(l, 0)} aria-label="O'chirish">
+                    {l.name} · {fmt(l.quantity)} {tr(UNIT_LABELS_UZ[l.unit])}
+                    <button type="button" onClick={() => setQty(l, 0)} aria-label={tr("O'chirish")}>
                       <X className="h-3 w-3" />
                     </button>
                   </span>
@@ -374,14 +380,15 @@ export function ListBuilder({
               <ShoppingBasket className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold">{lines.length > 0 ? `${lines.length} ta mahsulot` : "Savat bo'sh"}</p>
+              <p className="text-sm font-semibold">{lines.length > 0 ? tr(`${lines.length} ta mahsulot`) : tr("Savat bo'sh")}</p>
               <p className="truncate text-xs text-muted-foreground">
-                {event ? `${event.clientName} · ${event.guestCount} mehmon` : events.length > 0 ? "To'y tanlanmagan" : "Mahsulot tanlang"}
+                {event ? tr(`${event.clientName} · ${event.guestCount} mehmon`) : events.length > 0 ? tr("To'y tanlanmagan") : tr("Mahsulot tanlang")}
               </p>
             </div>
           </div>
           <Button type="button" onClick={() => setReviewing(true)} disabled={lines.length === 0} className="shrink-0">
-            Ko&apos;rib chiqish <ArrowRight className="h-4 w-4" />
+            
+            {tr("Ko'rib chiqish")} <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -390,22 +397,22 @@ export function ListBuilder({
       <Modal
         open={reviewing}
         onClose={() => setReviewing(false)}
-        title="Ro'yxatni tekshiring"
-        description={event ? `${event.clientName} — ${formatDate(event.eventDate)}` : undefined}
+        title={tr("Ro'yxatni tekshiring")}
+        description={event ? `${event.clientName} — ${formatDate(event.eventDate, locale)}` : undefined}
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => setReviewing(false)} disabled={busy}>
               Davom etish
             </Button>
             <Button type="button" onClick={submit} disabled={busy || lines.length === 0}>
-              {busy ? "Yuborilmoqda..." : "Super adminga yuborish"}
+              {busy ? tr("Yuborilmoqda...") : "Super adminga yuborish"}
             </Button>
           </>
         }
       >
         {event && (
           <p className="mb-3 flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-sm">
-            <Users className="h-4 w-4 text-muted-foreground" /> {event.guestCount} mehmon · {event.menu.name}
+            <Users className="h-4 w-4 text-muted-foreground" /> {event.guestCount}  {tr("mehmon ·")} {event.menu.name}
           </p>
         )}
         {event && (
@@ -415,7 +422,7 @@ export function ListBuilder({
             <span className="text-accent">2-ovqat:</span> <b>{event.secondDish ?? "belgilanmagan"}</b>
           </p>
         )}
-        {events.length > 0 && !eventId && <p className="mb-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">Yuqorida to&apos;yni tanlang.</p>}
+        {events.length > 0 && !eventId && <p className="mb-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{tr("Yuqorida to'yni tanlang.")}</p>}
         <ul className="divide-y divide-border">
           {lines.map((l) => (
             <li key={l.name} className="flex items-center gap-2 py-2">
@@ -430,12 +437,12 @@ export function ListBuilder({
                 className="h-9 w-20 rounded-lg border border-input bg-transparent text-center text-sm font-semibold tabular-nums"
                 aria-label={`${l.name} miqdori`}
               />
-              <span className="w-9 text-xs text-muted-foreground">{UNIT_LABELS_UZ[l.unit]}</span>
+              <span className="w-9 text-xs text-muted-foreground">{tr(UNIT_LABELS_UZ[l.unit])}</span>
               <button
                 type="button"
                 onClick={() => setQty(l, 0)}
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                aria-label="O'chirish"
+                aria-label={tr("O'chirish")}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -449,8 +456,8 @@ export function ListBuilder({
       <Modal
         open={copying}
         onClose={() => setCopying(false)}
-        title="Oldingi ro'yxatdan nusxa"
-        description={event ? `Miqdorlar ${event.guestCount} mehmonga moslanadi` : "Avval to'yni tanlasangiz, miqdorlar mehmon soniga moslanadi"}
+        title={tr("Oldingi ro'yxatdan nusxa")}
+        description={event ? tr(`Miqdorlar ${event.guestCount} mehmonga moslanadi`) : tr("Avval to'yni tanlasangiz, miqdorlar mehmon soniga moslanadi")}
         size="sm"
       >
         <ul className="space-y-2">
@@ -461,10 +468,10 @@ export function ListBuilder({
                 onClick={() => copyFrom(l)}
                 className="w-full rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5"
               >
-                <p className="truncate text-sm font-semibold">{l.event?.clientName ?? "To'ysiz ro'yxat"}</p>
+                <p className="truncate text-sm font-semibold">{l.event?.clientName ?? tr("To'ysiz ro'yxat")}</p>
                 <p className="text-xs text-muted-foreground">
-                  {l.items.length} ta mahsulot
-                  {l.event?.guestCount ? ` · ${l.event.guestCount} mehmon` : ""}
+                  {tr(`${l.items.length} ta mahsulot`)}
+                  {l.event?.guestCount ? tr(` · ${l.event.guestCount} mehmon`) : ""}
                   {event && l.event?.guestCount ? ` → ×${(event.guestCount / l.event.guestCount).toFixed(2)}` : ""}
                 </p>
               </button>

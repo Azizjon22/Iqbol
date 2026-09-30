@@ -4,8 +4,8 @@
   "description": "Iqbol to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f3f7fc",
-  "theme_color": "#1565b8",
+  "background_color": "#f4f6f4",
+  "theme_color": "#111813",
   "icons": [
     {
       "src": "/icon.svg",

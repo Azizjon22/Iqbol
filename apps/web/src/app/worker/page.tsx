@@ -1,3 +1,5 @@
+import { getTr } from "@/i18n/server-tr";
+import { getLocale } from "@/i18n/locale";
 import Link from "next/link";
 import { CalendarHeart, ChefHat, Plus, ShoppingCart } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -14,6 +16,9 @@ function greeting() {
 }
 
 export default async function WorkerHomePage() {
+  const tr = await getTr();
+  const locale = await getLocale();
+
   const session = await getSession();
   const isChef = session?.user.kind === "WORKER" && session.user.position === "CHEF";
   const [myLists, agenda] = await Promise.all([
@@ -31,15 +36,15 @@ export default async function WorkerHomePage() {
     <div className="space-y-6 animate-fade-up">
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
-          {WEEKDAYS[today.getDay()]} · {formatDate(today)}
+          {tr(WEEKDAYS[today.getDay()])} · {formatDate(today, locale)}
         </p>
         <h1 className="font-display mt-1.5 text-3xl font-semibold tracking-tight sm:text-4xl">
-          {greeting()}, {session?.user.fullName.split(" ")[0]}
+          {tr(greeting())}, {session?.user.fullName.split(" ")[0]}
         </h1>
         {isChef && (
           <p className="mt-1 text-sm text-muted-foreground">
-            {week.length > 0 ? `Bu hafta ${week.length} ta to'y` : "Bu hafta to'y yo'q"}
-            {withoutList.length > 0 && ` · ${withoutList.length} tasiga bozorlik yozilmagan`}
+            {week.length > 0 ? tr(`Bu hafta ${week.length} ta to'y`) : tr("Bu hafta to'y yo'q")}
+            {withoutList.length > 0 && tr(` · ${withoutList.length} tasiga bozorlik yozilmagan`)}
           </p>
         )}
       </div>
@@ -48,17 +53,19 @@ export default async function WorkerHomePage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-semibold">
-              <CalendarHeart className="h-4 w-4 text-primary" /> Keyingi to&apos;y
+              <CalendarHeart className="h-4 w-4 text-primary" />  {tr("Keyingi to'y")}
             </h2>
             <Link href="/worker/events" className="text-sm text-primary hover:underline">
-              Hammasi ({agenda.length}) →
+              
+              {tr(`Hammasi (${agenda.length})`)} →
             </Link>
           </div>
           {next ? (
             <ChefEventCard event={next} defaultOpen />
           ) : (
             <div className="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-              Rejada to&apos;y yo&apos;q.
+              
+              {tr("Rejada to'y yo'q.")}
             </div>
           )}
         </section>
@@ -72,7 +79,7 @@ export default async function WorkerHomePage() {
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Plus className="h-5 w-5" />
           </span>
-          <span className="text-sm font-semibold leading-tight">Yangi bozorlik ro&apos;yxati</span>
+          <span className="text-sm font-semibold leading-tight">{tr("Yangi bozorlik ro'yxati")}</span>
         </Link>
         <Link
           href="/worker/shopping?tab=mine"
@@ -82,7 +89,8 @@ export default async function WorkerHomePage() {
             <ShoppingCart className="h-5 w-5" />
           </span>
           <span className="text-sm font-semibold leading-tight">
-            Ro&apos;yxatlarim <span className="text-muted-foreground">({myLists.length})</span>
+            
+            {tr("Ro'yxatlarim")} <span className="text-muted-foreground">({myLists.length})</span>
           </span>
         </Link>
       </div>
@@ -90,7 +98,7 @@ export default async function WorkerHomePage() {
       {active.length > 0 && (
         <section className="space-y-3">
           <h2 className="flex items-center gap-2 text-base font-semibold">
-            <ChefHat className="h-4 w-4 text-accent" /> Ro&apos;yxatlarim holati
+            <ChefHat className="h-4 w-4 text-accent" />  {tr("Ro'yxatlarim holati")}
           </h2>
           {active.map((l) => (
             <ChefListCard key={l.id} list={l} compact />

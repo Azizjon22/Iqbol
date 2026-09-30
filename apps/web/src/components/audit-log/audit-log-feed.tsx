@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -42,6 +44,9 @@ const ENTITY_LABEL_UZ: Record<string, string> = {
 };
 
 export function AuditLogFeed({ initialEntries }: { initialEntries: AuditLogEntry[] }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const [entries, setEntries] = useState(initialEntries);
   const [live, setLive] = useState(true);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -71,21 +76,21 @@ export function AuditLogFeed({ initialEntries }: { initialEntries: AuditLogEntry
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">Jami {entries.length} ta yozuv</p>
+        <p className="text-xs text-muted-foreground">{tr(`Jami ${entries.length} ta yozuv`)}</p>
         <button
           type="button"
           onClick={() => setLive((v) => !v)}
           className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
           <span className={cn("h-1.5 w-1.5 rounded-full", live ? "bg-success animate-pulse" : "bg-muted-foreground")} />
-          {live ? "Jonli yangilanmoqda" : "To'xtatilgan"}
+          {live ? tr("Jonli yangilanmoqda") : tr("To'xtatilgan")}
         </button>
       </div>
 
       <div className="space-y-2">
         {entries.length === 0 && (
           <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Hali hech qanday amal qayd etilmagan.
+            {tr("Hali hech qanday amal qayd etilmagan.")}
           </p>
         )}
         {entries.map((entry) => {
@@ -107,13 +112,13 @@ export function AuditLogFeed({ initialEntries }: { initialEntries: AuditLogEntry
                 <Icon className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm">{entry.description}</p>
+                <p className="text-sm">{tr(entry.description)}</p>
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                   <span className="font-medium text-foreground">{entry.actorName}</span>
                   <span>·</span>
-                  <span>{formatDateTime(entry.createdAt)}</span>
+                  <span>{formatDateTime(entry.createdAt, locale)}</span>
                   <span>·</span>
-                  <span>{ENTITY_LABEL_UZ[entry.entityType] ?? entry.entityType}</span>
+                  <span>{tr(ENTITY_LABEL_UZ[entry.entityType]) ?? entry.entityType}</span>
                 </p>
               </div>
             </div>

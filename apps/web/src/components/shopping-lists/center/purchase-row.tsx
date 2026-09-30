@@ -1,4 +1,5 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -30,6 +31,9 @@ export function PurchaseRow({
   canBuy: boolean;
   canFixPrice: boolean;
 }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [fixing, setFixing] = useState(false);
@@ -39,7 +43,7 @@ export function PurchaseRow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  const unit = UNIT_LABELS_UZ[item.unit];
+  const unit = tr(UNIT_LABELS_UZ[item.unit]);
   const qtyNum = parseNumber(bought);
   const priceNum = parseNumber(price);
   const validQty = qtyNum > 0;
@@ -106,9 +110,9 @@ export function PurchaseRow({
         {item.isPurchased ? (
           <div className="flex shrink-0 items-center gap-1">
             <div className="text-right">
-              <p className="text-sm font-semibold tabular-nums">{formatSom(itemCost(item))}</p>
+              <p className="text-sm font-semibold tabular-nums">{formatSom(itemCost(item), locale)}</p>
               <p className="text-[11px] text-muted-foreground tabular-nums">
-                1 {unit} · {formatSom(item.unitPrice ?? 0)}
+                1 {unit} · {formatSom(item.unitPrice ?? 0, locale)}
               </p>
             </div>
             {canFixPrice && !fixing && (
@@ -120,8 +124,8 @@ export function PurchaseRow({
                   setPrice("");
                 }}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Narxni tuzatish"
-                title="Narxni tuzatish"
+                title={tr("Narxni tuzatish")}
+                aria-label={tr("Narxni tuzatish")}
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -135,7 +139,7 @@ export function PurchaseRow({
               onClick={() => setOpen(true)}
               className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
             >
-              <ShoppingBag className="h-4 w-4" /> Olindi
+              <ShoppingBag className="h-4 w-4" />  {tr("Olindi")}
             </button>
           )
         )}
@@ -147,7 +151,7 @@ export function PurchaseRow({
             <div className="inline-flex rounded-lg bg-card p-0.5 text-xs font-medium">
               {(
                 [
-                  ["total", "Jami summa"],
+                  ["total", tr("Jami summa")],
                   ["unit", `1 ${unit} narxi`],
                 ] as const
               ).map(([key, label]) => (
@@ -161,7 +165,7 @@ export function PurchaseRow({
                 </button>
               ))}
             </div>
-            <span className="text-xs text-muted-foreground">Faqat shu to&apos;y uchun — omborga tushmaydi</span>
+            <span className="text-xs text-muted-foreground">{tr("Faqat shu to'y uchun — omborga tushmaydi")}</span>
           </div>
           <div className="mt-2.5 grid gap-2 min-[420px]:grid-cols-[1fr_auto]">
             <div className="relative">
@@ -174,7 +178,7 @@ export function PurchaseRow({
                 className="h-11 pr-14 text-base font-semibold tabular-nums"
                 onKeyDown={(e) => e.key === "Enter" && save()}
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">so&apos;m</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{tr("so'm")}</span>
             </div>
             {!fixing && (
               <label className="relative block">
@@ -183,7 +187,7 @@ export function PurchaseRow({
                   onChange={(e) => setBought(e.target.value)}
                   inputMode="decimal"
                   className="h-11 w-full pr-12 tabular-nums min-[420px]:w-32"
-                  aria-label="Olingan miqdor"
+                  aria-label={tr("Olingan miqdor")}
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{unit}</span>
               </label>
@@ -193,11 +197,11 @@ export function PurchaseRow({
             <p className="text-xs text-muted-foreground">
               {derived !== null
                 ? mode === "total"
-                  ? `1 ${unit} = ${formatSom(Math.round(derived))}`
-                  : `Jami = ${formatSom(Math.round(derived))}`
+                  ? `1 ${unit} = ${formatSom(Math.round(derived), locale)}`
+                  : tr(`Jami = ${formatSom(Math.round(derived), locale)}`)
                 : !fixing && validQty && qtyNum !== Number(item.quantity)
                   ? `Rejada ${Number(item.quantity)} ${unit}, olindi ${qtyNum} ${unit}`
-                  : "Narxni kiriting"}
+                  : tr("Narxni kiriting")}
             </p>
             <div className="flex gap-1.5">
               <button
@@ -208,7 +212,7 @@ export function PurchaseRow({
                   setError(undefined);
                 }}
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
-                aria-label="Bekor qilish"
+                aria-label={tr("Bekor qilish")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -218,7 +222,7 @@ export function PurchaseRow({
                 disabled={busy || !validPrice || (!fixing && !validQty)}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-success px-4 text-sm font-semibold text-success-foreground transition hover:brightness-95 disabled:opacity-40"
               >
-                <Check className="h-4 w-4" /> {busy ? "..." : fixing ? "Saqlash" : "Sotib olindi"}
+                <Check className="h-4 w-4" /> {busy ? "..." : fixing ? tr("Saqlash") : tr("Sotib olindi")}
               </button>
             </div>
           </div>

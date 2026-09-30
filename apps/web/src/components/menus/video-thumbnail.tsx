@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useEffect, useState } from "react";
 import { Play, X } from "lucide-react";
@@ -14,6 +16,8 @@ export function VideoThumbnail({
   caption?: string | null;
   className?: string;
 }) {
+  const tr = useTr();
+
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -55,7 +59,7 @@ export function VideoThumbnail({
               type="button"
               onClick={() => setOpen(false)}
               className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-              aria-label="Yopish"
+              aria-label={tr("Yopish")}
             >
               <X className="h-5 w-5" />
             </button>

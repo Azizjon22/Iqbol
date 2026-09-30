@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { Check, PenLine, Soup, UtensilsCrossed } from "lucide-react";
@@ -22,6 +24,8 @@ function DishChoice({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const tr = useTr();
+
   const custom = value !== "" && !options.includes(value);
   const [typing, setTyping] = useState(custom || options.length === 0);
 
@@ -29,7 +33,7 @@ function DishChoice({
     <div className="rounded-xl border border-border bg-muted/30 p-3">
       <input type="hidden" name={name} value={value} />
       <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-        {icon} {label} <span className="text-destructive">*</span>
+        {icon} {tr(label)} <span className="text-destructive">*</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
         {options.map((o) => {
@@ -70,7 +74,7 @@ function DishChoice({
         <Input
           value={custom ? value : ""}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Taom nomini yozing"
+          placeholder={tr("Taom nomini yozing")}
           className="mt-2"
           autoFocus={options.length > 0}
         />
@@ -96,6 +100,9 @@ export function MenuAndDishes({
   defaultSecond?: string | null;
   canSetDishes: boolean;
 }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const [menuId, setMenuId] = useState(defaultMenuId);
   const [first, setFirst] = useState(defaultFirst ?? "");
   const [second, setSecond] = useState(defaultSecond ?? "");
@@ -105,12 +112,12 @@ export function MenuAndDishes({
   return (
     <div className="space-y-3">
       <div>
-        <Label htmlFor="menuId">Menyu</Label>
+        <Label htmlFor="menuId">{tr("Menyu")}</Label>
         <Select id="menuId" name="menuId" value={menuId} onChange={(e) => setMenuId(e.target.value)} required>
-          <option value="">Tanlang</option>
+          <option value="">{tr("Tanlang")}</option>
           {menus.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.name} — {formatSom(m.pricePerPerson)} / kishi
+              {m.name} — {formatSom(m.pricePerPerson, locale)} {tr("/ kishi")}
             </option>
           ))}
         </Select>
@@ -142,10 +149,11 @@ export function MenuAndDishes({
             </div>
           ) : (
             <p className="rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
-              Menyuni tanlang — keyin 1-ovqat va 2-ovqatni belgilaysiz.
+              
+              {tr("Menyuni tanlang — keyin 1-ovqat va 2-ovqatni belgilaysiz.")}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">Oshpaz bozorlikni shu taomlar va mehmonlar soniga qarab yozadi.</p>
+          <p className="text-xs text-muted-foreground">{tr("Oshpaz bozorlikni shu taomlar va mehmonlar soniga qarab yozadi.")}</p>
         </>
       )}
     </div>

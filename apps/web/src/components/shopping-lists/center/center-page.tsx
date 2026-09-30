@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { CheckCheck, ClipboardList, SearchCheck, ShoppingCart, Wallet } from "lucide-react";
@@ -15,6 +17,9 @@ const STAGES: { key: Stage; label: string; hint: string; icon: React.ReactNode }
 ];
 
 function ListCard({ list, selected, onSelect }: { list: ShoppingList; selected: boolean; onSelect: () => void }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const { total, bought, spent } = listProgress(list);
   const status = SHOPPING_LIST_STATUS_UZ[list.status];
   return (
@@ -28,9 +33,9 @@ function ListCard({ list, selected, onSelect }: { list: ShoppingList; selected: 
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-semibold">{list.event?.clientName ?? "To'ysiz ro'yxat"}</p>
+          <p className="truncate font-semibold">{list.event?.clientName ?? tr("To'ysiz ro'yxat")}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {list.event ? `To'y: ${formatDate(list.event.eventDate)} · ` : ""}
+            {list.event ? tr(`To'y: ${formatDate(list.event.eventDate, locale)} · `) : ""}
             {list.createdByWorker.fullName}
           </p>
         </div>
@@ -40,7 +45,7 @@ function ListCard({ list, selected, onSelect }: { list: ShoppingList; selected: 
             list.status === "SUBMITTED" ? "bg-primary text-primary-foreground" : status?.variant === "success" ? "bg-success/15 text-success" : status?.variant === "accent" ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground",
           )}
         >
-          {status?.label ?? list.status}
+          {tr(status?.label ?? list.status)}
         </span>
       </div>
       <div className="mt-3 flex items-center gap-2">
@@ -52,14 +57,17 @@ function ListCard({ list, selected, onSelect }: { list: ShoppingList; selected: 
         </span>
       </div>
       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{formatDateTime(list.createdAt)}</span>
-        {spent > 0 && <span className="font-semibold text-foreground tabular-nums">{formatSom(spent)}</span>}
+        <span>{formatDateTime(list.createdAt, locale)}</span>
+        {spent > 0 && <span className="font-semibold text-foreground tabular-nums">{formatSom(spent, locale)}</span>}
       </div>
     </button>
   );
 }
 
 export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingList[]; catalog: ProductCatalogItem[]; isSuperAdmin: boolean }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const stages = isSuperAdmin ? STAGES : STAGES.filter((s) => s.key !== "review");
   const byStage = (s: Stage) => lists.filter((l) => stageOf(l.status) === s);
   const firstBusy = stages.find((s) => byStage(s.key).length > 0 && s.key !== "done")?.key ?? stages[0].key;
@@ -82,11 +90,11 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
   return (
     <div className="space-y-6 animate-fade-up">
       <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Bozorlik ro&apos;yxatlari</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{tr("Bozorlik ro'yxatlari")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {isSuperAdmin
-            ? "Oshpaz yozgan ro'yxatni tekshiring, adminga yuboring va xaridni kuzating."
-            : "Super admin yuborgan ro'yxatlar bo'yicha bozorlik qiling — har bir mahsulot uchun to'langan summani kiriting."}
+            ? tr("Oshpaz yozgan ro'yxatni tekshiring, adminga yuboring va xaridni kuzating.")
+            : tr("Super admin yuborgan ro'yxatlar bo'yicha bozorlik qiling — har bir mahsulot uchun to'langan summani kiriting.")}
         </p>
       </div>
 
@@ -111,11 +119,11 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
               )}
             >
               <div className="min-w-0">
-                <p className="truncate text-xs text-muted-foreground">{s.label}</p>
+                <p className="truncate text-xs text-muted-foreground">{tr(s.label)}</p>
                 <p className={cn("font-display mt-0.5 text-3xl font-semibold leading-none lining-nums tabular-nums", urgent && !active && "text-primary")}>
                   {count}
                 </p>
-                <p className="mt-1 hidden truncate text-[11px] text-muted-foreground sm:block">{s.hint}</p>
+                <p className="mt-1 hidden truncate text-[11px] text-muted-foreground sm:block">{tr(s.hint)}</p>
               </div>
               <span className={cn("hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
                 {s.icon}
@@ -126,9 +134,9 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
         {isSuperAdmin && (
           <div className="col-span-3 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 lg:col-span-1">
             <div>
-              <p className="text-xs text-muted-foreground">Shu oy bozorlik</p>
-              <p className="font-display mt-0.5 text-2xl font-semibold leading-none lining-nums tabular-nums">{formatSom(monthSpent)}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">sotib olingan mahsulotlar</p>
+              <p className="text-xs text-muted-foreground">{tr("Shu oy bozorlik")}</p>
+              <p className="font-display mt-0.5 text-2xl font-semibold leading-none lining-nums tabular-nums">{formatSom(monthSpent, locale)}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{tr("sotib olingan mahsulotlar")}</p>
             </div>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
               <Wallet className="h-5 w-5" />
@@ -142,7 +150,7 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
         <div className="rounded-2xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="mx-auto h-8 w-8 text-muted-foreground/60" />
           <p className="mt-3 text-sm text-muted-foreground">
-            {stage === "review" ? "Tekshirishni kutayotgan ro'yxat yo'q." : stage === "buying" ? "Hozir xarid qilinadigan ro'yxat yo'q." : "Yakunlangan ro'yxatlar hali yo'q."}
+            {stage === "review" ? tr("Tekshirishni kutayotgan ro'yxat yo'q.") : stage === "buying" ? tr("Hozir xarid qilinadigan ro'yxat yo'q.") : tr("Yakunlangan ro'yxatlar hali yo'q.")}
           </p>
         </div>
       ) : (

@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { startTransition, useActionState, useEffect, useRef } from "react";
 import { PAYMENT_METHODS } from "@iqbol/shared";
@@ -14,6 +16,8 @@ const initialState: FormActionState = undefined;
  * server-side refusal (e.g. "exceeds the remaining balance") keeps the input.
  */
 export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mode?: "payment" | "refund" }) {
+  const tr = useTr();
+
   const refund = mode === "refund";
   const action = (refund ? addRefundAction : addPaymentAction).bind(null, eventId);
   const [state, formAction, isPending] = useActionState(action, initialState);
@@ -38,25 +42,25 @@ export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mo
       className="flex flex-col gap-3 sm:flex-row sm:items-end"
     >
       <div className="flex-1">
-        <Label htmlFor={`${mode}-amount`}>{refund ? "Qaytariladigan summa" : "Summa (so'm)"}</Label>
+        <Label htmlFor={`${mode}-amount`}>{refund ? "Qaytariladigan summa" : tr("Summa (so'm)")}</Label>
         <Input id={`${mode}-amount`} name="amount" type="number" min={1} required />
       </div>
       <div>
-        <Label htmlFor={`${mode}-method`}>Usul</Label>
+        <Label htmlFor={`${mode}-method`}>{tr("Usul")}</Label>
         <Select id={`${mode}-method`} name="method" className="sm:w-36">
           {PAYMENT_METHODS.map((m) => (
             <option key={m} value={m}>
-              {METHOD_LABEL[m]}
+              {tr(METHOD_LABEL[m])}
             </option>
           ))}
         </Select>
       </div>
       <div className="flex-1">
-        <Label htmlFor={`${mode}-note`}>Izoh</Label>
-        <Input id={`${mode}-note`} name="note" placeholder={refund ? "masalan: to'y bekor qilindi, zaklad qaytarildi" : undefined} />
+        <Label htmlFor={`${mode}-note`}>{tr("Izoh")}</Label>
+        <Input id={`${mode}-note`} name="note" placeholder={refund ? tr("masalan: to'y bekor qilindi, zaklad qaytarildi") : undefined} />
       </div>
       <Button type="submit" variant={refund ? "destructive" : "primary"} disabled={isPending}>
-        {isPending ? "Saqlanmoqda..." : refund ? "Pulni qaytarish" : "To'lov qo'shish"}
+        {isPending ? tr("Saqlanmoqda...") : refund ? tr("Pulni qaytarish") : tr("To'lov qo'shish")}
       </Button>
       <FieldError>{state?.error}</FieldError>
     </form>

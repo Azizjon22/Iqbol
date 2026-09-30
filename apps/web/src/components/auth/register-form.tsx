@@ -7,11 +7,13 @@ import { WORKER_GENDERS, WORKER_POSITIONS, workerRegisterSchema } from "@iqbol/s
 import { Input, Label, Select, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ImageDropzone } from "@/components/uploads/image-dropzone";
-import { useT } from "@/components/i18n/locale-provider";
+import { useT, useTr } from "@/components/i18n/locale-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
 export function RegisterForm() {
+  const tr = useTr();
+
   const t = useT();
   const router = useRouter();
   const [fullName, setFullName] = useState("");
@@ -39,7 +41,7 @@ export function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contentType: file.type }),
       });
-      if (!presignRes.ok) throw new Error("Rasm yuklash uchun ruxsat olinmadi");
+      if (!presignRes.ok) throw new Error(tr("Rasm yuklash uchun ruxsat olinmadi"));
       const { uploadUrl, publicUrl } = (await presignRes.json()) as {
         uploadUrl: string;
         publicUrl: string;
@@ -50,10 +52,10 @@ export function RegisterForm() {
         headers: { "Content-Type": file.type },
         body: file,
       });
-      if (!putRes.ok) throw new Error("Rasm yuklashda xatolik yuz berdi");
+      if (!putRes.ok) throw new Error(tr("Rasm yuklashda xatolik yuz berdi"));
       setPhotoUrl(publicUrl);
     } catch (err) {
-      setPhotoError(err instanceof Error ? err.message : "Rasm yuklashda xatolik yuz berdi");
+      setPhotoError(err instanceof Error ? err.message : tr("Rasm yuklashda xatolik yuz berdi"));
       setLocalPreview(undefined);
     } finally {
       setPhotoUploading(false);
@@ -72,12 +74,12 @@ export function RegisterForm() {
       pin: needsPin ? pin : undefined,
     });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri");
+      setError(parsed.error.issues[0]?.message ?? tr("Ma'lumotlar noto'g'ri"));
       return;
     }
 
     if (photoUploading) {
-      setError("Rasm hali yuklanmoqda, biroz kuting");
+      setError(tr("Rasm hali yuklanmoqda, biroz kuting"));
       return;
     }
 
@@ -90,7 +92,7 @@ export function RegisterForm() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Ro'yxatdan o'tishda xatolik yuz berdi");
+        throw new Error(body?.message ?? tr("Ro'yxatdan o'tishda xatolik yuz berdi"));
       }
       setDone(true);
       setTimeout(() => router.push("/login"), 2500);
@@ -104,9 +106,10 @@ export function RegisterForm() {
   if (done) {
     return (
       <div className="w-full max-w-sm rounded-lg border border-success/30 bg-success/10 p-6 text-center">
-        <p className="font-medium text-success">Muvaffaqiyatli ro&apos;yxatdan o&apos;tdingiz!</p>
+        <p className="font-medium text-success">{tr("Muvaffaqiyatli ro'yxatdan o'tdingiz!")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Administrator tasdiqlashini kuting. Hozir kirish sahifasiga yo&apos;naltirilasiz.
+          
+          {tr("Administrator tasdiqlashini kuting. Hozir kirish sahifasiga yo'naltirilasiz.")}
         </p>
       </div>
     );

@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useActionState, useEffect, useRef } from "react";
 import { EVENT_EXPENSE_CATEGORIES, EVENT_EXPENSE_CATEGORY_LABELS_UZ, type EventExpenseCategory } from "@iqbol/shared";
@@ -17,6 +19,8 @@ function ExpenseRow({
   category: EventExpenseCategory;
   suggestedAmount?: number;
 }) {
+  const tr = useTr();
+
   const action = addExpenseAction.bind(null, eventId);
   const [state, formAction, isPending] = useActionState(action, initialState);
   const formRef = useRef<HTMLFormElement>(null);
@@ -36,24 +40,25 @@ function ExpenseRow({
       className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2.5"
     >
       <input type="hidden" name="category" value={category} />
-      <span className="w-36 shrink-0 text-sm font-medium">{EVENT_EXPENSE_CATEGORY_LABELS_UZ[category]}</span>
+      <span className="w-36 shrink-0 text-sm font-medium">{tr(EVENT_EXPENSE_CATEGORY_LABELS_UZ[category])}</span>
       <Input
         type="number"
         name="amount"
         min={1}
-        placeholder="Summa"
+        placeholder={tr("Summa")}
         defaultValue={suggestedAmount}
         className="h-9 min-w-28 flex-1"
         required
       />
       <Input
         name="note"
-        placeholder="Izoh (ixtiyoriy)"
-        defaultValue={suggestedAmount ? "Bozorlik ro'yxatlari bo'yicha" : undefined}
+        placeholder={tr("Izoh (ixtiyoriy)")}
+        defaultValue={suggestedAmount ? tr("Bozorlik ro'yxatlari bo'yicha") : undefined}
         className="h-9 min-w-28 flex-1"
       />
-      <SubmitButton pendingText="Qo'shilmoqda..." size="sm" variant="outline" className="shrink-0">
-        Qo&apos;shish
+      <SubmitButton pendingText={tr("Qo'shilmoqda...")} size="sm" variant="outline" className="shrink-0">
+        
+        {tr("Qo'shish")}
       </SubmitButton>
       {state?.error && <p className="w-full text-xs text-destructive">{state.error}</p>}
     </form>

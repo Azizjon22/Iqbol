@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -40,15 +42,17 @@ type Dialog =
 const ROLE_ORDER: StaffRole[] = ["SUPER_ADMIN", "ADMIN", "ZAVZAL"];
 
 function CreateChefModal({ onClose }: { onClose: () => void }) {
+  const tr = useTr();
+
   const router = useRouter();
   const [form, setForm] = useState({ fullName: "", phone: "+998", pin: "", gender: "FEMALE" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
   async function save() {
-    if (form.fullName.trim().length < 3) return setError("Ism-familiyani kiriting");
-    if (!/^\+?[0-9]{9,15}$/.test(form.phone.replace(/\s/g, ""))) return setError("Telefon raqami noto'g'ri");
-    if (!/^[0-9]{4}$/.test(form.pin)) return setError("PIN 4 ta raqam bo'lishi kerak");
+    if (form.fullName.trim().length < 3) return setError(tr("Ism-familiyani kiriting"));
+    if (!/^\+?[0-9]{9,15}$/.test(form.phone.replace(/\s/g, ""))) return setError(tr("Telefon raqami noto'g'ri"));
+    if (!/^[0-9]{4}$/.test(form.pin)) return setError(tr("PIN 4 ta raqam bo'lishi kerak"));
     setBusy(true);
     setError(undefined);
     try {
@@ -72,30 +76,31 @@ function CreateChefModal({ onClose }: { onClose: () => void }) {
     <Modal
       open
       onClose={onClose}
-      title="Yangi oshpaz"
-      description="Oshpaz telefon raqami va PIN bilan oshpaz ilovasiga kiradi."
+      title={tr("Yangi oshpaz")}
+      description={tr("Oshpaz telefon raqami va PIN bilan oshpaz ilovasiga kiradi.")}
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="button" onClick={save} disabled={busy}>
-            {busy ? "Saqlanmoqda..." : "Qo'shish"}
+            {busy ? tr("Saqlanmoqda...") : tr("Qo'shish")}
           </Button>
         </>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <Label htmlFor="chef-name">Ism-familiya</Label>
+          <Label htmlFor="chef-name">{tr("Ism-familiya")}</Label>
           <Input id="chef-name" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
         </div>
         <div>
-          <Label htmlFor="chef-phone">Telefon (login)</Label>
+          <Label htmlFor="chef-phone">{tr("Telefon (login)")}</Label>
           <Input id="chef-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} inputMode="tel" />
         </div>
         <div>
-          <Label htmlFor="chef-pin">PIN (4 raqam)</Label>
+          <Label htmlFor="chef-pin">{tr("PIN (4 raqam)")}</Label>
           <Input
             id="chef-pin"
             value={form.pin}
@@ -106,11 +111,11 @@ function CreateChefModal({ onClose }: { onClose: () => void }) {
           />
         </div>
         <div>
-          <Label htmlFor="chef-gender">Jinsi</Label>
+          <Label htmlFor="chef-gender">{tr("Jinsi")}</Label>
           <Select id="chef-gender" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
             {WORKER_GENDERS.map((g) => (
               <option key={g} value={g}>
-                {WORKER_GENDER_LABELS_UZ[g]}
+                {tr(WORKER_GENDER_LABELS_UZ[g])}
               </option>
             ))}
           </Select>
@@ -136,6 +141,9 @@ function AccountCard({
   onToggle: () => void;
   onDelete: () => void;
 }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const meta = ROLE_META[account.role];
   return (
     <div className={cn("flex flex-col rounded-2xl border bg-card p-4 transition hover:shadow-md", account.isActive ? "border-border" : "border-dashed border-border opacity-70")}>
@@ -146,44 +154,44 @@ function AccountCard({
           </span>
           <span
             className={cn("absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-card", account.isActive ? "bg-success" : "bg-muted-foreground")}
-            title={account.isActive ? "Faol" : "Faol emas"}
+            title={account.isActive ? tr("Faol") : tr("Faol emas")}
           />
         </span>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 truncate font-semibold">
             {account.fullName}
-            {isSelf && <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">Siz</span>}
+            {isSelf && <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">{tr("Siz")}</span>}
           </p>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", meta.tone)}>{meta.label}</span>
-            {!account.isActive && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">Faol emas</span>}
+            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", meta.tone)}>{tr(meta.label)}</span>
+            {!account.isActive && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">{tr("Faol emas")}</span>}
             {account.mustChangePassword && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Vaqtinchalik parol</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{tr("Vaqtinchalik parol")}</span>
             )}
           </div>
         </div>
         <DropdownMenu
           items={[
-            { label: "Tahrirlash", icon: <Pencil className="h-4 w-4" />, onSelect: onEdit },
-            { label: "Parolni tiklash", icon: <KeyRound className="h-4 w-4" />, onSelect: onReset, hidden: isSelf },
+            { label: tr("Tahrirlash"), icon: <Pencil className="h-4 w-4" />, onSelect: onEdit },
+            { label: tr("Parolni tiklash"), icon: <KeyRound className="h-4 w-4" />, onSelect: onReset, hidden: isSelf },
             {
-              label: account.isActive ? "Faolsizlantirish" : "Faollashtirish",
+              label: account.isActive ? tr("Faolsizlantirish") : tr("Faollashtirish"),
               icon: account.isActive ? <Power className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />,
               onSelect: onToggle,
               hidden: isSelf,
             },
-            { label: "O'chirish", icon: <Trash2 className="h-4 w-4" />, onSelect: onDelete, tone: "danger", hidden: isSelf },
+            { label: tr("O'chirish"), icon: <Trash2 className="h-4 w-4" />, onSelect: onDelete, tone: "danger", hidden: isSelf },
           ]}
         />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-xl bg-muted/50 px-3 py-2">
-          <p className="text-muted-foreground">Oxirgi faoliyat</p>
-          <p className="mt-0.5 font-medium">{ago(account.lastActivityAt)}</p>
+          <p className="text-muted-foreground">{tr("Oxirgi faoliyat")}</p>
+          <p className="mt-0.5 font-medium">{tr(ago(account.lastActivityAt))}</p>
         </div>
         <div className="rounded-xl bg-muted/50 px-3 py-2">
-          <p className="text-muted-foreground">Amallar</p>
+          <p className="text-muted-foreground">{tr("Amallar")}</p>
           <p className="mt-0.5 font-medium tabular-nums">{account.activityCount ?? 0} ta</p>
         </div>
       </div>
@@ -192,13 +200,15 @@ function AccountCard({
         <a href={`tel:${account.phone}`} className="inline-flex items-center gap-1.5 hover:text-primary">
           <Phone className="h-3.5 w-3.5" /> {account.phone}
         </a>
-        <span>{formatDate(account.createdAt)} dan</span>
+        <span>{tr(`${formatDate(account.createdAt, locale)} dan`)}</span>
       </div>
     </div>
   );
 }
 
 export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSummary[]; chefs: WorkerSummary[]; currentUserId: string }) {
+  const tr = useTr();
+
   const router = useRouter();
   const [tab, setTab] = useState<"accounts" | "chefs">("accounts");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -214,20 +224,20 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
   const activeToday = staff.filter((s) => s.lastActivityAt && new Date(s.lastActivityAt).getTime() > dayAgo).length;
 
   const stats = [
-    { label: "Hisoblar", value: staff.length, hint: `${active.length} tasi faol`, icon: <Users className="h-5 w-5" /> },
-    { label: "Adminlar", value: staff.filter((s) => s.role !== "ZAVZAL").length, hint: "super admin + admin", icon: <ShieldCheck className="h-5 w-5" /> },
-    { label: "Bugun faol", value: activeToday, hint: "so'nggi 24 soatda", icon: <Activity className="h-5 w-5" /> },
-    { label: "Oshpazlar", value: chefs.filter((c) => c.status === "APPROVED").length, hint: "ilovaga kiradi", icon: <ChefHat className="h-5 w-5" /> },
+    { label: tr("Hisoblar"), value: staff.length, hint: tr(`${active.length} tasi faol`), icon: <Users className="h-5 w-5" /> },
+    { label: tr("Adminlar"), value: staff.filter((s) => s.role !== "ZAVZAL").length, hint: tr("super admin + admin"), icon: <ShieldCheck className="h-5 w-5" /> },
+    { label: tr("Bugun faol"), value: activeToday, hint: tr("so'nggi 24 soatda"), icon: <Activity className="h-5 w-5" /> },
+    { label: tr("Oshpazlar"), value: chefs.filter((c) => c.status === "APPROVED").length, hint: tr("ilovaga kiradi"), icon: <ChefHat className="h-5 w-5" /> },
   ];
 
   const toggle = (a: StaffUserSummary) =>
     setDialog({
       kind: "confirm",
-      title: a.isActive ? "Faolsizlantirish" : "Faollashtirish",
+      title: a.isActive ? tr("Faolsizlantirish") : tr("Faollashtirish"),
       message: a.isActive
-        ? `${a.fullName} tizimga kira olmaydi, ochiq sessiyasi ham to'xtaydi. Tarixi saqlanadi, istalgan payt qayta faollashtirish mumkin.`
-        : `${a.fullName} yana tizimga kira oladi.`,
-      label: a.isActive ? "Faolsizlantirish" : "Faollashtirish",
+        ? tr(`${a.fullName} tizimga kira olmaydi, ochiq sessiyasi ham to'xtaydi. Tarixi saqlanadi, istalgan payt qayta faollashtirish mumkin.`)
+        : tr(`${a.fullName} yana tizimga kira oladi.`),
+      label: a.isActive ? tr("Faolsizlantirish") : tr("Faollashtirish"),
       safe: !a.isActive,
       run: async () => {
         await staffApi(`/staff-users/${a.id}`, "PATCH", { isActive: !a.isActive });
@@ -238,9 +248,9 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
   const remove = (a: StaffUserSummary) =>
     setDialog({
       kind: "confirm",
-      title: "Hisobni o'chirish",
-      message: `${a.fullName} hisobi butunlay o'chiriladi. Agar u tizimda ishlagan bo'lsa (to'y, to'lov, ombor…), o'chirib bo'lmaydi — faolsizlantiring.`,
-      label: "O'chirish",
+      title: tr("Hisobni o'chirish"),
+      message: tr(`${a.fullName} hisobi butunlay o'chiriladi. Agar u tizimda ishlagan bo'lsa (to'y, to'lov, ombor…), o'chirib bo'lmaydi — faolsizlantiring.`),
+      label: tr("O'chirish"),
       run: async () => {
         await staffApi(`/staff-users/${a.id}`, "DELETE");
         router.refresh();
@@ -251,11 +261,11 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
     <div className="space-y-6 animate-fade-up">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Xodimlar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Tizimga kiradigan hisoblar: adminlar, zavzallar va oshpazlar.</p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{tr("Xodimlar")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{tr("Tizimga kiradigan hisoblar: adminlar, zavzallar va oshpazlar.")}</p>
         </div>
         <Button type="button" onClick={() => setDialog(tab === "accounts" ? { kind: "create" } : { kind: "chef" })}>
-          <Plus className="h-4 w-4" /> {tab === "accounts" ? "Yangi hisob" : "Yangi oshpaz"}
+          <Plus className="h-4 w-4" /> {tab === "accounts" ? tr("Yangi hisob") : tr("Yangi oshpaz")}
         </Button>
       </div>
 
@@ -263,7 +273,7 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
         {stats.map((s) => (
           <div key={s.label} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
             <div>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-xs text-muted-foreground">{tr(s.label)}</p>
               <p className="font-display mt-0.5 text-3xl font-semibold leading-none lining-nums tabular-nums">{s.value}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">{s.hint}</p>
             </div>
@@ -276,8 +286,8 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
         <div className="inline-flex rounded-xl bg-muted p-1">
           {(
             [
-              ["accounts", `Hisoblar (${staff.length})`],
-              ["chefs", `Oshpazlar (${chefs.length})`],
+              ["accounts", tr(`Hisoblar (${staff.length})`)],
+              ["chefs", tr(`Oshpazlar (${chefs.length})`)],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -305,7 +315,7 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
                   roleFilter === r ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >
-                {r === "ALL" ? "Hammasi" : ROLE_META[r].label} {r === "ALL" ? staff.length : staff.filter((s) => s.role === r).length}
+                {r === "ALL" ? tr("Hammasi") : tr(ROLE_META[r].label)} {r === "ALL" ? staff.length : staff.filter((s) => s.role === r).length}
               </button>
             ))}
           </div>
@@ -333,16 +343,17 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
               <Plus className="h-5 w-5" />
             </span>
-            <span className="text-sm font-medium">Yangi hisob qo&apos;shish</span>
+            <span className="text-sm font-medium">{tr("Yangi hisob qo'shish")}</span>
           </button>
         </div>
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Oshpazlar oshpaz ilovasiga telefon va PIN bilan kiradi: to&apos;ylarni ko&apos;radi va bozorlik ro&apos;yxati yozadi.
+            
+            {tr("Oshpazlar oshpaz ilovasiga telefon va PIN bilan kiradi: to'ylarni ko'radi va bozorlik ro'yxati yozadi.")}
           </p>
           {chefs.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">Hali oshpaz qo&apos;shilmagan.</div>
+            <div className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">{tr("Hali oshpaz qo'shilmagan.")}</div>
           )}
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {chefs.map((c) => {
@@ -369,23 +380,23 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
                           active ? "bg-success/15 text-success" : c.status === "PENDING" ? "bg-accent/15 text-accent" : "bg-destructive/10 text-destructive",
                         )}
                       >
-                        {active ? "Faol" : c.status === "PENDING" ? "Kutilmoqda" : "Faol emas"}
+                        {active ? tr("Faol") : c.status === "PENDING" ? "Kutilmoqda" : tr("Faol emas")}
                       </span>
-                      {c.mustChangePin && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">Vaqtinchalik PIN</span>}
+                      {c.mustChangePin && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{tr("Vaqtinchalik PIN")}</span>}
                     </div>
                   </div>
                   <DropdownMenu
                     items={[
                       { label: "PIN kodni tiklash", icon: <KeyRound className="h-4 w-4" />, onSelect: () => setDialog({ kind: "pin", chef: c }), hidden: !active },
                       {
-                        label: active ? "Faolsizlantirish" : "Faollashtirish",
+                        label: active ? tr("Faolsizlantirish") : tr("Faollashtirish"),
                         icon: active ? <Power className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />,
                         onSelect: () =>
                           setDialog({
                             kind: "confirm",
-                            title: active ? "Faolsizlantirish" : "Faollashtirish",
+                            title: active ? tr("Faolsizlantirish") : tr("Faollashtirish"),
                             message: active ? `${c.fullName} oshpaz ilovasiga kira olmaydi.` : `${c.fullName} yana ilovaga kira oladi.`,
-                            label: active ? "Faolsizlantirish" : "Faollashtirish",
+                            label: active ? tr("Faolsizlantirish") : tr("Faollashtirish"),
                             safe: !active,
                             run: async () => {
                               await staffApi(`/workers/${c.id}/${active ? "reject" : "approve"}`, "PATCH");

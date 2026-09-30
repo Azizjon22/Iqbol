@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { CalendarClock, CalendarPlus, Check, KeyRound, Pencil, Phone, RotateCcw, Trash2, UserX } from "lucide-react";
 import { WORKER_GENDER_LABELS_UZ, WORKER_POSITION_LABELS_UZ } from "@iqbol/shared";
@@ -23,6 +25,9 @@ export interface CardHandlers {
 }
 
 export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: CardPermissions; on: CardHandlers }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const active = worker.status === "APPROVED";
   const next = worker.upcoming[0];
   const assignable = perms.canAssign && active && worker.position !== "CHEF";
@@ -39,18 +44,19 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold leading-tight">{worker.fullName}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {WORKER_POSITION_LABELS_UZ[worker.position]}
-            {worker.gender && ` · ${WORKER_GENDER_LABELS_UZ[worker.gender]}`}
+            {tr(WORKER_POSITION_LABELS_UZ[worker.position])}
+            {worker.gender && ` · ${tr(WORKER_GENDER_LABELS_UZ[worker.gender])}`}
           </p>
           {!active && (
             <span className="mt-1.5 inline-block rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-              Faol emas
+              
+              {tr("Faol emas")}
             </span>
           )}
         </div>
         <DropdownMenu
           items={[
-            { label: "Tahrirlash", icon: <Pencil className="h-4 w-4" />, onSelect: () => on.onEdit(worker), hidden: !perms.canManage },
+            { label: tr("Tahrirlash"), icon: <Pencil className="h-4 w-4" />, onSelect: () => on.onEdit(worker), hidden: !perms.canManage },
             {
               label: "PIN kodni tiklash",
               icon: <KeyRound className="h-4 w-4" />,
@@ -58,7 +64,7 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
               hidden: !perms.canManage || worker.position !== "CHEF" || !active,
             },
             {
-              label: "Faolsizlantirish",
+              label: tr("Faolsizlantirish"),
               icon: <UserX className="h-4 w-4" />,
               onSelect: () => on.onDeactivate(worker),
               hidden: !perms.canManage || !active,
@@ -70,7 +76,7 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
               hidden: !perms.canManage || active,
             },
             {
-              label: "O'chirish",
+              label: tr("O'chirish"),
               icon: <Trash2 className="h-4 w-4" />,
               onSelect: () => on.onDelete(worker),
               tone: "danger",
@@ -86,17 +92,17 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
             <CalendarClock className="h-4 w-4 shrink-0 text-primary" />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-foreground">
-                {formatDate(next.eventDate)}, {formatTime(next.eventDate)}
+                {formatDate(next.eventDate, locale)}, {formatTime(next.eventDate)}
               </p>
               <p className="truncate text-muted-foreground">{next.clientName}</p>
             </div>
             <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary tabular-nums">
-              {worker.upcoming.length} ta to&apos;y
+              {worker.upcoming.length}  {tr("ta to'y")}
             </span>
           </div>
         ) : (
           <p className="flex items-center gap-2 text-muted-foreground">
-            <Check className="h-4 w-4 shrink-0 text-success" /> Bo&apos;sh — rejada to&apos;y yo&apos;q
+            <Check className="h-4 w-4 shrink-0 text-success" />  {tr("Bo'sh — rejada to'y yo'q")}
           </p>
         )}
       </div>

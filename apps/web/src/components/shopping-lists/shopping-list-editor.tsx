@@ -1,4 +1,6 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -50,6 +52,8 @@ async function send(path: string, method: string, body?: unknown) {
  * items, then forward it to ADMIN. Purchased items are locked and not shown.
  */
 export function ShoppingListEditor({ list }: { list: ShoppingList }) {
+  const tr = useTr();
+
   const router = useRouter();
   const sent = isShoppingListSent(list.status);
   const [editing, setEditing] = useState(false);
@@ -70,13 +74,13 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
   function validRows() {
     const cleaned = rows.map((r) => ({ ...r, name: r.name.trim() }));
     if (cleaned.some((r) => r.name.length < 2)) {
-      throw new Error("Mahsulot nomini kiriting (kamida 2 harf)");
+      throw new Error(tr("Mahsulot nomini kiriting (kamida 2 harf)"));
     }
     if (cleaned.some((r) => !(Number(r.quantity) > 0))) {
-      throw new Error("Miqdor 0 dan katta bo'lishi kerak");
+      throw new Error(tr("Miqdor 0 dan katta bo'lishi kerak"));
     }
     if (cleaned.length === 0) {
-      throw new Error("Ro'yxatda kamida bitta mahsulot qolishi kerak");
+      throw new Error(tr("Ro'yxatda kamida bitta mahsulot qolishi kerak"));
     }
     return cleaned.map((r) => ({
       id: r.id,
@@ -111,12 +115,12 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
       <div className="flex flex-wrap items-center gap-2">
         {list.items.some((i) => !i.isPurchased) && (
           <Button type="button" size="sm" variant="outline" onClick={startEditing} disabled={busy}>
-            <Pencil className="h-4 w-4" /> Tahrirlash
+            <Pencil className="h-4 w-4" />  {tr("Tahrirlash")}
           </Button>
         )}
         {!sent && (
           <Button type="button" size="sm" onClick={() => run(true)} disabled={busy}>
-            <Send className="h-4 w-4" /> {busy ? "Yuborilmoqda..." : "Adminga yuborish"}
+            <Send className="h-4 w-4" /> {busy ? tr("Yuborilmoqda...") : "Adminga yuborish"}
           </Button>
         )}
         {error && <span className="text-xs text-destructive">{error}</span>}
@@ -126,7 +130,7 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
 
   return (
     <div className="space-y-3 rounded-md border border-primary/40 bg-primary/5 p-3">
-      <p className="text-sm font-medium">Ro&apos;yxatni tahrirlash</p>
+      <p className="text-sm font-medium">{tr("Ro'yxatni tahrirlash")}</p>
       <div className="space-y-2">
         {rows.map((row, index) => {
           const chefQuantity = row.id && row.original !== null ? Number(row.original) : 0;
@@ -139,7 +143,7 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
                 <Input
                   value={row.name}
                   onChange={(e) => update(index, { name: e.target.value })}
-                  placeholder="Mahsulot nomi"
+                  placeholder={tr("Mahsulot nomi")}
                   className="h-8 min-w-0 flex-1"
                 />
               )}
@@ -156,17 +160,17 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
                 value={row.quantity}
                 onChange={(e) => update(index, { quantity: e.target.value })}
                 className="h-8 w-24"
-                aria-label={`${row.name || "Mahsulot"} miqdori`}
+                aria-label={`${row.name || tr("Mahsulot")} miqdori`}
               />
               <Select
                 value={row.unit}
                 onChange={(e) => update(index, { unit: e.target.value as Unit })}
                 className="h-8 w-24"
-                aria-label="O'lchov birligi"
+                aria-label={tr("O'lchov birligi")}
               >
                 {UNITS.map((u) => (
                   <option key={u} value={u}>
-                    {UNIT_LABELS_UZ[u]}
+                    {tr(UNIT_LABELS_UZ[u])}
                   </option>
                 ))}
               </Select>
@@ -174,7 +178,7 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
                 type="button"
                 onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}
                 className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                aria-label="O'chirish"
+                aria-label={tr("O'chirish")}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -189,14 +193,14 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
         variant="ghost"
         onClick={() => setRows((prev) => [...prev, { name: "", quantity: "", unit: "KG", note: null, original: null }])}
       >
-        <Plus className="h-4 w-4" /> Mahsulot qo&apos;shish
+        <Plus className="h-4 w-4" />  {tr("Mahsulot qo'shish")}
       </Button>
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button type="button" size="sm" variant="outline" onClick={() => run(false)} disabled={busy}>
-          {busy ? "Saqlanmoqda..." : "Saqlash"}
+          {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
         </Button>
         {!sent && (
           <Button type="button" size="sm" onClick={() => run(true)} disabled={busy}>
@@ -204,7 +208,7 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
           </Button>
         )}
         <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={busy}>
-          <X className="h-4 w-4" /> Bekor qilish
+          <X className="h-4 w-4" />  {tr("Bekor qilish")}
         </Button>
       </div>
     </div>

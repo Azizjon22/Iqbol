@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,6 +33,9 @@ export function StockModal({
   events: UpcomingEvent[];
   onClose: () => void;
 }) {
+  const tr = useTr();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [mode, setMode] = useState<StockMode>(initialMode);
   const [amount, setAmount] = useState(initialMode === "COUNT" ? String(Number(item.quantity)) : "");
@@ -46,7 +51,7 @@ export function StockModal({
   const overdraw = mode === "OUT" && valid && after < 0;
   const dishware = item.category === "DISHWARE";
   const presets = item.unit === "DONA" ? [10, 50, 100] : [1, 5, 10, 25];
-  const unit = UNIT_LABELS_UZ[item.unit];
+  const unit = tr(UNIT_LABELS_UZ[item.unit]);
 
   function switchMode(next: StockMode) {
     setMode(next);
@@ -59,7 +64,7 @@ export function StockModal({
     setBusy(true);
     setError(undefined);
     const event = events.find((e) => e.id === eventId);
-    const fullNote = [event ? `To'y: ${event.clientName}` : "", note.trim()].filter(Boolean).join(" — ");
+    const fullNote = [event ? tr(`To'y: ${event.clientName}`) : "", note.trim()].filter(Boolean).join(" — ");
     try {
       if (mode === "COUNT") {
         await inventoryApi(`/${item.id}/count`, "POST", { actual: value, note: fullNote || undefined });
@@ -87,10 +92,11 @@ export function StockModal({
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="button" onClick={submit} disabled={busy || !valid || overdraw || noChange}>
-            {busy ? "Saqlanmoqda..." : mode === "IN" ? "Kirim qilish" : mode === "OUT" ? "Chiqim qilish" : "Qoldiqni tasdiqlash"}
+            {busy ? tr("Saqlanmoqda...") : mode === "IN" ? tr("Kirim qilish") : mode === "OUT" ? tr("Chiqim qilish") : tr("Qoldiqni tasdiqlash")}
           </Button>
         </>
       }
@@ -106,14 +112,14 @@ export function StockModal({
               mode === m.key ? cn(m.tone, "shadow-sm") : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {m.icon} {m.label}
+            {m.icon} {tr(m.label)}
           </button>
         ))}
       </div>
 
       <div className="mt-5">
         <Label htmlFor="stock-amount">
-          {mode === "COUNT" ? "Omborda haqiqatda qancha bor?" : mode === "IN" ? "Qancha keldi?" : dishware ? "Qancha chiqdi / sindi?" : "Qancha ishlatildi?"}
+          {mode === "COUNT" ? tr("Omborda haqiqatda qancha bor?") : mode === "IN" ? "Qancha keldi?" : dishware ? "Qancha chiqdi / sindi?" : "Qancha ishlatildi?"}
         </Label>
         <div className="relative">
           <Input
@@ -145,7 +151,8 @@ export function StockModal({
                 onClick={() => setAmount(String(current))}
                 className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
               >
-                Hammasi
+                
+                {tr("Hammasi")}
               </button>
             )}
           </div>
@@ -154,12 +161,12 @@ export function StockModal({
 
       {mode === "OUT" && !dishware && events.length > 0 && (
         <div className="mt-4">
-          <Label htmlFor="stock-event">Qaysi to&apos;y uchun? (ixtiyoriy)</Label>
+          <Label htmlFor="stock-event">{tr("Qaysi to'y uchun? (ixtiyoriy)")}</Label>
           <Select id="stock-event" value={eventId} onChange={(e) => setEventId(e.target.value)}>
             <option value="">— tanlanmagan —</option>
             {events.map((e) => (
               <option key={e.id} value={e.id}>
-                {formatDate(e.eventDate)} — {e.clientName}
+                {formatDate(e.eventDate, locale)} — {e.clientName}
               </option>
             ))}
           </Select>
@@ -167,12 +174,12 @@ export function StockModal({
       )}
 
       <div className="mt-4">
-        <Label htmlFor="stock-note">Izoh (ixtiyoriy)</Label>
+        <Label htmlFor="stock-note">{tr("Izoh (ixtiyoriy)")}</Label>
         <Input
           id="stock-note"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder={mode === "IN" ? "masalan: Chorsu bozoridan" : mode === "OUT" ? (dishware ? "masalan: 3 ta singan" : "masalan: oshxonaga") : "masalan: oylik sanoq"}
+          placeholder={mode === "IN" ? tr("masalan: Chorsu bozoridan") : mode === "OUT" ? (dishware ? "masalan: 3 ta singan" : "masalan: oshxonaga") : "masalan: oylik sanoq"}
         />
       </div>
 
@@ -188,7 +195,7 @@ export function StockModal({
           {overdraw ? "Yetarli emas" : qty(after, item.unit)}
         </span>
       </div>
-      {noChange && <p className="mt-2 text-center text-xs text-muted-foreground">Sanoq hisob bilan bir xil — o&apos;zgarish yo&apos;q.</p>}
+      {noChange && <p className="mt-2 text-center text-xs text-muted-foreground">{tr("Sanoq hisob bilan bir xil — o'zgarish yo'q.")}</p>}
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
     </Modal>
   );
