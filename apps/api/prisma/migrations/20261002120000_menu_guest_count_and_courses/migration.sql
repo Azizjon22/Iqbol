@@ -1,0 +1,8 @@
+-- AlterEnum
+ALTER TYPE "MenuDishCategory" ADD VALUE 'COLD_APPETIZER';
+ALTER TYPE "MenuDishCategory" ADD VALUE 'HOT_APPETIZER';
+ALTER TYPE "MenuDishCategory" ADD VALUE 'BREAD';
+ALTER TYPE "MenuDishCategory" ADD VALUE 'DRIED_FRUIT';
+
+-- AlterTable
+ALTER TABLE "menus" ADD COLUMN "guestCount" INTEGER NOT NULL DEFAULT 150;

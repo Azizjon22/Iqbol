@@ -84,7 +84,7 @@ export function StorePage({
 
   const router = useRouter();
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [tab, setTab] = useState<Tab>("PRODUCT");
+  const [tab, setTab] = useState<Tab>(items.some((item) => item.category === "PRODUCT") ? "PRODUCT" : "DISHWARE");
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<ProductCategory | "ALL">("ALL");
   const [onlyLow, setOnlyLow] = useState(false);
@@ -594,7 +594,7 @@ export function StorePage({
           open
           onClose={() => setDialog(null)}
           title={tr("O'chirish")}
-          message={tr(`"${dialog.item.name}" ombordan o'chiriladi. Kirim-chiqim tarixi bor mahsulotni o'chirib bo'lmaydi — tarix saqlanishi kerak.`)}
+          message={tr(`"${dialog.item.name}" ombordan o'chiriladi. Kirim-chiqim tarixi ham o'chadi.`)}
           onConfirm={async () => {
             await inventoryApi(`/${dialog.item.id}`, "DELETE");
             router.refresh();

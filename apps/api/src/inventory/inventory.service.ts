@@ -147,15 +147,10 @@ export class InventoryService {
 
   async remove(id: string, actorId: string, actorName: string) {
     const existing = await this.findOne(id);
-    const history = await this.prisma.inventoryTransaction.count({
-      where: { itemId: id },
-    });
-    if (history > 0) {
-      throw new ConflictException(
-        `"${existing.name}" bo'yicha ${history} ta kirim/chiqim yozuvi bor — tarix saqlanishi uchun uni o'chirib bo'lmaydi`,
-      );
-    }
-    await this.prisma.inventoryItem.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.inventoryTransaction.deleteMany({ where: { itemId: id } }),
+      this.prisma.inventoryItem.delete({ where: { id } }),
+    ]);
 
     await this.auditLog.record({
       actorId,

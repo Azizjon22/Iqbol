@@ -24,11 +24,15 @@ export const EVENT_STATUSES = [
 export type EventStatus = (typeof EVENT_STATUSES)[number];
 
 export const MENU_DISH_CATEGORIES = [
-  "SALAD",
+  "COLD_APPETIZER",
+  "HOT_APPETIZER",
   "FIRST_DISH",
   "SECOND_DISH",
-  "FRUIT",
+  "SALAD",
   "DESSERT",
+  "BREAD",
+  "DRIED_FRUIT",
+  "FRUIT",
   "DRINK",
   "OTHER",
 ] as const;
@@ -116,11 +120,15 @@ export const WORKER_GENDER_LABELS_UZ: Record<WorkerGender, string> = {
 };
 
 export const MENU_DISH_CATEGORY_LABELS_UZ: Record<MenuDishCategory, string> = {
-  SALAD: "Salat",
+  COLD_APPETIZER: "Sovuq gazaklar",
+  HOT_APPETIZER: "Issiq gazaklar",
   FIRST_DISH: "Birinchi ovqat",
   SECOND_DISH: "Ikkinchi ovqat",
-  FRUIT: "Meva",
+  SALAD: "Salat",
   DESSERT: "Shirinlik",
+  BREAD: "Non",
+  DRIED_FRUIT: "Quruq mevalar",
+  FRUIT: "Meva",
   DRINK: "Ichimlik",
   OTHER: "Boshqa",
 };
@@ -183,11 +191,15 @@ export const WORKER_POSITION_LABELS_RU: Record<WorkerPosition, string> = {
 };
 
 export const MENU_DISH_CATEGORY_LABELS_RU: Record<MenuDishCategory, string> = {
-  SALAD: "Салат",
+  COLD_APPETIZER: "Холодные закуски",
+  HOT_APPETIZER: "Горячие закуски",
   FIRST_DISH: "Первое блюдо",
   SECOND_DISH: "Второе блюдо",
-  FRUIT: "Фрукты",
+  SALAD: "Салат",
   DESSERT: "Десерт",
+  BREAD: "Хлеб",
+  DRIED_FRUIT: "Сухофрукты",
+  FRUIT: "Фрукты",
   DRINK: "Напиток",
   OTHER: "Другое",
 };
