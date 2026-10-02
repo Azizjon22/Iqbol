@@ -151,19 +151,35 @@ export class UploadsService {
     return { ok: true };
   }
 
-  async openLocal(key: string) {
+  async openLocal(key: string, rangeHeader?: string) {
     const absolute = this.assertKey(key);
     const extension = path.extname(absolute).slice(1).toLowerCase();
     const type = EXTENSION_CONTENT_TYPES[extension];
     if (!type) throw new NotFoundException('Fayl topilmadi');
+    let size = 0;
     try {
       const info = await stat(absolute);
       if (!info.isFile()) throw new NotFoundException('Fayl topilmadi');
+      size = info.size;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new NotFoundException('Fayl topilmadi');
     }
-    return { stream: createReadStream(absolute), type };
+
+    const range = parseByteRange(rangeHeader, size);
+    if (range === 'invalid') {
+      return { status: 416 as const, type, size, start: 0, end: 0, stream: null };
+    }
+    const start = range?.start ?? 0;
+    const end = range?.end ?? size - 1;
+    return {
+      status: range ? (206 as const) : (200 as const),
+      type,
+      size,
+      start,
+      end,
+      stream: createReadStream(absolute, { start, end }),
+    };
   }
 
   private s3(): S3Client {
@@ -179,4 +195,27 @@ export class UploadsService {
     }
     return this.client;
   }
+}
+
+/** `bytes=0-`, `bytes=100-200`, or `bytes=-500`. Browsers need this to play video. */
+function parseByteRange(header: string | undefined, size: number): { start: number; end: number } | null | 'invalid' {
+  if (!header) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match || size <= 0) return 'invalid';
+  const [, rawStart, rawEnd] = match;
+  if (rawStart === '' && rawEnd === '') return 'invalid';
+
+  if (rawStart === '') {
+    const suffix = Number(rawEnd);
+    if (!Number.isFinite(suffix) || suffix <= 0) return 'invalid';
+    const start = Math.max(size - suffix, 0);
+    return { start, end: size - 1 };
+  }
+
+  const start = Number(rawStart);
+  const end = rawEnd === '' ? size - 1 : Number(rawEnd);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start >= size || end < start) {
+    return 'invalid';
+  }
+  return { start, end: Math.min(end, size - 1) };
 }

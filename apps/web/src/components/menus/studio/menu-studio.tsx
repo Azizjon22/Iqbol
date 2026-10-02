@@ -387,7 +387,16 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                           <div key={item.id} className={cn("overflow-hidden rounded-xl border bg-background", isBroken ? "border-destructive/50" : "border-border")}>
                             <div className="relative aspect-video bg-muted">
                               {isVideo ? (
-                                <video src={item.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                                <video
+                                  src={item.url}
+                                  controls
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                  preload="auto"
+                                  className="h-full w-full object-cover"
+                                />
                               ) : (
                                 <SafeImage src={item.url} alt={item.caption ?? ""} className="h-full w-full object-cover" />
                               )}
