@@ -7,11 +7,12 @@ import {
   Put,
   Query,
   Req,
+  Res,
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { SkipMustChange } from '../common/decorators/skip-must-change.decorator';
@@ -52,11 +53,27 @@ export class UploadsController {
   @SkipMustChange()
   @SkipThrottle()
   @Get('files/*')
-  async serve(@Req() req: Request) {
-    const opened = await this.uploads.openLocal(keyFromRequest(req));
+  async serve(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const range = Array.isArray(req.headers.range) ? req.headers.range[0] : req.headers.range;
+    const opened = await this.uploads.openLocal(keyFromRequest(req), range);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Type', opened.type);
+    if (opened.status === 416 || !opened.stream) {
+      res.status(416);
+      res.setHeader('Content-Range', `bytes */${opened.size}`);
+      res.setHeader('Content-Length', '0');
+      return;
+    }
+    const length = opened.end - opened.start + 1;
+    res.status(opened.status);
+    res.setHeader('Content-Length', String(length));
+    if (opened.status === 206) {
+      res.setHeader('Content-Range', `bytes ${opened.start}-${opened.end}/${opened.size}`);
+    }
     return new StreamableFile(opened.stream, {
       type: opened.type,
       disposition: 'inline',
+      length,
     });
   }
 }
