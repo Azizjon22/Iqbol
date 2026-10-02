@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Portal } from "@/components/ui/portal";
 import { useT } from "@/components/i18n/locale-provider";
@@ -9,6 +9,7 @@ export interface LightboxItem {
   url: string;
   caption?: string | null;
   kind: "PHOTO" | "VIDEO";
+  id?: string;
 }
 
 export function Lightbox({
@@ -25,31 +26,71 @@ export function Lightbox({
   const t = useT();
   const item = items[index];
   const many = items.length > 1;
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const lock = useRef(false);
-  const jumped = useRef(false);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const indexRef = useRef(index);
+  const fromSwipe = useRef(false);
+  const programmatic = useRef(false);
   const settle = useRef<number | undefined>(undefined);
+  indexRef.current = index;
 
-  function scrollToIndex(next: number, behavior: ScrollBehavior) {
-    const scroller = scrollerRef.current;
-    if (!scroller || scroller.clientWidth === 0) return;
-    lock.current = true;
-    scroller.scrollTo({ left: next * scroller.clientWidth, behavior });
-    window.setTimeout(() => {
-      lock.current = false;
-    }, behavior === "smooth" ? 480 : 40);
+  function slideWidth(scroller: HTMLDivElement) {
+    const slide = scroller.firstElementChild as HTMLElement | null;
+    return slide?.offsetWidth || scroller.clientWidth;
   }
 
+  function alignTo(next: number) {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const width = slideWidth(scroller);
+    if (width === 0) return;
+    const left = next * width;
+    if (Math.abs(scroller.scrollLeft - left) < 2) return;
+    programmatic.current = true;
+    scroller.scrollTo({ left, behavior: "auto" });
+  }
+
+  const commitSettled = useCallback(() => {
+    const wasProgrammatic = programmatic.current;
+    programmatic.current = false;
+    if (wasProgrammatic) return;
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const width = slideWidth(scroller);
+    if (width === 0) return;
+    const offset = scroller.scrollLeft % width;
+    const settled = offset < 8 || width - offset < 8;
+    if (!settled) return;
+    const next = Math.min(items.length - 1, Math.max(0, Math.round(scroller.scrollLeft / width)));
+    if (next !== indexRef.current) {
+      fromSwipe.current = true;
+      onIndex(next);
+    }
+  }, [items.length, onIndex]);
+
   const go = (delta: number) => {
-    const next = (index + delta + items.length) % items.length;
-    onIndex(next);
-    scrollToIndex(next, "smooth");
+    onIndex((index + delta + items.length) % items.length);
   };
 
+  // Portal mounts the scroller after the first render, so align when the
+  // node appears. A swipe that already landed must not be scrolled again —
+  // that second jump is what skipped from the first dish to the third.
+  const setScroller = useCallback((node: HTMLDivElement | null) => {
+    scrollerRef.current = node;
+    if (!node) return;
+    const width = node.firstElementChild instanceof HTMLElement ? node.firstElementChild.offsetWidth : node.clientWidth;
+    if (width === 0) return;
+    const left = indexRef.current * width;
+    if (Math.abs(node.scrollLeft - left) < 2) return;
+    programmatic.current = true;
+    node.scrollLeft = left;
+  }, []);
+
   useLayoutEffect(() => {
-    if (lock.current) return;
-    scrollToIndex(index, jumped.current ? "smooth" : "auto");
-    jumped.current = true;
+    if (fromSwipe.current) {
+      fromSwipe.current = false;
+      return;
+    }
+    alignTo(index);
   }, [index]);
 
   useEffect(() => {
@@ -71,67 +112,65 @@ export function Lightbox({
   if (!item) return null;
 
   function onScroll() {
-    if (lock.current) return;
+    if (programmatic.current) return;
     window.clearTimeout(settle.current);
-    settle.current = window.setTimeout(() => {
-      const scroller = scrollerRef.current;
-      if (!scroller || scroller.clientWidth === 0) return;
-      const next = Math.round(scroller.scrollLeft / scroller.clientWidth);
-      if (next !== index && next >= 0 && next < items.length) onIndex(next);
-    }, 70);
+    settle.current = window.setTimeout(commitSettled, 80);
   }
 
   return (
     <Portal>
       <div
-        className="fixed inset-0 z-50 flex flex-col bg-black/95 animate-soft-scale"
+        className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-black/95 animate-soft-scale"
         role="dialog"
         aria-modal="true"
         aria-label={item.caption ?? undefined}
       >
-        <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <p className="min-w-0 truncate font-display text-lg text-white sm:text-xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#1a221c] text-white"
+          aria-label={t("presentation.close")}
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 pb-8 pt-16">
+          <h2 className="max-w-3xl text-center font-display text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-tight text-white">
             {item.caption}
-            {many && <span className="ml-2 text-sm tabular-nums text-white/50">{index + 1} / {items.length}</span>}
-          </p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#1a221c] text-white"
-            aria-label={t("presentation.close")}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+            {many && <span className="ml-3 text-base font-sans tabular-nums text-white/50">{index + 1} / {items.length}</span>}
+          </h2>
 
         <div
-          ref={scrollerRef}
+          ref={setScroller}
           onScroll={onScroll}
-          className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain"
+          onScrollEnd={commitSettled}
+          onPointerDown={() => {
+            programmatic.current = false;
+          }}
+          className="flex w-full min-w-0 max-h-[68vh] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((slide, i) => (
-            <div key={`${slide.url}-${i}`} className="h-full w-full shrink-0 snap-center overflow-y-auto overscroll-y-contain">
-              <div className="flex min-h-full items-center justify-center px-3 py-3 sm:px-8">
-                {slide.kind === "VIDEO" ? (
-                  <video
-                    key={slide.url}
-                    src={slide.url}
-                    controls
-                    autoPlay={i === index}
-                    className="w-full rounded-lg xl:max-h-[70vh]"
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={slide.url}
-                    alt={slide.caption ?? ""}
-                    draggable={false}
-                    className="w-full max-w-5xl rounded-lg object-contain shadow-2xl xl:max-h-[75vh] xl:w-auto"
-                  />
-                )}
-              </div>
+            <div key={slide.id ?? `${slide.url}-${i}`} className="flex min-w-full max-w-full shrink-0 grow-0 basis-full snap-start snap-always items-center justify-center px-3 sm:px-8">
+              {slide.kind === "VIDEO" ? (
+                <video
+                  key={slide.url}
+                  src={slide.url}
+                  controls
+                  autoPlay={i === index}
+                  className="max-h-[62vh] max-w-full rounded-lg"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={slide.url}
+                  alt={slide.caption ?? ""}
+                  draggable={false}
+                  className="max-h-[62vh] max-w-full rounded-lg object-contain shadow-2xl"
+                />
+              )}
             </div>
           ))}
+        </div>
         </div>
 
         {many && (

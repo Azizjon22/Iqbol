@@ -26,7 +26,7 @@ export class MenusService {
         dishes: { orderBy: { order: 'asc' } },
         media: { orderBy: { order: 'asc' } },
       },
-      orderBy: { pricePerPerson: 'asc' },
+      orderBy: [{ guestCount: 'asc' }, { pricePerPerson: 'asc' }],
     });
   }
 
@@ -112,6 +112,7 @@ export class MenusService {
       data: {
         name: `${source.name} (nusxa)`,
         pricePerPerson: source.pricePerPerson,
+        guestCount: source.guestCount,
         description: source.description,
         coverImageUrl: source.coverImageUrl,
         isVip: source.isVip,

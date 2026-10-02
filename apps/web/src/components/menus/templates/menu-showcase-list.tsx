@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Crown, Minus, Plus, Users } from "lucide-react";
+import { ArrowRight, Crown } from "lucide-react";
 import type { Menu } from "@/lib/types";
 import { PresentationHeader } from "@/components/layout/presentation-header";
 import { OrnamentalPattern } from "@/components/menus/ornamental-pattern";
@@ -10,14 +9,6 @@ import { OrnamentDivider } from "@/components/menus/showcase/ornament-divider";
 import { Reveal } from "@/components/menus/showcase/reveal";
 import { SafeImage } from "@/components/menus/showcase/safe-image";
 import { ClosingCta } from "@/components/menus/showcase/closing-cta";
-import {
-  GUESTS_DEFAULT,
-  GUESTS_MAX,
-  GUESTS_MIN,
-  GUESTS_STEP,
-  GUEST_PRESETS,
-  clampGuests,
-} from "@/components/menus/showcase/guests";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { formatSom, cn } from "@/lib/utils";
 
@@ -47,15 +38,13 @@ export function MenuShowcaseList({
   hero?: { url: string | null; kind: "IMAGE" | "VIDEO" | null } | null;
 }) {
   const { t, locale } = useLocale();
-  const [guests, setGuests] = useState(GUESTS_DEFAULT);
 
-  const sorted = [...menus].sort((a, b) => Number(a.pricePerPerson) - Number(b.pricePerPerson));
+  const sorted = [...menus].sort(
+    (a, b) => a.guestCount - b.guestCount || Number(a.pricePerPerson) - Number(b.pricePerPerson),
+  );
   const prices = sorted.map((m) => Number(m.pricePerPerson));
   const backdrop = sorted.find((m) => m.isVip) ?? sorted[sorted.length - 1];
   const customHero = !!hero?.url;
-
-  const stepButton =
-    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/30 text-accent transition hover:bg-accent/10 disabled:opacity-30";
 
   return (
     <div className="presentation-root min-h-screen bg-background text-foreground">
@@ -89,7 +78,7 @@ export function MenuShowcaseList({
 
         <div
           className={cn(
-            "mx-auto max-w-4xl px-4 pb-24 pt-16 text-center sm:px-6 sm:pb-32 sm:pt-24 2xl:max-w-5xl",
+            "mx-auto max-w-4xl px-4 pb-16 pt-16 text-center sm:px-6 sm:pb-20 sm:pt-24 2xl:max-w-5xl",
             customHero && "[text-shadow:0_2px_18px_rgba(0,0,0,0.55)]",
           )}
         >
@@ -118,67 +107,6 @@ export function MenuShowcaseList({
         </div>
       </section>
 
-      {/* ---------- Guests bar (sticky) ---------- */}
-      {sorted.length > 0 && (
-        <div className="sticky top-[calc(4rem+1px)] z-10 -mt-12 px-4 sm:-mt-14 sm:px-6">
-          <div className="mx-auto flex max-w-4xl flex-col items-center gap-3 rounded-2xl border border-accent/25 bg-card/90 px-4 py-3 shadow-2xl shadow-black/20 backdrop-blur-xl sm:flex-row sm:justify-between sm:gap-6 sm:rounded-full sm:py-2.5 sm:pl-6 sm:pr-3">
-            <div className="text-center sm:text-left">
-              <p className="flex items-center justify-center gap-2 text-sm font-medium sm:justify-start">
-                <Users className="h-4 w-4 text-accent" /> {t("presentation.guestsBarTitle")}
-              </p>
-              <p className="hidden max-w-xs text-xs leading-snug text-muted-foreground xl:block">{t("presentation.guestsBarHint")}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="hidden gap-1 lg:flex">
-                {GUEST_PRESETS.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setGuests(n)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-sm font-medium tabular-nums transition",
-                      guests === n ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                className={stepButton}
-                onClick={() => setGuests((g) => clampGuests(g - GUESTS_STEP))}
-                disabled={guests <= GUESTS_MIN}
-                aria-label="-10"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <input
-                type="range"
-                min={GUESTS_MIN}
-                max={GUESTS_MAX}
-                step={GUESTS_STEP}
-                value={guests}
-                onChange={(e) => setGuests(Number(e.target.value))}
-                className="gold-range hidden w-32 sm:block md:w-40"
-                style={{ "--fill": `${((guests - GUESTS_MIN) / (GUESTS_MAX - GUESTS_MIN)) * 100}%` } as React.CSSProperties}
-                aria-label={t("presentation.guestsBarTitle")}
-              />
-              <span className="font-display w-16 text-center text-3xl font-semibold lining-nums tabular-nums">{guests}</span>
-              <button
-                type="button"
-                className={stepButton}
-                onClick={() => setGuests((g) => clampGuests(g + GUESTS_STEP))}
-                disabled={guests >= GUESTS_MAX}
-                aria-label="+10"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ---------- Packages ---------- */}
       <main className="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-6 sm:pb-28 sm:pt-16 2xl:max-w-[100rem]">
         {sorted.length === 0 && (
@@ -188,10 +116,11 @@ export function MenuShowcaseList({
         <div className="flex flex-wrap justify-center gap-6">
           {sorted.map((menu, i) => {
             const price = Number(menu.pricePerPerson);
+            const guests = menu.guestCount;
             return (
               <Reveal key={menu.id} delay={i * 90} className={cardWidth(sorted.length)}>
                 <Link
-                  href={`/showcase/${menu.id}?guests=${guests}`}
+                  href={`/showcase/${menu.id}`}
                   className={cn(
                     "@container group relative flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-[26px] bg-[#111813] text-white shadow-xl shadow-black/15 transition-all duration-500",
                     "hover:-translate-y-1.5 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:aspect-[3/4]",

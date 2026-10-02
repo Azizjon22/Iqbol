@@ -19,7 +19,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { UploadsService } from './uploads.service';
 import { PresignDto, StaffPresignDto } from './dto/presign.dto';
 
-const MAX_BYTES = 80 * 1024 * 1024;
+const MAX_BYTES = 200 * 1024 * 1024;
 
 @Controller('uploads')
 export class UploadsController {
@@ -72,7 +72,7 @@ function keyFromRequest(req: Request): string {
 function readLimited(req: Request, maxBytes: number): Promise<Buffer> {
   if (Buffer.isBuffer(req.body)) {
     if (req.body.length > maxBytes) {
-      return Promise.reject(new PayloadTooLargeException('Fayl 80 MB dan katta'));
+      return Promise.reject(new PayloadTooLargeException('Video 200 MB dan katta'));
     }
     return Promise.resolve(req.body);
   }
@@ -90,7 +90,7 @@ function readLimited(req: Request, maxBytes: number): Promise<Buffer> {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       total += buf.length;
       if (total > maxBytes) {
-        fail(new PayloadTooLargeException('Fayl 80 MB dan katta'));
+        fail(new PayloadTooLargeException('Video 200 MB dan katta'));
         req.destroy();
         return;
       }

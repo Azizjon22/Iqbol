@@ -67,6 +67,7 @@ export const assignWorkerSchema = z.object({
 export const createMenuSchema = z.object({
   name: z.string().trim().min(2),
   pricePerPerson: z.coerce.number().positive(),
+  guestCount: z.coerce.number().int().positive().optional(),
   description: z.string().optional(),
   coverImageUrl: z.string().url().optional().or(z.literal("")),
   isVip: z.boolean().optional(),

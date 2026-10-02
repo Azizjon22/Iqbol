@@ -88,10 +88,10 @@ export function MediaModal({
             kind={item?.mediaType === "VIDEO" ? "video" : "image"}
             accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.mov"
             browse
-            formats="JPG, PNG, WebP, MP4, MOV"
+            formats="JPG, PNG, WebP, MP4, MOV · 200 MB"
             defaultValue={item?.url}
           />
-          <p className="mt-2 text-xs text-muted-foreground">{tr("Video galereyada ovozsiz ko'rsatiladi.")}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{tr("Video galereyada ovozsiz ko'rsatiladi. Maksimum 200 MB.")}</p>
         </div>
         <div>
           <Label htmlFor="media-section">{tr("Bo'lim")}</Label>

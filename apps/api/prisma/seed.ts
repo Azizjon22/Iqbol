@@ -66,7 +66,7 @@ async function main() {
     'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80',
   ];
 
-  const dishPhoto = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80';
+  const dishPhoto = (id: string) => `https://images.unsplash.com/photo-${id}?w=600&q=80`;
   const hallPhotos = [
     'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1000&q=80',
     'https://images.unsplash.com/photo-1464366400600-7168b8af9bc8?w=1000&q=80',
@@ -76,51 +76,110 @@ async function main() {
     'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1000&q=80',
   ];
 
-  const menuDefs = [
+  type DishSeed = {
+    category: Prisma.MenuDishCreateManyInput['category'];
+    name: string;
+    description?: string;
+    photo: string;
+  };
+
+  const unlimited = 'Без ограничений';
+  const standardDishes: DishSeed[] = [
+    { category: 'COLD_APPETIZER', name: 'Мясное ассорти', description: 'Казы, язык говяжий, рулет арча, индейка', photo: dishPhoto('1544025162-d76694265947') },
+    { category: 'COLD_APPETIZER', name: 'Корабельный суши', photo: dishPhoto('1579871494447-9811cf80d66c') },
+    { category: 'COLD_APPETIZER', name: 'Селёдка по-русски', photo: dishPhoto('1519708227418-c8fd9a32b7a2') },
+    { category: 'COLD_APPETIZER', name: 'Сырная тарелка', description: 'Мраморный, янтарный, голландский, брынза, мёд ассорти', photo: dishPhoto('1452195100486-9cc805987862') },
+    { category: 'COLD_APPETIZER', name: 'Овощное ассорти', description: 'Помидоры, огурцы, болгарский перец, стручковый перец, зелень', photo: dishPhoto('1540420773420-3366772f4999') },
+    { category: 'COLD_APPETIZER', name: 'Маринованное ассорти', description: 'Грибы', photo: dishPhoto('1518977956812-cd3dbadaaf31') },
+    { category: 'HOT_APPETIZER', name: 'Самса с мясом', photo: dishPhoto('1601050690597-df0568f70950') },
+    { category: 'HOT_APPETIZER', name: 'Куриные крылышки', photo: dishPhoto('1527477396000-e27163b481c2') },
+    { category: 'HOT_APPETIZER', name: 'Буреке с соусом', photo: dishPhoto('1608039829572-78524f79c4c7') },
+    { category: 'FIRST_DISH', name: 'Фрикадельки с лапшой', photo: dishPhoto('1617093727343-374698b1b08d') },
+    { category: 'SECOND_DISH', name: 'Фирменное блюдо «ИКБОЛ»', photo: dishPhoto('1414235077428-338989a2e8c0') },
+    { category: 'SALAD', name: 'Салат Цезарь', photo: dishPhoto('1550304943-4f24f54ddde9') },
+    { category: 'SALAD', name: 'Салат Мужской каприз', photo: dishPhoto('1546069901-ba9599a7e63c') },
+    { category: 'SALAD', name: 'Салат Японский', photo: dishPhoto('1540189549336-e6e99c3679fe') },
+    { category: 'SALAD', name: 'Салат Икбол', photo: dishPhoto('1512621776951-a57141f2eefd') },
+    { category: 'DESSERT', name: 'Тарталетки', description: 'Пирожное', photo: dishPhoto('1464349095431-e9a21285b5f3') },
+    { category: 'BREAD', name: 'Хлебное ассорти', photo: dishPhoto('1509440159596-0249088772ff') },
+    { category: 'FRUIT', name: 'Фруктовая нарезка', description: 'Цитрусы', photo: dishPhoto('1619566636858-adf3ef46400b') },
+    { category: 'FRUIT', name: 'Арбуз и дыня', photo: dishPhoto('1587049352846-4a222e784d38') },
+    { category: 'DRINK', name: 'Сок в ассортименте', description: unlimited, photo: dishPhoto('1600271886742-f049cd451bba') },
+    { category: 'DRINK', name: 'Мохито в ассортименте', description: unlimited, photo: dishPhoto('1551538827-9c037cb4f32a') },
+    { category: 'DRINK', name: 'Минеральная вода с газом', description: unlimited, photo: dishPhoto('1548839140-29a749e1cf4d') },
+    { category: 'DRINK', name: 'Минеральная вода без газа', description: unlimited, photo: dishPhoto('1560023907-5f339617ea30') },
+    { category: 'DRINK', name: 'Fanta, Coca-Cola, Pepsi', description: unlimited, photo: dishPhoto('1629203851122-3726ecdf080e') },
+  ];
+
+  const vipDishes: DishSeed[] = [
+    { category: 'COLD_APPETIZER', name: 'Мясное ассорти', description: 'Казы, язык говяжий, рулет арча, индейка', photo: dishPhoto('1544025162-d76694265947') },
+    { category: 'COLD_APPETIZER', name: 'Рыбный ассорти', description: 'Скумбрия, сёмга, масляная', photo: dishPhoto('1498654896293-37aacf113fd9') },
+    { category: 'COLD_APPETIZER', name: 'КФС ассорти', photo: dishPhoto('1626082927389-6cd097cdc6ec') },
+    { category: 'COLD_APPETIZER', name: 'Икра в тарталетках', description: 'Красная и чёрная икра', photo: dishPhoto('1559339352-11d035aa65de') },
+    { category: 'COLD_APPETIZER', name: 'Корабельный суши', photo: dishPhoto('1579871494447-9811cf80d66c') },
+    { category: 'COLD_APPETIZER', name: 'Селёдка по-русски', photo: dishPhoto('1519708227418-c8fd9a32b7a2') },
+    { category: 'COLD_APPETIZER', name: 'Сырная тарелка', description: 'Мраморный, янтарный, голландский, брынза, мёд ассорти', photo: dishPhoto('1452195100486-9cc805987862') },
+    { category: 'COLD_APPETIZER', name: 'Овощное ассорти', description: 'Помидоры, огурцы, болгарский перец, стручковый перец, зелень', photo: dishPhoto('1540420773420-3366772f4999') },
+    { category: 'COLD_APPETIZER', name: 'Маринованное ассорти', description: 'Грибы', photo: dishPhoto('1518977956812-cd3dbadaaf31') },
+    { category: 'COLD_APPETIZER', name: 'Лаваш ассорти', description: 'Сыр и брынза', photo: dishPhoto('1626700051175-6818013e1d4f') },
+    { category: 'HOT_APPETIZER', name: 'Самса с мясом', photo: dishPhoto('1601050690597-df0568f70950') },
+    { category: 'HOT_APPETIZER', name: 'Жюльен куриный', photo: dishPhoto('1604908176997-125f25cc6f3d') },
+    { category: 'FIRST_DISH', name: 'Фрикадельки с лапшой', photo: dishPhoto('1617093727343-374698b1b08d') },
+    { category: 'SECOND_DISH', name: 'Фирменное блюдо «ИКБОЛ»', photo: dishPhoto('1414235077428-338989a2e8c0') },
+    { category: 'SALAD', name: 'Салат Цезарь', photo: dishPhoto('1550304943-4f24f54ddde9') },
+    { category: 'SALAD', name: 'Салат Мужской каприз', photo: dishPhoto('1546069901-ba9599a7e63c') },
+    { category: 'SALAD', name: 'Салат Японский', photo: dishPhoto('1540189549336-e6e99c3679fe') },
+    { category: 'SALAD', name: 'Салат Икбол', photo: dishPhoto('1512621776951-a57141f2eefd') },
+    { category: 'SALAD', name: 'Чёрные и зелёные оливки', photo: dishPhoto('1474979266404-7eaacbcd87c5') },
+    { category: 'DESSERT', name: 'Тарталетки', description: 'Пирожное', photo: dishPhoto('1464349095431-e9a21285b5f3') },
+    { category: 'BREAD', name: 'Хлебное ассорти', photo: dishPhoto('1509440159596-0249088772ff') },
+    { category: 'DRIED_FRUIT', name: 'Фисташки', photo: dishPhoto('1599599810769-bcde5a160d32') },
+    { category: 'DRIED_FRUIT', name: 'Миндаль', photo: dishPhoto('1508061253366-f7da158b6d46') },
+    { category: 'FRUIT', name: 'Фруктовая нарезка', description: 'Цитрусы', photo: dishPhoto('1619566636858-adf3ef46400b') },
+    { category: 'FRUIT', name: 'Арбуз и дыня', photo: dishPhoto('1587049352846-4a222e784d38') },
+    { category: 'DRINK', name: 'Сок в ассортименте', description: unlimited, photo: dishPhoto('1600271886742-f049cd451bba') },
+    { category: 'DRINK', name: 'Мохито в ассортименте', description: unlimited, photo: dishPhoto('1551538827-9c037cb4f32a') },
+    { category: 'DRINK', name: 'Минеральная вода с газом', description: unlimited, photo: dishPhoto('1548839140-29a749e1cf4d') },
+    { category: 'DRINK', name: 'Минеральная вода без газа', description: unlimited, photo: dishPhoto('1560023907-5f339617ea30') },
+    { category: 'DRINK', name: 'Fanta, Coca-Cola, Pepsi', description: unlimited, photo: dishPhoto('1629203851122-3726ecdf080e') },
+  ];
+
+  const menuDefs: {
+    name: string;
+    pricePerPerson: number;
+    guestCount: number;
+    description: string;
+    isVip: boolean;
+    cover: string;
+    dishes: DishSeed[];
+  }[] = [
     {
-      name: "160 ming menyu",
-      pricePerPerson: 160000,
-      description: "Standart to'y menyusi — salatlar, birinchi va ikkinchi ovqatlar, meva va ichimliklar.",
+      name: '150 гостей',
+      pricePerPerson: 300000,
+      guestCount: 150,
+      description: 'Холодные и горячие закуски, горячие блюда, салаты, фрукты и напитки без ограничений.',
       isVip: false,
       cover: coverImages[0],
+      dishes: standardDishes,
     },
     {
-      name: "200 ming menyu",
-      pricePerPerson: 200000,
-      description: "Kengaytirilgan menyu — qo'shimcha shirinliklar va premium ichimliklar bilan.",
+      name: '200 гостей',
+      pricePerPerson: 300000,
+      guestCount: 200,
+      description: 'Холодные и горячие закуски, горячие блюда, салаты, фрукты и напитки без ограничений.',
       isVip: false,
       cover: coverImages[1],
-    },
-    {
-      name: "260 ming menyu",
-      pricePerPerson: 260000,
-      description: "Premium paket — boy dasturxon, bezatilgan stol va foto zona.",
-      isVip: false,
-      cover: coverImages[2],
+      dishes: standardDishes,
     },
     {
       name: 'VIP menyu',
-      pricePerPerson: 350000,
-      description: "Eng yuqori darajadagi VIP menyu — maxsus taomlar, live cooking va to'liq servis.",
+      pricePerPerson: 370000,
+      guestCount: 408,
+      description: 'Расширенный VIP-стол: рыба, икра, оливки, сухофрукты и напитки без ограничений.',
       isVip: true,
       cover: coverImages[3],
+      dishes: vipDishes,
     },
-  ];
-
-  const dishTemplates: { category: Prisma.MenuDishCreateManyInput['category']; name: string; description: string }[] = [
-    { category: 'SALAD', name: 'Achchiq-chuchuk', description: "Pomidor, piyoz, ko'katlar" },
-    { category: 'SALAD', name: 'Olivye', description: 'Klassik olivye salati' },
-    { category: 'SALAD', name: "Smuzi salat", description: "Yangi sabzavotlar aralashmasi" },
-    { category: 'FIRST_DISH', name: "Lag'mon", description: "Uy qog'ozli lag'mon" },
-    { category: 'FIRST_DISH', name: "Mastava", description: "An'anaviy mastava" },
-    { category: 'SECOND_DISH', name: 'Osh', description: "To'y oshi" },
-    { category: 'SECOND_DISH', name: "Qo'y kabob", description: "Cho'g'da pishirilgan kabob" },
-    { category: 'SECOND_DISH', name: "Tovuq qovurma", description: "Ziravorli tovuq" },
-    { category: 'FRUIT', name: 'Meva assorti', description: "Mavsumiy mevalar" },
-    { category: 'DESSERT', name: 'Napoleon', description: 'Klassik tort' },
-    { category: 'DESSERT', name: 'Chak-chak', description: "Asalli shirinlik" },
-    { category: 'DRINK', name: 'Kompot', description: "Uy kompoti" },
-    { category: 'DRINK', name: 'Choy / Qahva', description: "Issiq ichimliklar" },
   ];
 
   const menus = [];
@@ -131,6 +190,7 @@ async function main() {
         data: {
           name: def.name,
           pricePerPerson: def.pricePerPerson,
+          guestCount: def.guestCount,
           description: def.description,
           isVip: def.isVip,
           coverImageUrl: def.cover,
@@ -143,24 +203,23 @@ async function main() {
           description: def.description,
           coverImageUrl: def.cover,
           pricePerPerson: def.pricePerPerson,
+          guestCount: def.guestCount,
           isVip: def.isVip,
         },
       });
     }
 
-    const dishCount = await prisma.menuDish.count({ where: { menuId: menu.id } });
-    if (dishCount === 0) {
-      await prisma.menuDish.createMany({
-        data: dishTemplates.map((d, i) => ({
-          menuId: menu!.id,
-          category: d.category,
-          name: d.name,
-          description: d.description,
-          photoUrl: dishPhoto,
-          order: i,
-        })),
-      });
-    }
+    await prisma.menuDish.deleteMany({ where: { menuId: menu.id } });
+    await prisma.menuDish.createMany({
+      data: def.dishes.map((d, i) => ({
+        menuId: menu.id,
+        category: d.category,
+        name: d.name,
+        description: d.description,
+        photoUrl: d.photo,
+        order: i,
+      })),
+    });
 
     const mediaCount = await prisma.menuMedia.count({ where: { menuId: menu.id } });
     if (mediaCount === 0) {
@@ -192,74 +251,84 @@ async function main() {
 
     menus.push(menu);
   }
-  console.log(`${menus.length} ta menyu (taomlar + media) tayyor.`);
 
-  const productCatalog: {
-    name: string;
-    unit: 'KG' | 'LITER' | 'DONA';
-    productCategory: Prisma.InventoryItemCreateInput['productCategory'];
-    quantity: number;
-    minThreshold: number;
-  }[] = [
-    { name: 'Kartoshka', unit: 'KG', productCategory: 'VEGETABLE', quantity: 80, minThreshold: 20 },
-    { name: 'Piyoz', unit: 'KG', productCategory: 'VEGETABLE', quantity: 45, minThreshold: 15 },
-    { name: 'Sabzi', unit: 'KG', productCategory: 'VEGETABLE', quantity: 30, minThreshold: 10 },
-    { name: 'Pomidor', unit: 'KG', productCategory: 'VEGETABLE', quantity: 8, minThreshold: 12 },
-    { name: 'Bodring', unit: 'KG', productCategory: 'VEGETABLE', quantity: 5, minThreshold: 10 },
-    { name: "Qalampir (bulg'or)", unit: 'KG', productCategory: 'VEGETABLE', quantity: 12, minThreshold: 5 },
-    { name: 'Karam', unit: 'KG', productCategory: 'VEGETABLE', quantity: 18, minThreshold: 5 },
-    { name: 'Olma', unit: 'KG', productCategory: 'FRUIT', quantity: 25, minThreshold: 8 },
-    { name: 'Uzum', unit: 'KG', productCategory: 'FRUIT', quantity: 6, minThreshold: 8 },
-    { name: 'Banan', unit: 'KG', productCategory: 'FRUIT', quantity: 15, minThreshold: 5 },
-    { name: 'Anor', unit: 'KG', productCategory: 'FRUIT', quantity: 10, minThreshold: 4 },
-    { name: 'Limon', unit: 'KG', productCategory: 'FRUIT', quantity: 4, minThreshold: 3 },
-    { name: "Mol go'shti", unit: 'KG', productCategory: 'MEAT', quantity: 40, minThreshold: 15 },
-    { name: "Qo'y go'shti", unit: 'KG', productCategory: 'MEAT', quantity: 22, minThreshold: 10 },
-    { name: "Tovuq go'shti", unit: 'KG', productCategory: 'MEAT', quantity: 35, minThreshold: 12 },
-    { name: 'Qiyma', unit: 'KG', productCategory: 'MEAT', quantity: 14, minThreshold: 8 },
-    { name: 'Sut', unit: 'LITER', productCategory: 'DAIRY', quantity: 20, minThreshold: 10 },
-    { name: 'Qatiq', unit: 'LITER', productCategory: 'DAIRY', quantity: 12, minThreshold: 8 },
-    { name: 'Tvorog', unit: 'KG', productCategory: 'DAIRY', quantity: 7, minThreshold: 5 },
-    { name: "Sariyog'", unit: 'KG', productCategory: 'DAIRY', quantity: 5, minThreshold: 3 },
-    { name: 'Ukrop', unit: 'DONA', productCategory: 'GREENS', quantity: 30, minThreshold: 10 },
-    { name: 'Jambil', unit: 'DONA', productCategory: 'GREENS', quantity: 20, minThreshold: 8 },
-    { name: 'Rayhon', unit: 'DONA', productCategory: 'GREENS', quantity: 15, minThreshold: 8 },
-    { name: 'Petrushka', unit: 'DONA', productCategory: 'GREENS', quantity: 18, minThreshold: 8 },
-    { name: 'Guruch', unit: 'KG', productCategory: 'GRAIN', quantity: 100, minThreshold: 30 },
-    { name: 'Un', unit: 'KG', productCategory: 'GRAIN', quantity: 50, minThreshold: 20 },
-    { name: 'Makaron', unit: 'KG', productCategory: 'GRAIN', quantity: 20, minThreshold: 8 },
-    { name: "O'simlik yog'i", unit: 'LITER', productCategory: 'OIL', quantity: 25, minThreshold: 10 },
-    { name: 'Tuz', unit: 'KG', productCategory: 'SPICE', quantity: 15, minThreshold: 5 },
-    { name: 'Qora murch', unit: 'KG', productCategory: 'SPICE', quantity: 2, minThreshold: 1 },
-    { name: 'Zira', unit: 'KG', productCategory: 'SPICE', quantity: 1.5, minThreshold: 0.5 },
-  ];
-
-  for (const item of productCatalog) {
-    await prisma.inventoryItem.upsert({
-      where: { name: item.name },
-      create: {
-        name: item.name,
-        unit: item.unit,
-        category: 'PRODUCT',
-        productCategory: item.productCategory,
-        quantity: item.quantity,
-        minThreshold: item.minThreshold,
-      },
-      update: {
-        productCategory: item.productCategory,
-        quantity: item.quantity,
-        minThreshold: item.minThreshold,
-      },
-    });
+  const keepNames = new Set(menuDefs.map((def) => def.name));
+  const fallbackMenu = menus[0];
+  const retired = await prisma.menu.findMany({
+    where: { name: { notIn: [...keepNames] } },
+    select: { id: true, name: true },
+  });
+  for (const old of retired) {
+    if (!fallbackMenu) continue;
+    await prisma.event.updateMany({ where: { menuId: old.id }, data: { menuId: fallbackMenu.id } });
+    await prisma.menu.delete({ where: { id: old.id } });
+    console.log(`Eski menyu olib tashlandi: ${old.name}`);
   }
 
-  const dishware = [
-    { name: 'Katta likopcha', quantity: 240, minThreshold: 100 },
-    { name: 'Kichik likopcha', quantity: 280, minThreshold: 120 },
-    { name: 'Stakan', quantity: 300, minThreshold: 150 },
-    { name: 'Choynak', quantity: 40, minThreshold: 20 },
-    { name: 'Vilka-pichoq set', quantity: 250, minThreshold: 100 },
+  console.log(`${menus.length} ta menyu (taomlar + media) tayyor.`);
+
+  const dishware: { name: string; quantity: number }[] = [
+    { name: 'Kremanka', quantity: 50 },
+    { name: 'Martinka', quantity: 362 },
+    { name: 'Lagan', quantity: 100 },
+    { name: 'Chonak', quantity: 0 },
+    { name: 'Fujir', quantity: 312 },
+    { name: 'Tarelka', quantity: 10 },
+    { name: '9 tarelka', quantity: 231 },
+    { name: '7 tarelka', quantity: 574 },
+    { name: '6 tarelka', quantity: 265 },
+    { name: '9 eski tarelka', quantity: 0 },
+    { name: '7 eski tarelka', quantity: 0 },
+    { name: 'Pichonitsa', quantity: 47 },
+    { name: 'Furukta soladigan idish', quantity: 0 },
+    { name: 'Oq mesnoy', quantity: 0 },
+    { name: 'Aval', quantity: 12 },
+    { name: 'Piyola', quantity: 280 },
+    { name: 'Eski piyola', quantity: 325 },
+    { name: 'Kosa', quantity: 290 },
+    { name: 'Salatnitsa', quantity: 336 },
+    { name: 'Ribniy', quantity: 65 },
+    { name: 'Salat tortburchak', quantity: 54 },
+    { name: 'Salat dumaloq', quantity: 54 },
+    { name: 'Tovuq idish', quantity: 0 },
+    { name: 'Qoshiq', quantity: 560 },
+    { name: 'Pichoq', quantity: 702 },
+    { name: 'Qoshiq 2', quantity: 590 },
+    { name: 'Vilka', quantity: 590 },
+    { name: 'Grafin', quantity: 21 },
+    { name: 'Non-idish', quantity: 60 },
+    { name: 'Oq kichkina vaza', quantity: 0 },
+    { name: 'Tuz-muruch', quantity: 95 },
+    { name: 'Zubachistka idish', quantity: 47 },
+    { name: 'Salfetka', quantity: 49 },
+    { name: 'Sovusnitsa', quantity: 172 },
+    { name: 'Muz idish', quantity: 10 },
+    { name: 'Julian idish', quantity: 338 },
+    { name: 'Rumka', quantity: 135 },
+    { name: 'Kichkina qoshiq', quantity: 330 },
+    { name: '12 yangi tarelka', quantity: 342 },
+    { name: 'Kichkina yangi tarelka', quantity: 332 },
+    { name: '9 yangi tarelka', quantity: 231 },
+    { name: 'Pichoq 2', quantity: 210 },
+    { name: 'Aval — 12 razmer', quantity: 97 },
+    { name: 'Aval — 10 razmer', quantity: 180 },
+    { name: 'Aval — 6 razmer', quantity: 270 },
+    { name: 'Sariq tarelka', quantity: 97 },
+    { name: 'Mesnoy sariq', quantity: 34 },
+    { name: 'Kichik vaza', quantity: 70 },
+    { name: 'Oyoqli sir idish', quantity: 30 },
+    { name: 'Meva oq', quantity: 20 },
+    { name: 'Eski meva', quantity: 44 },
+    { name: 'Non idish', quantity: 100 },
   ];
+
+  const dishNames = new Set(dishware.map((item) => item.name));
+  await prisma.inventoryTransaction.deleteMany({
+    where: { item: { name: { notIn: [...dishNames] } } },
+  });
+  const removed = await prisma.inventoryItem.deleteMany({
+    where: { name: { notIn: [...dishNames] } },
+  });
   for (const item of dishware) {
     await prisma.inventoryItem.upsert({
       where: { name: item.name },
@@ -268,16 +337,19 @@ async function main() {
         unit: 'DONA',
         category: 'DISHWARE',
         quantity: item.quantity,
-        minThreshold: item.minThreshold,
+        productCategory: null,
+        minThreshold: null,
       },
       update: {
-        quantity: item.quantity,
-        minThreshold: item.minThreshold,
+        unit: 'DONA',
         category: 'DISHWARE',
+        quantity: item.quantity,
+        productCategory: null,
+        minThreshold: null,
       },
     });
   }
-  console.log('Ombor (mahsulot + idish) to\'ldirildi.');
+  console.log(`Ombor yangilandi: ${dishware.length} ta idish, ${removed.count} ta eski yozuv o'chirildi.`);
 
   const workerDefs: {
     fullName: string;
@@ -369,7 +441,7 @@ async function main() {
         eventDate: daysAgo(28),
         guestCount: 280,
         tableCapacity: 12,
-        menuIndex: 2,
+        menuIndex: 1,
         status: 'COMPLETED',
         payments: [
           { amount: 20000000, daysOffset: -40, method: 'CARD' },
@@ -406,7 +478,7 @@ async function main() {
         eventDate: daysAgo(5),
         guestCount: 320,
         tableCapacity: 12,
-        menuIndex: 3,
+        menuIndex: 2,
         status: 'COMPLETED',
         payments: [
           { amount: 50000000, daysOffset: -20, method: 'TRANSFER' },
@@ -450,7 +522,7 @@ async function main() {
         eventDate: daysFromNow(10),
         guestCount: 260,
         tableCapacity: 12,
-        menuIndex: 2,
+        menuIndex: 1,
         status: 'PENDING',
         payments: [{ amount: 15000000, daysOffset: 0, method: 'TRANSFER' }],
       },
