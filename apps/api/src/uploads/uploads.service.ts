@@ -33,7 +33,8 @@ const EXTENSION_CONTENT_TYPES: Record<string, string> = {
 const FOLDERS = ['workers', 'menus', 'inventory', 'branding'] as const;
 type UploadFolder = (typeof FOLDERS)[number];
 
-const MAX_BYTES = 80 * 1024 * 1024;
+const IMAGE_MAX_BYTES = 80 * 1024 * 1024;
+const VIDEO_MAX_BYTES = 200 * 1024 * 1024;
 
 interface UploadToken {
   purpose: 'upload';
@@ -138,7 +139,11 @@ export class UploadsService {
       throw new BadRequestException('Fayl turi mos kelmaydi');
     }
     if (body.length === 0) throw new BadRequestException("Fayl bo'sh");
-    if (body.length > MAX_BYTES) throw new PayloadTooLargeException('Fayl 80 MB dan katta');
+    const video = contentType.startsWith('video/');
+    const maxBytes = video ? VIDEO_MAX_BYTES : IMAGE_MAX_BYTES;
+    if (body.length > maxBytes) {
+      throw new PayloadTooLargeException(video ? 'Video 200 MB dan katta' : 'Fayl 80 MB dan katta');
+    }
 
     const absolute = this.assertKey(payload.key);
     await mkdir(path.dirname(absolute), { recursive: true });

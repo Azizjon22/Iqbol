@@ -1,10 +1,11 @@
 import { Type } from 'class-transformer';
+import { IsMediaUrl } from '../../common/validators/is-media-url';
 import {
   IsBoolean,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
   Min,
   MinLength,
 } from 'class-validator';
@@ -20,11 +21,17 @@ export class CreateMenuDto {
   pricePerPerson!: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  guestCount?: number;
+
+  @IsOptional()
   @IsString()
   description?: string;
 
   @IsOptional()
-  @IsUrl()
+  @IsMediaUrl()
   coverImageUrl?: string;
 
   @IsOptional()

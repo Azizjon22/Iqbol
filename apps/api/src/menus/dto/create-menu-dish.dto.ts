@@ -1,11 +1,11 @@
 import { MenuDishCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { IsMediaUrl } from '../../common/validators/is-media-url';
 import {
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
-  IsUrl,
   MinLength,
 } from 'class-validator';
 
@@ -22,7 +22,7 @@ export class CreateMenuDishDto {
   description?: string;
 
   @IsOptional()
-  @IsUrl()
+  @IsMediaUrl()
   photoUrl?: string;
 
   @IsOptional()

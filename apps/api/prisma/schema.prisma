@@ -48,6 +48,10 @@ enum MenuDishCategory {
   DESSERT
   DRINK
   OTHER
+  COLD_APPETIZER
+  HOT_APPETIZER
+  BREAD
+  DRIED_FRUIT
 }
 
 enum MenuMediaSection {
@@ -172,6 +176,7 @@ model Menu {
   id             String   @id @default(cuid())
   name           String
   pricePerPerson Decimal  @db.Decimal(12, 2)
+  guestCount     Int      @default(150)
   description    String?
   coverImageUrl  String?
   isVip          Boolean  @default(false)

@@ -9,7 +9,6 @@ import { OrnamentDivider, CornerFlourish } from "@/components/menus/showcase/orn
 import { Reveal } from "@/components/menus/showcase/reveal";
 import { SafeImage } from "@/components/menus/showcase/safe-image";
 import { Lightbox, type LightboxItem } from "@/components/menus/showcase/lightbox";
-import { PriceCalculator } from "@/components/menus/showcase/price-calculator";
 import { ClosingCta } from "@/components/menus/showcase/closing-cta";
 import { MENU_DISH_CATEGORIES, MENU_MEDIA_SECTIONS, type MenuMediaSection } from "@iqbol/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -31,9 +30,10 @@ function tileSpans(count: number) {
   return spans;
 }
 
-export function MenuShowcaseDetail({ menu, initialGuests }: { menu: Menu; initialGuests?: number }) {
+export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
   const { t, locale } = useLocale();
   const price = Number(menu.pricePerPerson);
+  const guests = menu.guestCount;
 
   const [section, setSection] = useState<MenuMediaSection | "ALL">("ALL");
   const [broken, setBroken] = useState<Set<string>>(() => new Set());
@@ -59,10 +59,10 @@ export function MenuShowcaseDetail({ menu, initialGuests }: { menu: Menu; initia
 
   const dishPhotos: LightboxItem[] = menu.dishes
     .filter((d) => d.photoUrl && !broken.has(d.photoUrl))
-    .map((d) => ({ url: d.photoUrl!, caption: d.name, kind: "PHOTO" }));
+    .map((d) => ({ id: d.id, url: d.photoUrl!, caption: d.name, kind: "PHOTO" }));
 
   function openDish(dish: MenuDish) {
-    const index = dishPhotos.findIndex((p) => p.caption === dish.name);
+    const index = dishPhotos.findIndex((p) => p.id === dish.id);
     if (index >= 0) setLightbox({ items: dishPhotos, index });
   }
 
@@ -154,9 +154,6 @@ export function MenuShowcaseDetail({ menu, initialGuests }: { menu: Menu; initia
             <a href="#menu" className={navLink}>
               {t("presentation.navMenu")}
             </a>
-            <a href="#calc" className={navLink}>
-              {t("presentation.navCalc")}
-            </a>
             {media.length > 0 && (
               <a href="#gallery" className={navLink}>
                 {t("presentation.navGallery")}
@@ -240,15 +237,17 @@ export function MenuShowcaseDetail({ menu, initialGuests }: { menu: Menu; initia
           </section>
         )}
 
-        {/* ---------- Price calculator ---------- */}
-        <section id="calc" className="scroll-mt-32 border-y border-border/60 bg-muted/30 px-4 py-16 sm:px-6 sm:py-20">
-          <Reveal className="mx-auto max-w-5xl 2xl:max-w-6xl">
-            <div className="mb-10 text-center">
-              <h2 className="font-display text-[clamp(2.25rem,4.5vw,4rem)] font-semibold tracking-tight">{t("presentation.calcTitle")}</h2>
-              <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">{t("presentation.calcSubtitle")}</p>
-              <OrnamentDivider className="mt-5 text-accent" />
+        <section className="border-y border-border/60 bg-muted/30 px-4 py-16 sm:px-6 sm:py-20">
+          <Reveal className="mx-auto max-w-md">
+            <div className="relative overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-accent/10 via-card to-card px-4 py-6 text-center min-[400px]:p-6 sm:p-8">
+              <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">{t("presentation.calcTotal")}</p>
+              <p className="font-display text-gilded-adaptive mt-3 whitespace-nowrap text-[clamp(1.9rem,7.5vw,3.25rem)] font-semibold lining-nums tabular-nums">
+                {formatSom(price * guests, locale)}
+              </p>
+              <p className="mt-3 text-sm tabular-nums text-muted-foreground">
+                {guests} × {formatSom(price, locale)}
+              </p>
             </div>
-            <PriceCalculator pricePerPerson={price} initialGuests={initialGuests} />
           </Reveal>
         </section>
 

@@ -49,6 +49,14 @@ export function UploadField({
       setError("Bu format saqlanmaydi");
       return;
     }
+    const isVideo = contentType.startsWith("video/");
+    const maxBytes = isVideo ? 200 * 1024 * 1024 : 80 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setPickedKind(null);
+      setLocalPreview(undefined);
+      setError(isVideo ? "Video 200 MB dan katta" : "Fayl 80 MB dan katta");
+      return;
+    }
     setError(undefined);
     setPickedKind(contentType.startsWith("video/") ? "video" : "image");
     setLocalPreview(URL.createObjectURL(file));

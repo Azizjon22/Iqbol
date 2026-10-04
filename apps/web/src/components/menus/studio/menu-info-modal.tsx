@@ -25,13 +25,16 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const price = Number(form.get("pricePerPerson"));
+    const guestCount = Number(form.get("guestCount"));
     if (name.length < 2) return setError(tr("Menyu nomini kiriting"));
     if (!(price > 0)) return setError(tr("Narx 0 dan katta bo'lishi kerak"));
+    if (!(guestCount >= 1)) return setError(tr("Mehmonlar soni 1 dan kam bo'lmasin"));
 
     const cover = String(form.get("coverImageUrl") ?? "");
     const body = {
       name,
       pricePerPerson: price,
+      guestCount,
       description: String(form.get("description") ?? "").trim(),
       isVip: form.get("isVip") === "on",
       coverImageUrl: cover || (menu ? null : undefined),
@@ -96,6 +99,17 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
           {menu && (
             <p className="mt-1 text-xs text-muted-foreground">{tr("Allaqachon band qilingan to'ylarning narxi o'zgarmaydi.")}</p>
           )}
+        </div>
+        <div>
+          <Label htmlFor="menu-guests">{tr("Mehmonlar soni")}</Label>
+          <Input
+            id="menu-guests"
+            name="guestCount"
+            type="number"
+            min={1}
+            defaultValue={menu?.guestCount ?? 150}
+            required
+          />
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="menu-description">{tr("Tavsif — mijoz taqdimotda ko'radi")}</Label>

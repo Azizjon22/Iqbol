@@ -18,6 +18,7 @@ export interface Menu {
   id: string;
   name: string;
   pricePerPerson: string;
+  guestCount: number;
   description: string | null;
   coverImageUrl: string | null;
   isVip: boolean;

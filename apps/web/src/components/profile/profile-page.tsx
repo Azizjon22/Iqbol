@@ -258,12 +258,12 @@ function BrandCard({ brand }: { brand: Brand }) {
                 accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.mov"
                 aspect="video"
                 browse
-                formats="JPG, PNG, WebP, MP4, MOV"
+                formats="JPG, PNG, WebP, MP4, MOV · 200 MB"
                 defaultValue={heroUrl}
                 onChange={(url) => setHeroUrl(url || null)}
               />
               <p className="mt-2 text-xs text-muted-foreground">
-                {tr("Rasm yoki video. MP4 va MOV sahifa ochilganda ovozsiz, takrorlanib turadi.")}
+                {tr("Rasm yoki video. MP4 va MOV sahifa ochilganda ovozsiz, takrorlanib turadi. Video maksimum 200 MB.")}
               </p>
             </div>
           </div>

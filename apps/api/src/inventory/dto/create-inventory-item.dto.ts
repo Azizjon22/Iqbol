@@ -5,10 +5,10 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
   Min,
   MinLength,
 } from 'class-validator';
+import { IsMediaUrl } from '../../common/validators/is-media-url';
 
 export class CreateInventoryItemDto {
   @IsString()
@@ -24,7 +24,7 @@ export class CreateInventoryItemDto {
   productCategory?: ProductCategory;
 
   @IsOptional()
-  @IsUrl()
+  @IsMediaUrl()
   photoUrl?: string;
 
   @IsEnum(Unit)
