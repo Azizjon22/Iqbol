@@ -12,13 +12,14 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { ShoppingListToast, useLivePendingLists } from "./live-shopping-alerts";
 
 const COLLAPSE_KEY = "nav-collapsed";
 
 export function DashboardShell({
   fullName,
   role,
-  pendingShoppingListsCount = 0,
+  pendingShoppingListsCount: initialPendingCount = 0,
   children,
 }: {
   fullName: string;
@@ -31,6 +32,8 @@ export function DashboardShell({
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const { t } = useLocale();
+  const live = useLivePendingLists(initialPendingCount, role === "SUPER_ADMIN" || role === "ADMIN");
+  const pendingShoppingListsCount = live.count;
 
   useEffect(() => {
     // Hydration-safe: starts false on the server/first paint, then corrects
@@ -244,7 +247,7 @@ export function DashboardShell({
                 <p className="mt-0.5 text-[10px] text-muted-foreground">{t(`roles.${role}`)}</p>
               </div>
             </Link>
-            <form action={logoutAction}>
+            <form suppressHydrationWarning action={logoutAction}>
               <button
                 type="submit"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -280,6 +283,7 @@ export function DashboardShell({
         <main className="flex-1 bg-[radial-gradient(ellipse_at_top,var(--surface-glow),transparent_50%)] p-4 pb-24 sm:p-6 md:pb-6">
           {children}
         </main>
+        <ShoppingListToast alert={live.alert} onClose={live.dismiss} />
       </div>
     </div>
   );

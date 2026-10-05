@@ -77,7 +77,7 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
         </>
       }
     >
-      <form id="menu-info-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[260px_1fr]">
+      <form suppressHydrationWarning id="menu-info-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[260px_1fr]">
         <div className="sm:row-span-2">
           <UploadField name="coverImageUrl" label={tr("Muqova rasmi")} folder="menus" defaultValue={menu?.coverImageUrl} />
           <p className="mt-1.5 text-xs text-muted-foreground">{tr("Taqdimotning birinchi ekrani va menyu kartasi")}</p>

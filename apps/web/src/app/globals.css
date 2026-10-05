@@ -111,6 +111,39 @@ body {
   }
 }
 
+/* Native pickers (date wheel, select list) follow the site's theme. */
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* Date fields on iPad/iPhone and Android tablets: Safari gives them a fixed
+   intrinsic width that ignores width:100% and spills into the next column,
+   and shows an empty, collapsed box. Let them shrink and keep their height. */
+@layer base {
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.5rem;
+  }
+  input::-webkit-date-and-time-value {
+    min-height: 1.25em;
+    text-align: left;
+  }
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;

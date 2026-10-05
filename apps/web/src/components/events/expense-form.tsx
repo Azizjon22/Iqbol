@@ -34,7 +34,7 @@ function ExpenseRow({
   }, [isPending, state]);
 
   return (
-    <form
+    <form suppressHydrationWarning
       ref={formRef}
       action={formAction}
       className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2.5"

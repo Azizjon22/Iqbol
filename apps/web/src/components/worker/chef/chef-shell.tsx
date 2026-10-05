@@ -71,7 +71,7 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
             <span title={name} className="ml-1 hidden h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-semibold min-[400px]:flex">
               {initials}
             </span>
-            <form action={logoutAction}>
+            <form suppressHydrationWarning action={logoutAction}>
               <button
                 type="submit"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"

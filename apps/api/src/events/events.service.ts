@@ -12,6 +12,7 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { AssignWorkerDto } from './dto/assign-worker.dto';
 import { FindEventsQuery } from './dto/find-events.query';
 import { netPaid } from '../common/money/net-paid';
+import { SHOPPING_DONE_STATUSES } from '../shopping-lists/shopping-lists.service';
 
 const eventInclude = {
   menu: true,
@@ -129,10 +130,10 @@ export class EventsService {
    * What a chef needs to plan cooking: upcoming weddings with guests, tables
    * and the menu's dishes, plus their own shopping lists per wedding. No money.
    */
-  chefAgenda(workerId: string) {
+  async chefAgenda(workerId: string) {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    return this.prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
       select: {
         id: true,
@@ -158,10 +159,22 @@ export class EventsService {
           select: { id: true, status: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
         },
+        // Any list bought for the wedding ends its shopping for every chef.
+        _count: {
+          select: {
+            shoppingLists: {
+              where: { status: { in: SHOPPING_DONE_STATUSES } },
+            },
+          },
+        },
       },
       orderBy: { eventDate: 'asc' },
       take: 200,
     });
+    return events.map(({ _count, ...event }) => ({
+      ...event,
+      shoppingClosed: _count.shoppingLists > 0,
+    }));
   }
 
   async findAll(query: FindEventsQuery) {

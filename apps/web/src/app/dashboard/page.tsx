@@ -142,10 +142,10 @@ export default async function DashboardOverviewPage() {
         />
       </div>
 
-      <div className={cn("grid gap-6", (showAttention || fin) && "lg:grid-cols-[minmax(0,1fr)_340px]")}>
+      <div className={cn("grid gap-6", (showAttention || fin) && "xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]")}>
         <div className="min-w-0 space-y-6">
           {/* ---------- Week plan ---------- */}
-          <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+          <section className="@container rounded-2xl border border-border bg-card p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-base font-semibold">{t("dashboard.weekPlan")}</h2>
               <Link href="/dashboard/events" className="text-sm text-primary hover:underline">
@@ -211,7 +211,7 @@ export default async function DashboardOverviewPage() {
         </div>
 
         {(showAttention || fin) && (
-          <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+          <aside className="grid items-start gap-6 md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] xl:sticky xl:top-20 xl:grid-cols-1 xl:self-start">
             {/* ---------- Month finance (SUPER_ADMIN) ---------- */}
             {fin && (
               <Link

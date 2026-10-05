@@ -31,7 +31,7 @@ export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mo
   }, [isPending, state]);
 
   return (
-    <form
+    <form suppressHydrationWarning
       ref={formRef}
       onSubmit={(e) => {
         e.preventDefault();

@@ -34,6 +34,15 @@ export const ADMIN_VISIBLE_STATUSES: ShoppingListStatus[] = [
 /** Largest amount the totalCost column (Decimal 14,2) is trusted with. */
 const MAX_TOTAL_COST = 99_999_999_999;
 
+/**
+ * Once a wedding's shopping is bought (and later priced and closed), the
+ * bazaar is over for that date: chefs cannot add another list to it.
+ */
+export const SHOPPING_DONE_STATUSES: ShoppingListStatus[] = [
+  'PURCHASED',
+  'CLOSED',
+];
+
 const NOT_YET_SENT_STATUSES: ShoppingListStatus[] = ['SUBMITTED', 'REVIEWED'];
 
 function visibleTo(role?: StaffRole): Prisma.ShoppingListWhereInput {
@@ -54,6 +63,32 @@ const STATUS_LABEL_UZ: Record<string, string> = {
   CLOSED: 'Yopilgan',
 };
 
+/**
+ * The buyer wants one line per product: tomatoes for the salad and for the
+ * first dish arrive as one total. Same name (any case) and unit add up.
+ */
+export function mergeSameProduct<
+  T extends { name: string; quantity: number; unit: string; note?: string },
+>(items: T[]): T[] {
+  const merged = new Map<string, T>();
+  for (const item of items) {
+    const k = `${item.name.trim().toLowerCase()}|${item.unit}`;
+    const prev = merged.get(k);
+    merged.set(
+      k,
+      prev
+        ? {
+            ...prev,
+            quantity: +(prev.quantity + item.quantity).toFixed(3),
+            note:
+              [prev.note, item.note].filter(Boolean).join('; ') || undefined,
+          }
+        : { ...item, name: item.name.trim() },
+    );
+  }
+  return [...merged.values()];
+}
+
 @Injectable()
 export class ShoppingListsService {
   constructor(
@@ -73,13 +108,24 @@ export class ShoppingListsService {
           "Bekor qilingan to'y uchun bozorlik yozilmaydi",
         );
       }
+      const done = await this.prisma.shoppingList.count({
+        where: {
+          eventId: dto.eventId,
+          status: { in: SHOPPING_DONE_STATUSES },
+        },
+      });
+      if (done > 0) {
+        throw new BadRequestException(
+          "Bu to'yning bozorligi yakunlangan — yangi ro'yxat yozib bo'lmaydi",
+        );
+      }
     }
     return this.prisma.shoppingList.create({
       data: {
         eventId: dto.eventId,
         createdByWorkerId: workerId,
         items: {
-          create: dto.items.map((item) => ({
+          create: mergeSameProduct(dto.items).map((item) => ({
             name: item.name,
             quantity: item.quantity,
             unit: item.unit,
@@ -153,6 +199,7 @@ export class ShoppingListsService {
     actorId: string,
     actorName: string,
     role?: StaffRole,
+    confirmedItemIds: string[] = [],
   ) {
     if (status === 'APPROVED') {
       throw new BadRequestException(
@@ -180,6 +227,21 @@ export class ShoppingListsService {
       if (existing.status !== 'PURCHASED') {
         throw new BadRequestException(
           "Faqat xaridi yakunlangan ro'yxatni yopish mumkin",
+        );
+      }
+      if (
+        existing.items.some(
+          (item) => item.totalCost === null && item.unitPrice === null,
+        )
+      ) {
+        throw new BadRequestException(
+          'Hamma mahsulotning narxi kiritilmagan — avval narxlarni kiriting',
+        );
+      }
+      const confirmed = new Set(confirmedItemIds);
+      if (existing.items.some((item) => !confirmed.has(item.id))) {
+        throw new BadRequestException(
+          'Yopishdan oldin har bir mahsulot narxini tekshirib belgilang',
         );
       }
     } else {
@@ -363,6 +425,40 @@ export class ShoppingListsService {
    * clears on next load. SUPER_ADMIN's badge counts lists fresh from chefs;
    * ADMIN's counts lists SUPER_ADMIN has just sent them.
    */
+  /**
+   * What the bell shows, cheap enough for the dashboard to ask every few
+   * seconds: how many lists are waiting and which one arrived last.
+   */
+  async pending(role: StaffRole | undefined) {
+    const where: Prisma.ShoppingListWhereInput =
+      role === 'ADMIN'
+        ? { status: 'APPROVED', adminSeenAt: null }
+        : { status: 'SUBMITTED' };
+    const [count, latest] = await Promise.all([
+      this.prisma.shoppingList.count({ where }),
+      this.prisma.shoppingList.findFirst({
+        where,
+        orderBy:
+          role === 'ADMIN' ? { approvedAt: 'desc' } : { createdAt: 'desc' },
+        select: {
+          id: true,
+          createdByWorker: { select: { fullName: true } },
+          event: { select: { clientName: true } },
+          _count: { select: { items: true } },
+        },
+      }),
+    ]);
+    return {
+      count,
+      latest: latest && {
+        id: latest.id,
+        workerName: latest.createdByWorker.fullName,
+        clientName: latest.event?.clientName ?? null,
+        itemCount: latest._count.items,
+      },
+    };
+  }
+
   async markAllSeen(role: StaffRole | undefined, reviewedById: string) {
     if (role === 'ADMIN') {
       await this.prisma.shoppingList.updateMany({
@@ -470,6 +566,11 @@ export class ShoppingListsService {
     if (!item.isPurchased) {
       throw new BadRequestException(
         'Narxni faqat sotib olingan mahsulot uchun tuzatish mumkin',
+      );
+    }
+    if (list.status === 'CLOSED') {
+      throw new BadRequestException(
+        "Ro'yxat tasdiqlab yopilgan — narxlarni endi o'zgartirib bo'lmaydi",
       );
     }
     const { unitPrice, totalCost } = this.resolvePrice(dto, item.quantity);

@@ -89,7 +89,7 @@ export function DishModal({
         </>
       }
     >
-      <form key={formKey} id="dish-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[220px_1fr]">
+      <form suppressHydrationWarning key={formKey} id="dish-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[220px_1fr]">
         <div className="sm:row-span-3">
           <UploadField name="photoUrl" label={tr("Rasm")} folder="menus" aspect="square" defaultValue={dish?.photoUrl} />
         </div>

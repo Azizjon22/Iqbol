@@ -16,7 +16,7 @@ export function ChangePasswordForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <form action={formAction} className="space-y-4">
+      <form suppressHydrationWarning action={formAction} className="space-y-4">
         <div>
           <Label htmlFor="currentPassword">{tr("Joriy parol (admin bergan)")}</Label>
           <PasswordInput id="currentPassword" name="currentPassword" required autoComplete="current-password" />
@@ -35,7 +35,7 @@ export function ChangePasswordForm() {
           {tr("Parolni saqlash va davom etish")}
         </SubmitButton>
       </form>
-      <form action={logoutAction} className="mt-4 text-center">
+      <form suppressHydrationWarning action={logoutAction} className="mt-4 text-center">
         <button type="submit" className="text-sm text-muted-foreground hover:underline">
           
           {tr("Chiqish")}

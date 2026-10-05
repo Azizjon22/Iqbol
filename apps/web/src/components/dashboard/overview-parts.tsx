@@ -82,7 +82,7 @@ export function StatTile({
     >
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[radial-gradient(circle,var(--surface-glow),transparent_70%)]" />
       <div className="relative flex items-start justify-between gap-3">
-        <p className="text-xs leading-snug text-muted-foreground sm:text-sm">{label}</p>
+        <p className="min-w-0 text-xs leading-snug text-muted-foreground sm:text-sm">{label}</p>
         <span
           className={cn(
             "hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex",
@@ -103,7 +103,7 @@ export function StatTile({
 
 export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekdays: string[] }) {
   return (
-    <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-7 md:overflow-visible md:px-0 md:pb-0">
+    <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 @xl:mx-0 @xl:grid @xl:grid-cols-7 @xl:gap-1.5 @xl:overflow-visible @xl:px-0 @xl:pb-0 @3xl:gap-2">
       {week.map((day, i) => {
         const date = parseDayKey(day.date);
         const tag = i === 0 ? t("dashboard.today") : i === 1 ? t("dashboard.tomorrow") : null;
@@ -111,16 +111,17 @@ export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekday
           <div
             key={day.date}
             className={cn(
-              "flex min-h-40 w-[132px] shrink-0 snap-start flex-col rounded-xl border p-2.5 md:w-auto",
+              "flex min-h-40 w-[132px] min-w-0 shrink-0 snap-start flex-col rounded-xl border p-2.5 @xl:w-auto @xl:p-2 @3xl:p-2.5",
               i === 0 ? "border-primary/50 bg-primary/5" : "border-border bg-background/40",
             )}
           >
-            <div className="flex items-baseline justify-between gap-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{weekdays[weekdayIndex(date)]}</span>
+            {/* Wraps in a narrow column so the badge never rides over the weekday. */}
+            <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-0.5">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground @xl:text-[11px] @3xl:text-xs">{weekdays[weekdayIndex(date)]}</span>
               {tag && (
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                    "whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none",
                     i === 0 ? "bg-primary text-primary-foreground" : "bg-accent/15 text-accent",
                   )}
                 >
@@ -128,7 +129,7 @@ export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekday
                 </span>
               )}
             </div>
-            <p className="font-display text-3xl font-semibold leading-tight lining-nums">{date.getDate()}</p>
+            <p className="font-display text-3xl font-semibold leading-tight lining-nums @xl:text-2xl @3xl:text-3xl">{date.getDate()}</p>
             <div className="mt-2 flex flex-1 flex-col gap-1.5">
               {day.events.length === 0 && <p className="mt-auto text-xs text-muted-foreground/70">{t("dashboard.noEvents")}</p>}
               {day.events.map((e) => (
@@ -136,13 +137,13 @@ export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekday
                   key={e.id}
                   href={`/dashboard/events/${e.id}`}
                   className={cn(
-                    "rounded-lg px-2 py-1.5 text-xs transition hover:brightness-110",
+                    "min-w-0 rounded-lg px-2 py-1.5 text-xs transition hover:brightness-110 @xl:px-1.5 @3xl:px-2",
                     e.status === "CONFIRMED" ? "bg-primary/15 text-foreground" : "bg-accent/15 text-foreground",
                   )}
                   title={e.clientName}
                 >
                   <span className="block font-semibold tabular-nums">{formatTime(e.eventDate)}</span>
-                  <span className="line-clamp-2 leading-snug text-muted-foreground">{e.clientName}</span>
+                  <span className="line-clamp-2 leading-snug text-muted-foreground [overflow-wrap:anywhere]">{e.clientName}</span>
                 </Link>
               ))}
             </div>
@@ -194,7 +195,7 @@ export function EventPrepCard({ event, t, locale, weekdays }: { event: PrepEvent
   return (
     <Link
       href={`/dashboard/events/${event.id}`}
-      className="group block rounded-2xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-md sm:p-5"
+      className="@container group block rounded-2xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-md sm:p-5"
     >
       <div className="flex gap-4">
         <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 py-2 text-primary">
@@ -216,7 +217,7 @@ export function EventPrepCard({ event, t, locale, weekdays }: { event: PrepEvent
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
             {event.clientPhone} · {event.menuName}
           </p>
-          <p className="mt-0.5 truncate text-sm">
+          <p className="mt-0.5 line-clamp-2 text-sm [overflow-wrap:anywhere]">
             {event.firstDish || event.secondDish ? (
               <>
                 <span className="text-accent">1:</span> {event.firstDish ?? "—"} <span className="mx-1 text-muted-foreground">·</span>
@@ -236,7 +237,7 @@ export function EventPrepCard({ event, t, locale, weekdays }: { event: PrepEvent
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-2 @sm:grid-cols-2 @3xl:grid-cols-4">
         <PrepItem ok={workers.length > 0} icon={<Users className="h-3.5 w-3.5 shrink-0" />}>
           {workers.length > 0 ? t("dashboard.prepWorkers", { count: workers.length }) : t("dashboard.prepNoWorkers")}
         </PrepItem>

@@ -74,7 +74,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
+    <form suppressHydrationWarning onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
       <div>
         <Label htmlFor="fullName">{t("workers.fullName")}</Label>
         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />

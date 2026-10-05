@@ -37,7 +37,7 @@ function PasswordCard({ justChanged }: { justChanged: boolean }) {
           <CheckCircle2 className="h-4 w-4" />  {tr("Parol yangilandi.")}
         </p>
       )}
-      <form
+      <form suppressHydrationWarning
         onSubmit={(e) => {
           e.preventDefault();
           const data = new FormData(e.currentTarget);

@@ -4,7 +4,7 @@ import { useLocale, useTr } from "@/components/i18n/locale-provider";
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, ChevronDown, ClipboardList, Plus, UserCheck, Users, UtensilsCrossed } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ClipboardList, Lock, Plus, UserCheck, Users, UtensilsCrossed } from "lucide-react";
 import { MENU_DISH_CATEGORY_LABELS_UZ, type MenuDishCategory } from "@iqbol/shared";
 import { formatDate, formatTime, cn } from "@/lib/utils";
 import { OrnamentDivider } from "@/components/menus/showcase/ornament-divider";
@@ -160,12 +160,18 @@ export function ChefEventCard({
             <ClipboardList className="h-4 w-4" />  {tr("Bozorlik yozilmagan")}
           </span>
         )}
-        <Link
-          href={`/worker/shopping?event=${event.id}`}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:brightness-95"
-        >
-          <Plus className="h-4 w-4" /> {lists.length > 0 ? tr("Yana yozish") : tr("Ro'yxat yozish")}
-        </Link>
+        {event.shoppingClosed ? (
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-muted px-3 text-sm font-medium text-muted-foreground">
+            <Lock className="h-4 w-4" /> {tr("Bozorlik yopilgan")}
+          </span>
+        ) : (
+          <Link
+            href={`/worker/shopping?event=${event.id}`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:brightness-95"
+          >
+            <Plus className="h-4 w-4" /> {lists.length > 0 ? tr("Yana yozish") : tr("Ro'yxat yozish")}
+          </Link>
+        )}
       </div>
     </div>
   );

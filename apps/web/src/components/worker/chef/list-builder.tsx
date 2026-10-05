@@ -3,7 +3,7 @@ import { useLocale, useTr } from "@/components/i18n/locale-provider";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Copy, Minus, Plus, Search, Send, ShoppingBasket, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Lock, Minus, Plus, Search, Send, ShoppingBasket, Trash2, Users, X } from "lucide-react";
 import {
   PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS_UZ,
@@ -93,7 +93,7 @@ export function ListBuilder({
   const locale = useLocale().locale;
 
   const router = useRouter();
-  const [eventId, setEventId] = useState(() => (events.some((e) => e.id === initialEventId) ? initialEventId! : ""));
+  const [eventId, setEventId] = useState(() => (events.some((e) => e.id === initialEventId && !e.shoppingClosed) ? initialEventId! : ""));
   const [cart, setCart] = useState<Map<string, CartLine>>(() => new Map());
   const [section, setSection] = useState<ProductCategory | "ALL">("ALL");
   const [stage, setStage] = useState<Stage>("SALAD");
@@ -238,14 +238,21 @@ export function ListBuilder({
             {events.map((e) => {
               const d = new Date(e.eventDate);
               const selected = e.id === eventId;
+              const closed = !!e.shoppingClosed;
               return (
                 <button
                   key={e.id}
                   type="button"
                   onClick={() => setEventId(e.id)}
+                  disabled={closed}
+                  title={closed ? tr("Bu to'yning bozorligi yakunlangan") : undefined}
                   className={cn(
                     "flex w-56 shrink-0 snap-start items-center gap-3 rounded-2xl border p-3 text-left transition",
-                    selected ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border bg-card hover:border-primary/40",
+                    closed
+                      ? "cursor-not-allowed border-dashed border-border bg-muted/40 opacity-60"
+                      : selected
+                        ? "border-primary bg-primary/10 ring-1 ring-primary"
+                        : "border-border bg-card hover:border-primary/40",
                   )}
                 >
                   <span className={cn("flex w-12 shrink-0 flex-col items-center rounded-xl py-1.5", selected ? "bg-primary text-primary-foreground" : "bg-muted")}>
@@ -262,7 +269,13 @@ export function ListBuilder({
                         {[e.firstDish, e.secondDish].filter(Boolean).join(" · ")}
                       </span>
                     )}
-                    {e.shoppingLists.length > 0 && <span className="block text-[11px] text-success">{tr("Ro'yxat bor")}</span>}
+                    {closed ? (
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <Lock className="h-3 w-3" /> {tr("Bozorlik yopilgan")}
+                      </span>
+                    ) : (
+                      e.shoppingLists.length > 0 && <span className="block text-[11px] text-success">{tr("Ro'yxat bor")}</span>
+                    )}
                   </span>
                 </button>
               );

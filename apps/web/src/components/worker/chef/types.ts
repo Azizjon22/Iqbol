@@ -15,6 +15,8 @@ export interface ChefEvent {
   assignments: { id: string }[];
   /** This chef's own lists for the wedding. */
   shoppingLists: { id: string; status: ShoppingListStatus; createdAt: string }[];
+  /** This wedding's shopping is bought (or closed): no more lists. */
+  shoppingClosed?: boolean;
 }
 
 const DAY = 24 * 60 * 60 * 1000;
