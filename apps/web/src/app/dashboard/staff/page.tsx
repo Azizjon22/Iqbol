@@ -7,6 +7,7 @@ import { StaffPage } from "@/components/staff/team/staff-page";
 export default async function StaffRoute() {
   const session = await getSession();
   if (!session || session.user.kind !== "STAFF") redirect("/login");
+  if (session.user.role !== "SUPER_ADMIN") redirect("/dashboard");
   const [staff, chefs] = await Promise.all([
     apiFetch<StaffUserSummary[]>("/staff-users"),
     apiFetch<WorkerSummary[]>("/workers?position=CHEF"),

@@ -10,6 +10,7 @@ import {
   IsString,
   MinLength,
   ValidateNested,
+  Max,
 } from 'class-validator';
 
 export class ShoppingListItemInput {
@@ -20,6 +21,7 @@ export class ShoppingListItemInput {
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
+  @Max(1_000_000, { message: 'Miqdor juda katta' })
   quantity!: number;
 
   @IsEnum(Unit)

@@ -3,9 +3,11 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { UploadsService } from '../uploads/uploads.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { CreateMenuDishDto } from './dto/create-menu-dish.dto';
@@ -14,11 +16,55 @@ import { UpdateMenuDishDto } from './dto/update-menu-dish.dto';
 import { UpdateMenuMediaDto } from './dto/update-menu-media.dto';
 
 @Injectable()
-export class MenusService {
+export class MenusService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private auditLog: AuditLogService,
+    private uploads: UploadsService,
   ) {}
+
+  /**
+   * A restart in the middle of a video's preparation leaves its row stuck on
+   * PROCESSING with nobody working on it. The original file is still there,
+   * so pick each one up again.
+   */
+  async onModuleInit() {
+    const stuck = await this.prisma.menuMedia.findMany({
+      where: { mediaType: 'VIDEO', processingStatus: 'PROCESSING' },
+      select: { id: true, url: true },
+    });
+    for (const media of stuck) {
+      await this.prisma.menuMedia.update({
+        where: { id: media.id },
+        data: { processingStatus: 'READY' },
+      });
+      await this.prepareVideo(media.id, media.url);
+    }
+  }
+
+  /**
+   * Starts the background work that makes an uploaded video play smoothly
+   * everywhere, and tracks it on the row. Returns the status to report now.
+   */
+  private async prepareVideo(mediaId: string, url: string) {
+    const started = await this.uploads.prepareVideo(url, (result) =>
+      this.prisma.menuMedia
+        .update({
+          where: { id: mediaId },
+          data: result.ok
+            ? { url: result.url, processingStatus: 'READY' }
+            : { processingStatus: 'FAILED' },
+        })
+        // The media may have been deleted while its video was being prepared.
+        .catch(() => undefined),
+    );
+    if (!started) return 'READY' as const;
+    await this.prisma.menuMedia.update({
+      where: { id: mediaId },
+      data: { processingStatus: 'PROCESSING' },
+    });
+    return 'PROCESSING' as const;
+  }
 
   findAll() {
     return this.prisma.menu.findMany({
@@ -246,6 +292,9 @@ export class MenusService {
     const media = await this.prisma.menuMedia.create({
       data: { ...dto, menuId, order: dto.order ?? (last._max.order ?? -1) + 1 },
     });
+    if (dto.mediaType === 'VIDEO') {
+      media.processingStatus = await this.prepareVideo(media.id, dto.url);
+    }
     await this.auditLog.record({
       actorId,
       actorName,
@@ -265,11 +314,15 @@ export class MenusService {
     actorName: string,
   ) {
     const menu = await this.ensureExists(menuId);
-    await this.findMediaOrThrow(menuId, mediaId);
+    const existing = await this.findMediaOrThrow(menuId, mediaId);
     const media = await this.prisma.menuMedia.update({
       where: { id: mediaId },
-      data: dto,
+      // A new file starts from a clean status.
+      data: dto.url ? { ...dto, processingStatus: 'READY' } : dto,
     });
+    if (dto.url && (dto.mediaType ?? existing.mediaType) === 'VIDEO') {
+      media.processingStatus = await this.prepareVideo(mediaId, dto.url);
+    }
     await this.auditLog.record({
       actorId,
       actorName,

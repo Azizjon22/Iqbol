@@ -5,12 +5,41 @@ import { useLocale, useTr } from "@/components/i18n/locale-provider";
 import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Check, ChevronDown, ClipboardList, Plus, UserCheck, Users, UtensilsCrossed } from "lucide-react";
-import { MENU_DISH_CATEGORIES, MENU_DISH_CATEGORY_LABELS_UZ } from "@iqbol/shared";
+import { MENU_DISH_CATEGORY_LABELS_UZ, type MenuDishCategory } from "@iqbol/shared";
 import { formatDate, formatTime, cn } from "@/lib/utils";
+import { OrnamentDivider } from "@/components/menus/showcase/ornament-divider";
 import { WEEKDAYS_SHORT, daysUntil, whenLabel, type ChefEvent } from "./types";
 
+// The chef reads the menu in cooking order — salads and the main courses
+// first, the table extras (appetizers, bread, nuts) after.
+const COURSE_ORDER: MenuDishCategory[] = [
+  "SALAD",
+  "FIRST_DISH",
+  "SECOND_DISH",
+  "FRUIT",
+  "DESSERT",
+  "DRINK",
+  "COLD_APPETIZER",
+  "HOT_APPETIZER",
+  "BREAD",
+  "DRIED_FRUIT",
+  "OTHER",
+];
+
 /** A wedding from the chef's point of view: when, how many, what to cook, is shopping sorted. */
-export function ChefEventCard({ event, defaultOpen }: { event: ChefEvent; defaultOpen?: boolean }) {
+export function ChefEventCard({
+  event,
+  defaultOpen,
+  variant = "default",
+}: {
+  event: ChefEvent;
+  defaultOpen?: boolean;
+  /** "hero" is the single next-up card on the chef's home page — same data,
+   * a touch of the showcase pages' warmth (glow + ornament) since it's the
+   * first thing a chef sees every day. Everywhere else (the /worker/events
+   * list) stays "default", unchanged. */
+  variant?: "default" | "hero";
+}) {
   const tr = useTr();
   const locale = useLocale().locale;
 
@@ -18,14 +47,32 @@ export function ChefEventCard({ event, defaultOpen }: { event: ChefEvent; defaul
   const date = new Date(event.eventDate);
   const soon = daysUntil(date) <= 1;
   const lists = event.shoppingLists;
-  const courses = MENU_DISH_CATEGORIES.map((c) => ({ c, dishes: event.menu.dishes.filter((d) => d.category === c) })).filter((g) => g.dishes.length > 0);
+  const hero = variant === "hero";
+  const courses = COURSE_ORDER.map((c) => ({ c, dishes: event.menu.dishes.filter((d) => d.category === c) })).filter((g) => g.dishes.length > 0);
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl border bg-card", soon ? "border-primary/40" : "border-border")}>
-      <div className="flex gap-3.5 p-4">
-        <div className={cn("flex w-14 shrink-0 flex-col items-center justify-center rounded-xl py-2", soon ? "bg-primary text-primary-foreground" : "bg-muted")}>
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-2xl border bg-card",
+        hero ? "border-primary/30 shadow-md shadow-primary/5" : soon ? "border-primary/40" : "border-border",
+      )}
+    >
+      {hero && <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--surface-glow),transparent_55%)]" />}
+      {hero && (
+        <div className="relative flex justify-center pt-3">
+          <OrnamentDivider className="scale-90 text-accent/70" />
+        </div>
+      )}
+      <div className="relative flex gap-3.5 p-4">
+        <div
+          className={cn(
+            "flex shrink-0 flex-col items-center justify-center rounded-xl py-2",
+            hero ? "w-16" : "w-14",
+            soon ? "bg-primary text-primary-foreground" : "bg-muted",
+          )}
+        >
           <span className="text-[10px] font-semibold uppercase opacity-80">{WEEKDAYS_SHORT[date.getDay()]}</span>
-          <span className="font-display text-2xl font-semibold leading-none lining-nums">{date.getDate()}</span>
+          <span className={cn("font-display font-semibold leading-none lining-nums", hero ? "text-3xl" : "text-2xl")}>{date.getDate()}</span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
@@ -63,7 +110,7 @@ export function ChefEventCard({ event, defaultOpen }: { event: ChefEvent; defaul
           ).map(([label, dish]) => (
             <div key={label} className="rounded-xl bg-accent/10 px-3 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-accent">{label}</p>
-              <p className="font-display truncate text-lg font-semibold leading-tight">{dish ?? "—"}</p>
+              <p className="font-display text-base font-semibold leading-tight [overflow-wrap:anywhere] sm:text-lg">{dish ?? "—"}</p>
             </div>
           ))}
         </div>
@@ -76,27 +123,34 @@ export function ChefEventCard({ event, defaultOpen }: { event: ChefEvent; defaul
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 border-t border-border px-4 py-2.5 text-sm hover:bg-muted/50"
+        className="relative flex w-full items-center justify-between gap-2 border-t border-border px-4 py-2.5 text-sm hover:bg-muted/50"
       >
-        <span className="inline-flex items-center gap-2">
-          <UtensilsCrossed className="h-4 w-4 text-accent" />
-          <span className="font-medium">{event.menu.name}</span>
-          <span className="text-xs text-muted-foreground">· {event.menu.dishes.length} ta taom</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <UtensilsCrossed className="h-4 w-4 shrink-0 text-accent" />
+          <span className="truncate font-medium">{event.menu.name}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">· {event.menu.dishes.length} ta taom</span>
         </span>
-        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition", open && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition", open && "rotate-180")} />
       </button>
       {open && (
         <div className="space-y-3 border-t border-border bg-muted/30 px-4 py-3 animate-soft-scale">
           {courses.map(({ c, dishes }) => (
             <div key={c}>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">{tr(MENU_DISH_CATEGORY_LABELS_UZ[c])}</p>
-              <p className="mt-0.5 text-sm">{dishes.map((d) => d.name).join(" · ")}</p>
+              <ol className="mt-1 space-y-1 text-sm">
+                {dishes.map((d, i) => (
+                  <li key={d.id} className="flex gap-2">
+                    <span className="w-5 shrink-0 text-right tabular-nums text-muted-foreground">{i + 1}.</span>
+                    <span className="min-w-0">{d.name}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+      <div className="relative flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5">
         {lists.length > 0 ? (
           <Link href="/worker/shopping?tab=mine" className="inline-flex items-center gap-1.5 text-sm font-medium text-success">
             <Check className="h-4 w-4" />  {tr("Bozorlik yozilgan")} {lists.length > 1 && `(${lists.length})`}

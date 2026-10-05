@@ -46,6 +46,21 @@ const eventDetailInclude = {
   },
 };
 
+// Weddings happen in Tashkent (UTC+5, no DST).
+const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+/** The instant tomorrow starts, Tashkent time. */
+function startOfTomorrow() {
+  const local = new Date(Date.now() + TZ_OFFSET_MS);
+  return new Date(
+    Date.UTC(
+      local.getUTCFullYear(),
+      local.getUTCMonth(),
+      local.getUTCDate() + 1,
+    ) - TZ_OFFSET_MS,
+  );
+}
+
 const STATUS_LABEL_UZ: Record<string, string> = {
   PENDING: 'Kutilmoqda',
   CONFIRMED: 'Tasdiqlangan',
@@ -200,29 +215,49 @@ export class EventsService {
       }
       totalPrice = perGuest.mul(guestCount).toDecimalPlaces(2);
     }
+    const repriced = !totalPrice.equals(existing.totalPrice);
 
-    const event = await this.prisma.event.update({
-      where: { id },
-      data: {
-        clientName: dto.clientName,
-        clientPhone: dto.clientPhone,
-        eventDate: dto.eventDate ? new Date(dto.eventDate) : undefined,
-        tableCapacity: dto.tableCapacity,
-        guestCount: dto.guestCount,
-        menuId: dto.menuId,
-        notes: dto.notes,
-        // "" clears a choice; undefined leaves it untouched.
-        firstDish:
-          dto.firstDish === undefined
-            ? undefined
-            : dto.firstDish.trim() || null,
-        secondDish:
-          dto.secondDish === undefined
-            ? undefined
-            : dto.secondDish.trim() || null,
-        totalPrice,
-      },
-      include: eventDetailInclude,
+    const event = await this.prisma.$transaction(async (tx) => {
+      if (repriced) {
+        // Money already taken must still fit under the new price — otherwise
+        // the wedding would show a negative debt. The row lock keeps a
+        // payment from slipping in between this check and the update.
+        await tx.$queryRaw`SELECT id FROM events WHERE id = ${id} FOR UPDATE`;
+        const paid = netPaid(
+          await tx.payment.findMany({
+            where: { eventId: id },
+            select: { amount: true, type: true },
+          }),
+        );
+        if (paid.greaterThan(totalPrice)) {
+          throw new BadRequestException(
+            `Yangi narx (${totalPrice.toNumber().toLocaleString('ru-RU')} so'm) allaqachon to'langan summadan (${paid.toNumber().toLocaleString('ru-RU')} so'm) kam — avval ortiqcha pulni qaytaring`,
+          );
+        }
+      }
+      return tx.event.update({
+        where: { id },
+        data: {
+          clientName: dto.clientName,
+          clientPhone: dto.clientPhone,
+          eventDate: dto.eventDate ? new Date(dto.eventDate) : undefined,
+          tableCapacity: dto.tableCapacity,
+          guestCount: dto.guestCount,
+          menuId: dto.menuId,
+          notes: dto.notes,
+          // "" clears a choice; undefined leaves it untouched.
+          firstDish:
+            dto.firstDish === undefined
+              ? undefined
+              : dto.firstDish.trim() || null,
+          secondDish:
+            dto.secondDish === undefined
+              ? undefined
+              : dto.secondDish.trim() || null,
+          totalPrice,
+        },
+        include: eventDetailInclude,
+      });
     });
 
     const changes: string[] = [];
@@ -266,6 +301,12 @@ export class EventsService {
     actorName: string,
   ) {
     const existing = await this.ensureExists(id);
+    // A wedding is "completed" once its day has come, never ahead of time.
+    if (status === 'COMPLETED' && existing.eventDate >= startOfTomorrow()) {
+      throw new BadRequestException(
+        "Kelajakdagi to'yni yakunlangan deb belgilab bo'lmaydi",
+      );
+    }
     const event = await this.prisma.event.update({
       where: { id },
       data: { status: status as never },
@@ -285,7 +326,24 @@ export class EventsService {
   }
 
   async remove(id: string, actorId: string, actorName: string) {
-    const existing = await this.ensureExists(id);
+    const existing = await this.prisma.event.findUnique({
+      where: { id },
+      include: { _count: { select: { payments: true, expenses: true } } },
+    });
+    if (!existing) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    // Deleting would take the wedding's payments and expenses with it. Once
+    // a wedding is confirmed or has any money on it, it stays in the books —
+    // cancel it instead.
+    if (existing.status === 'CONFIRMED' || existing.status === 'COMPLETED') {
+      throw new BadRequestException(
+        "Tasdiqlangan yoki yakunlangan to'yni o'chirib bo'lmaydi — kerak bo'lsa bekor qiling",
+      );
+    }
+    if (existing._count.payments > 0 || existing._count.expenses > 0) {
+      throw new BadRequestException(
+        "Bu to'yga to'lov yoki xarajat yozilgan — uni o'chirib bo'lmaydi, kerak bo'lsa bekor qiling",
+      );
+    }
     await this.prisma.event.delete({ where: { id } });
 
     await this.auditLog.record({
@@ -354,6 +412,12 @@ export class EventsService {
     const worker = await this.prisma.worker.findUnique({
       where: { id: workerId },
     });
+    const assignment = await this.prisma.eventWorkerAssignment.findUnique({
+      where: { eventId_workerId: { eventId, workerId } },
+    });
+    if (!assignment) {
+      throw new NotFoundException("Bu ishchi shu to'yga belgilanmagan");
+    }
     await this.prisma.eventWorkerAssignment.delete({
       where: { eventId_workerId: { eventId, workerId } },
     });

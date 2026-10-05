@@ -21,7 +21,7 @@ export function TempPassword({ value, onChange }: { value: string; onChange: (v:
   return (
     <div>
       <div className="flex gap-2">
-        <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono tracking-wide" minLength={6} />
+        <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono tracking-wide" minLength={8} />
         <Button type="button" variant="outline" onClick={() => onChange(generatePassword())} title={tr("Yangi parol yaratish")} aria-label={tr("Yangi parol yaratish")}>
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -59,7 +59,7 @@ export function AccountModal({ account, isSelf, onClose }: { account?: StaffUser
     const cleanPhone = phone.replace(/\s/g, "");
     if (fullName.trim().length < 3) return setError(tr("Ism-familiyani to'liq kiriting"));
     if (!/^\+?[0-9]{9,15}$/.test(cleanPhone)) return setError(tr("Telefon raqami noto'g'ri"));
-    if (!account && password.length < 6) return setError(tr("Parol kamida 6 belgi"));
+    if (!account && password.length < 8) return setError(tr("Parol kamida 8 belgi"));
     setBusy(true);
     setError(undefined);
     try {
@@ -163,7 +163,7 @@ export function ResetPasswordModal({ account, onClose }: { account: StaffUserSum
   const [error, setError] = useState<string | undefined>();
 
   async function save() {
-    if (password.length < 6) return setError(tr("Parol kamida 6 belgi"));
+    if (password.length < 8) return setError(tr("Parol kamida 8 belgi"));
     setBusy(true);
     setError(undefined);
     try {

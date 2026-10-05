@@ -34,6 +34,10 @@ export interface SessionData {
 function secretKey() {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error("SESSION_SECRET environment variable is not set");
+  // The example value is public: with it anyone could mint a session cookie.
+  if (process.env.NODE_ENV === "production" && (secret.startsWith("change-me") || secret.length < 32)) {
+    throw new Error("SESSION_SECRET productionda haqiqiy, tasodifiy qiymat bo'lishi kerak: openssl rand -base64 32");
+  }
   return new TextEncoder().encode(secret);
 }
 

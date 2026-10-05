@@ -51,10 +51,10 @@ export function MenuShowcaseList({
       <PresentationHeader />
 
       {/* ---------- Hero ---------- */}
-      <section className="relative isolate overflow-hidden bg-[#111813] text-white">
+      <section className="relative isolate overflow-hidden bg-ink text-white">
         {hero?.url && hero.kind === "VIDEO" ? (
           <div className="absolute inset-0 -z-20">
-            <video src={hero.url} autoPlay muted loop playsInline className="h-full w-full object-cover" />
+            <video src={hero.url} autoPlay muted loop playsInline preload="auto" className="h-full w-full object-cover" />
           </div>
         ) : (
           (hero?.url || backdrop) && (
@@ -70,9 +70,9 @@ export function MenuShowcaseList({
         )}
         {!customHero && (
           <>
-            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#111813]/70 via-[#111813]/60 to-[#111813]" />
-            <OrnamentalPattern id="list-hero-ornament" className="-z-10 text-[#8fa898] opacity-[0.05]" />
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(212,120,150,0.22),transparent)]" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/70 via-ink/60 to-ink" />
+            <OrnamentalPattern id="list-hero-ornament" className="-z-10 text-gold opacity-[0.05]" />
+            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(201,163,90,0.22),transparent)]" />
           </>
         )}
 
@@ -82,13 +82,13 @@ export function MenuShowcaseList({
             customHero && "[text-shadow:0_2px_18px_rgba(0,0,0,0.55)]",
           )}
         >
-          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-[#c5d4c9] animate-fade-up">
+          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-champagne animate-fade-up">
             {t("common.brand")} · {t("presentation.listEyebrow")}
           </p>
           <h1 className="font-display mt-5 text-[clamp(2.6rem,min(8vw,12svh),7rem)] font-semibold leading-[0.95] tracking-tight animate-fade-up">
             {t("presentation.heroTitle")}
           </h1>
-          <OrnamentDivider className="mt-7 text-[#8fa898]" />
+          <OrnamentDivider className="mt-7 text-gold" />
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg 2xl:max-w-2xl">
             {t("presentation.heroSubtitle")}
           </p>
@@ -97,7 +97,7 @@ export function MenuShowcaseList({
               <span className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 backdrop-blur">
                 {t("presentation.packagesCount", { count: sorted.length })}
               </span>
-              <span className="rounded-full border border-[#c5d4c9]/30 bg-[#c5d4c9]/10 px-4 py-1.5 text-[#e4eee7] lining-nums backdrop-blur">
+              <span className="rounded-full border border-champagne/30 bg-champagne/10 px-4 py-1.5 text-pearl lining-nums backdrop-blur">
                 {prices.length > 1 && prices[0] !== prices[prices.length - 1]
                   ? `${formatSom(prices[0], locale).replace(/\s\S+$/, "")} — ${formatSom(prices[prices.length - 1], locale)}`
                   : formatSom(prices[0], locale)}
@@ -122,11 +122,11 @@ export function MenuShowcaseList({
                 <Link
                   href={`/showcase/${menu.id}`}
                   className={cn(
-                    "@container group relative flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-[26px] bg-[#111813] text-white shadow-xl shadow-black/15 transition-all duration-500",
+                    "@container group relative flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-[26px] bg-ink text-white shadow-xl shadow-black/15 transition-all duration-500",
                     "hover:-translate-y-1.5 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:aspect-[3/4]",
                     menu.isVip
-                      ? "ring-1 ring-[#8fa898]/70 shadow-[#8fa898]/20 hover:shadow-[#8fa898]/35"
-                      : "ring-1 ring-white/5 hover:ring-[#8fa898]/40",
+                      ? "ring-1 ring-gold/70 shadow-gold/20 hover:shadow-gold/35"
+                      : "ring-1 ring-white/5 hover:ring-gold/40",
                   )}
                 >
                   <div className="absolute inset-0">
@@ -137,17 +137,17 @@ export function MenuShowcaseList({
                       className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.06]"
                     />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#111813] from-35% via-[#111813]/70 via-60% to-[#111813]/10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink from-35% via-ink/70 via-60% to-ink/10" />
                   {menu.isVip && (
-                    <div className="pointer-events-none absolute inset-2 rounded-[20px] border border-[#8fa898]/40" />
+                    <div className="pointer-events-none absolute inset-2 rounded-[20px] border border-gold/40" />
                   )}
 
                   <div className="absolute inset-x-0 top-0 flex items-start justify-between p-5">
-                    <span className="font-display flex h-11 w-11 items-center justify-center rounded-full border border-[#c5d4c9]/40 bg-black/30 text-lg font-semibold text-[#e4eee7] backdrop-blur-md">
+                    <span className="font-display flex h-11 w-11 items-center justify-center rounded-full border border-champagne/40 bg-black/30 text-lg font-semibold text-pearl backdrop-blur-md">
                       {ROMAN[i] ?? i + 1}
                     </span>
                     {menu.isVip && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#111813] via-[#e4eee7] to-[#111813] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#111813] shadow-lg shadow-black/30">
+                      <span className="flex items-center gap-1.5 rounded-full bg-gold-foil px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ink shadow-lg shadow-black/30">
                         <Crown className="h-3.5 w-3.5" /> {t("common.vip")}
                       </span>
                     )}
@@ -158,7 +158,7 @@ export function MenuShowcaseList({
                     {menu.description && (
                       <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/65">{menu.description}</p>
                     )}
-                    <div className="mt-4 h-px w-full bg-gradient-to-r from-[#8fa898]/60 via-[#8fa898]/20 to-transparent" />
+                    <div className="mt-4 h-px w-full bg-gradient-to-r from-gold/60 via-gold/20 to-transparent" />
                     <div className="mt-4 flex items-end justify-between gap-3">
                       <div>
                         <p className="font-display text-gilded text-[clamp(2rem,12cqw,3.5rem)] font-semibold leading-none lining-nums tabular-nums">
@@ -168,20 +168,20 @@ export function MenuShowcaseList({
                           {t("common.som")} · {t("presentation.perGuest")}
                         </p>
                       </div>
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/5 backdrop-blur transition-all duration-300 group-hover:border-transparent group-hover:bg-[#e4eee7] group-hover:text-[#111813]">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/5 backdrop-blur transition-all duration-300 group-hover:border-transparent group-hover:bg-pearl group-hover:text-ink">
                         <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5" />
                       </span>
                     </div>
                     <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 backdrop-blur-md">
                       <span className="text-xs text-white/60">{t("presentation.totalFor", { count: guests })}</span>
-                      <span key={guests} className="text-sm font-semibold lining-nums tabular-nums text-[#e4eee7] animate-soft-scale">
+                      <span key={guests} className="text-sm font-semibold lining-nums tabular-nums text-pearl animate-soft-scale">
                         {formatSom(price * guests, locale)}
                       </span>
                     </div>
                     <p className="mt-3 text-xs text-white/50">
                       {t("presentation.dishesCount", { count: menu.dishes.length })}
-                      <span className="mx-2 text-[#8fa898]">·</span>
-                      <span className="text-[#c5d4c9] opacity-80 transition-opacity group-hover:opacity-100">
+                      <span className="mx-2 text-gold">·</span>
+                      <span className="text-champagne opacity-80 transition-opacity group-hover:opacity-100">
                         {t("presentation.viewMenu")}
                       </span>
                     </p>

@@ -89,8 +89,8 @@ export async function changeStaffPasswordAction(
   const newPassword = String(formData.get("newPassword") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (newPassword.length < 6) {
-    return { error: tr("Yangi parol kamida 6 belgidan iborat bo'lishi kerak") };
+  if (newPassword.length < 8) {
+    return { error: tr("Yangi parol kamida 8 belgidan iborat bo'lishi kerak") };
   }
   if (newPassword !== confirmPassword) {
     return { error: tr("Yangi parol va tasdiqlash mos kelmadi") };

@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: iqbol
       POSTGRES_DB: iqbol
     ports:
-      - "5436:5432"
+      # Local development only — reachable from this machine, not the network.
+      - "127.0.0.1:5436:5432"
     volumes:
       - iqbol_postgres_data:/var/lib/postgresql/data
     healthcheck:

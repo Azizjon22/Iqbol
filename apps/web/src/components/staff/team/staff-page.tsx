@@ -146,7 +146,7 @@ function AccountCard({
 
   const meta = ROLE_META[account.role];
   return (
-    <div className={cn("flex flex-col rounded-2xl border bg-card p-4 transition hover:shadow-md", account.isActive ? "border-border" : "border-dashed border-border opacity-70")}>
+    <div className={cn("flex min-w-0 flex-col rounded-2xl border bg-card p-4 transition hover:shadow-md", account.isActive ? "border-border" : "border-dashed border-border opacity-70")}>
       <div className="flex items-start gap-3">
         <span className="relative shrink-0">
           <span className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-bold ring-2 ring-offset-2 ring-offset-card", meta.tone, meta.ring)}>
@@ -158,9 +158,10 @@ function AccountCard({
           />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 truncate font-semibold">
-            {account.fullName}
-            {isSelf && <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">{tr("Siz")}</span>}
+          {/* The name truncates; the "you" badge always stays visible. */}
+          <p className="flex min-w-0 items-center gap-2 font-semibold">
+            <span className="truncate">{account.fullName}</span>
+            {isSelf && <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">{tr("Siz")}</span>}
           </p>
           <div className="mt-1 flex flex-wrap gap-1.5">
             <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", meta.tone)}>{tr(meta.label)}</span>
@@ -196,7 +197,7 @@ function AccountCard({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <a href={`tel:${account.phone}`} className="inline-flex items-center gap-1.5 hover:text-primary">
           <Phone className="h-3.5 w-3.5" /> {account.phone}
         </a>

@@ -26,7 +26,7 @@ export function StatCard({
   const content = (
     <Card
       className={cn(
-        "overflow-hidden transition-shadow hover:shadow-[0_4px_20px_rgba(122,31,61,0.08)]",
+        "overflow-hidden transition-shadow hover:shadow-[0_4px_20px_rgba(138,101,38,0.12)]",
         href && "transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md",
       )}
     >

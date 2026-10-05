@@ -127,7 +127,13 @@ export class WorkersService {
     const existing = await this.ensureExists(id);
     const worker = await this.prisma.worker.update({
       where: { id },
-      data: { status: 'REJECTED', approvedById: actorId },
+      // tokenVersion bump kills any session this worker is already holding —
+      // checked on every request by JwtStrategy, no need to wait for expiry.
+      data: {
+        status: 'REJECTED',
+        approvedById: actorId,
+        tokenVersion: { increment: 1 },
+      },
     });
 
     await this.auditLog.record({
@@ -170,6 +176,10 @@ export class WorkersService {
         photoUrl: dto.photoUrl,
         pinHash,
         mustChangePin: dto.pin ? true : undefined,
+        // An admin-set PIN signs the worker's devices out and lifts a lockout.
+        tokenVersion: dto.pin ? { increment: 1 } : undefined,
+        failedLoginCount: dto.pin ? 0 : undefined,
+        lockedUntil: dto.pin ? null : undefined,
       },
     });
 
@@ -228,8 +238,22 @@ export class WorkersService {
     return worker;
   }
 
-  private toSafe<T extends { pinHash: string | null }>(worker: T) {
-    const { pinHash, ...safe } = worker;
+  /** Drops credentials and session internals before a worker leaves the API. */
+  private toSafe<
+    T extends {
+      pinHash: string | null;
+      tokenVersion: number;
+      failedLoginCount: number;
+      lockedUntil: Date | null;
+    },
+  >(worker: T) {
+    const {
+      pinHash,
+      tokenVersion: _tokenVersion,
+      failedLoginCount: _failedLoginCount,
+      lockedUntil: _lockedUntil,
+      ...safe
+    } = worker;
     return { ...safe, hasPin: Boolean(pinHash) };
   }
 }

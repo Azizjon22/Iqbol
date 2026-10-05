@@ -31,6 +31,9 @@ export const ADMIN_VISIBLE_STATUSES: ShoppingListStatus[] = [
   'CLOSED',
 ];
 
+/** Largest amount the totalCost column (Decimal 14,2) is trusted with. */
+const MAX_TOTAL_COST = 99_999_999_999;
+
 const NOT_YET_SENT_STATUSES: ShoppingListStatus[] = ['SUBMITTED', 'REVIEWED'];
 
 function visibleTo(role?: StaffRole): Prisma.ShoppingListWhereInput {
@@ -58,7 +61,19 @@ export class ShoppingListsService {
     private auditLog: AuditLogService,
   ) {}
 
-  create(dto: CreateShoppingListDto, workerId: string) {
+  async create(dto: CreateShoppingListDto, workerId: string) {
+    if (dto.eventId) {
+      const event = await this.prisma.event.findUnique({
+        where: { id: dto.eventId },
+        select: { status: true },
+      });
+      if (!event) throw new BadRequestException("To'y topilmadi");
+      if (event.status === 'CANCELLED') {
+        throw new BadRequestException(
+          "Bekor qilingan to'y uchun bozorlik yozilmaydi",
+        );
+      }
+    }
     return this.prisma.shoppingList.create({
       data: {
         eventId: dto.eventId,
@@ -148,6 +163,28 @@ export class ShoppingListsService {
       throw new ForbiddenException("Bu amal uchun ruxsatingiz yo'q");
     }
     const existing = await this.findOne(id, role);
+    // Only two moves go through here, and only forwards: finishing the
+    // purchase once every item is bought, and closing a finished list.
+    if (status === 'PURCHASED') {
+      if (existing.status !== 'APPROVED') {
+        throw new BadRequestException(
+          "Xaridni faqat adminga yuborilgan ro'yxatda yakunlash mumkin",
+        );
+      }
+      if (existing.items.some((item) => !item.isPurchased)) {
+        throw new BadRequestException(
+          'Hali sotib olinmagan mahsulotlar bor — avval ularni belgilang',
+        );
+      }
+    } else if (status === 'CLOSED') {
+      if (existing.status !== 'PURCHASED') {
+        throw new BadRequestException(
+          "Faqat xaridi yakunlangan ro'yxatni yopish mumkin",
+        );
+      }
+    } else {
+      throw new BadRequestException("Ro'yxatni bu holatga qaytarib bo'lmaydi");
+    }
     const list = await this.prisma.shoppingList.update({
       where: { id },
       data: { status, reviewedById: actorId, reviewedAt: new Date() },
@@ -359,7 +396,7 @@ export class ShoppingListsService {
 
     if (role !== 'ADMIN') {
       throw new ForbiddenException(
-        "Mahsulotni faqat admin xarid qilgan deb belgilashi mumkin",
+        'Mahsulotni faqat admin xarid qilgan deb belgilashi mumkin',
       );
     }
     if (list.status !== 'APPROVED') {
@@ -469,10 +506,13 @@ export class ShoppingListsService {
     }
     if (dto.unitPrice !== undefined) {
       const unitPrice = new Prisma.Decimal(dto.unitPrice).toDecimalPlaces(2);
-      return {
-        unitPrice,
-        totalCost: unitPrice.mul(quantity).toDecimalPlaces(2),
-      };
+      const totalCost = unitPrice.mul(quantity).toDecimalPlaces(2);
+      if (totalCost.greaterThan(MAX_TOTAL_COST)) {
+        throw new BadRequestException(
+          'Jami summa juda katta — narxni tekshiring',
+        );
+      }
+      return { unitPrice, totalCost };
     }
     throw new BadRequestException(
       'Narxni kiriting (jami summa yoki 1 birlik narxi)',

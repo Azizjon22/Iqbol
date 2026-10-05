@@ -46,7 +46,7 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
           {LIST_STEPS.map((s, i) => (
             <li key={s.key}>
               <div className={cn("h-1.5 rounded-full", i <= step ? (i === step ? "bg-primary" : "bg-primary/45") : "bg-muted")} />
-              <p className={cn("mt-1 truncate text-[11px] font-medium", i <= step ? "text-foreground" : "text-muted-foreground")}>{tr(s.label)}</p>
+              <p className={cn("mt-1 text-[10px] font-medium leading-tight sm:text-[11px]", i <= step ? "text-foreground" : "text-muted-foreground")}>{tr(s.label)}</p>
             </li>
           ))}
         </ol>

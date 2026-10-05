@@ -8,7 +8,7 @@ import { addPaymentAction, addRefundAction, type FormActionState } from "@/lib/a
 import { Input, Select, Label, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export const METHOD_LABEL: Record<string, string> = { CASH: "Naqd", CARD: "Karta", TRANSFER: "O'tkazma" };
+import { METHOD_LABEL } from "@/lib/payment-methods";
 const initialState: FormActionState = undefined;
 
 /**

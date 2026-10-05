@@ -23,11 +23,11 @@ export function ChangePasswordForm() {
         </div>
         <div>
           <Label htmlFor="newPassword">{tr("Yangi parol")}</Label>
-          <PasswordInput id="newPassword" name="newPassword" required minLength={6} autoComplete="new-password" />
+          <PasswordInput id="newPassword" name="newPassword" required minLength={8} autoComplete="new-password" />
         </div>
         <div>
           <Label htmlFor="confirmPassword">{tr("Yangi parolni tasdiqlang")}</Label>
-          <PasswordInput id="confirmPassword" name="confirmPassword" required minLength={6} autoComplete="new-password" />
+          <PasswordInput id="confirmPassword" name="confirmPassword" required minLength={8} autoComplete="new-password" />
         </div>
         <FieldError>{state?.error}</FieldError>
         <SubmitButton className="w-full" pendingText={tr("Saqlanmoqda...")}>

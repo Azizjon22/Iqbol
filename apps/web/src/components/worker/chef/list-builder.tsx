@@ -1,10 +1,9 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
 
-
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Copy, Minus, Plus, Search, ShoppingBasket, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Minus, Plus, Search, Send, ShoppingBasket, Trash2, Users, X } from "lucide-react";
 import {
   PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS_UZ,
@@ -21,13 +20,41 @@ import { ProductCategoryIcon } from "@/components/inventory/product-category-ico
 import { formatDate, cn } from "@/lib/utils";
 import { WEEKDAYS_SHORT, whenLabel, type ChefEvent } from "./types";
 
+/**
+ * The chef writes the list dish by dish so nothing is forgotten. That split
+ * lives only on this screen: the list that is sent carries one total per
+ * product. GENERAL holds amounts that belong to no dish (copied lists).
+ */
+type Stage = "SALAD" | "FIRST_DISH" | "SECOND_DISH" | "OTHER";
+type PartKey = Stage | "GENERAL";
+
+const STAGES: { id: Stage; label: string; purpose: string }[] = [
+  { id: "SALAD", label: "Salatlar", purpose: "Salatlar uchun" },
+  { id: "FIRST_DISH", label: "1-ovqat", purpose: "1-ovqat uchun" },
+  { id: "SECOND_DISH", label: "2-ovqat", purpose: "2-ovqat uchun" },
+  { id: "OTHER", label: "Boshqa taomlar", purpose: "Boshqa taomlar uchun" },
+];
+const PART_LABELS: Record<PartKey, string> = {
+  SALAD: "Salat",
+  FIRST_DISH: "1-ovqat",
+  SECOND_DISH: "2-ovqat",
+  OTHER: "Boshqa",
+  GENERAL: "Umumiy",
+};
+const PART_ORDER: PartKey[] = ["SALAD", "FIRST_DISH", "SECOND_DISH", "OTHER", "GENERAL"];
+
 interface CartLine {
   name: string;
+  /** Sum of `parts` — the one number the super admin sees. */
   quantity: number;
+  parts: Partial<Record<PartKey, number>>;
   unit: Unit;
   photoUrl?: string | null;
   category?: ProductCategory | null;
 }
+
+/** Cover photo for a product category — files live in public/categories. */
+const categoryCover = (c: ProductCategory) => `/categories/${c.toLowerCase()}.jpg`;
 
 const key = (name: string) => name.trim().toLowerCase();
 
@@ -39,6 +66,16 @@ function roundFor(unit: Unit, n: number) {
 
 function fmt(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/** The dishes of one stage: the couple's pick when there is one, else the menu's options. */
+function stageDishes(event: ChefEvent | undefined, stage: Stage): string[] {
+  if (!event) return [];
+  if (stage === "FIRST_DISH" && event.firstDish) return [event.firstDish];
+  if (stage === "SECOND_DISH" && event.secondDish) return [event.secondDish];
+  return event.menu.dishes
+    .filter((d) => (stage === "OTHER" ? !["SALAD", "FIRST_DISH", "SECOND_DISH"].includes(d.category) : d.category === stage))
+    .map((d) => d.name);
 }
 
 export function ListBuilder({
@@ -59,6 +96,7 @@ export function ListBuilder({
   const [eventId, setEventId] = useState(() => (events.some((e) => e.id === initialEventId) ? initialEventId! : ""));
   const [cart, setCart] = useState<Map<string, CartLine>>(() => new Map());
   const [section, setSection] = useState<ProductCategory | "ALL">("ALL");
+  const [stage, setStage] = useState<Stage>("SALAD");
   const [query, setQuery] = useState("");
   const [custom, setCustom] = useState({ name: "", quantity: "", unit: "KG" as Unit });
   const [reviewing, setReviewing] = useState(false);
@@ -73,20 +111,46 @@ export function ListBuilder({
   const products = catalog.filter(
     (c) => (section === "ALL" || (c.productCategory ?? "OTHER") === section) && (!q || c.name.toLowerCase().includes(q)),
   );
+  // No filter and no search: show the category covers instead of products.
+  const browsing = section === "ALL" && q === "";
   const sections = PRODUCT_CATEGORIES.filter((c) => catalog.some((p) => (p.productCategory ?? "OTHER") === c));
   const lines = [...cart.values()];
 
-  function setQty(line: Omit<CartLine, "quantity">, quantity: number) {
+  const stageIndex = STAGES.findIndex((s) => s.id === stage);
+  const nextStage = STAGES[stageIndex + 1];
+  const dishes = stageDishes(event, stage);
+  const partOf = (name: string, part: PartKey = stage) => cart.get(key(name))?.parts[part] ?? 0;
+
+  function goToStage(next: Stage) {
+    setStage(next);
+    setSection("ALL");
+    setQuery("");
+  }
+
+  /** Sets one dish stage's share of a product; the line's total follows. */
+  function setQty(line: Omit<CartLine, "quantity" | "parts">, quantity: number, part: PartKey = stage) {
     setCart((prev) => {
       const next = new Map(prev);
-      if (quantity <= 0) next.delete(key(line.name));
-      else next.set(key(line.name), { ...line, quantity });
+      const parts = { ...prev.get(key(line.name))?.parts };
+      if (quantity > 0) parts[part] = quantity;
+      else delete parts[part];
+      const total = +Object.values(parts).reduce((sum, n) => sum + n, 0).toFixed(3);
+      if (total <= 0) next.delete(key(line.name));
+      else next.set(key(line.name), { ...line, quantity: total, parts });
+      return next;
+    });
+  }
+
+  function removeLine(name: string) {
+    setCart((prev) => {
+      const next = new Map(prev);
+      next.delete(key(name));
       return next;
     });
   }
 
   function step(p: ProductCatalogItem, dir: 1 | -1) {
-    const current = cart.get(key(p.name))?.quantity ?? 0;
+    const current = partOf(p.name);
     const inc = p.unit === "DONA" ? 1 : current < 1 && dir === -1 ? 0.5 : 1;
     setQty({ name: p.name, unit: p.unit, photoUrl: p.photoUrl, category: p.productCategory }, Math.max(0, +(current + dir * inc).toFixed(3)));
   }
@@ -114,6 +178,7 @@ export function ListBuilder({
         name: known?.name ?? item.name,
         unit: item.unit,
         quantity: roundFor(item.unit, Number(item.quantity) * ratio),
+        parts: { GENERAL: roundFor(item.unit, Number(item.quantity) * ratio) },
         photoUrl: known?.photoUrl,
         category: known?.productCategory,
       });
@@ -153,7 +218,7 @@ export function ListBuilder({
       router.push("/worker/shopping?tab=mine&sent=1");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
+      setError(err instanceof Error ? err.message : tr("Xatolik yuz berdi"));
     } finally {
       setBusy(false);
     }
@@ -162,12 +227,11 @@ export function ListBuilder({
   const copySources = previous.filter((l) => l.items.length > 0).slice(0, 8);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-40 sm:pb-24">
       {/* ---------- 1. Wedding ---------- */}
       {events.length > 0 && (
         <section>
           <p className="mb-2 text-sm font-semibold">
-            
             {tr("1. Qaysi to'y uchun?")} <span className="text-destructive">*</span>
           </p>
           <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
@@ -217,7 +281,7 @@ export function ListBuilder({
               onClick={() => setCopying(true)}
               className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
             >
-              <Copy className="h-3.5 w-3.5" />  {tr("Oldingi ro'yxatdan nusxa")}
+              <Copy className="h-3.5 w-3.5" /> {tr("Oldingi ro'yxatdan nusxa")}
             </button>
           )}
         </div>
@@ -229,6 +293,73 @@ export function ListBuilder({
             </button>
           </p>
         )}
+
+        {/* Dish stages: what the chef is shopping for right now. */}
+        <div className="rounded-2xl border border-border bg-card/60 p-3 shadow-sm">
+          <div className="grid grid-cols-4 gap-1.5">
+            {STAGES.map((s, i) => {
+              const count = lines.filter((l) => (l.parts[s.id] ?? 0) > 0).length;
+              const active = s.id === stage;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => goToStage(s.id)}
+                  className={cn(
+                    "flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1 py-2 text-center transition duration-300",
+                    active
+                      ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                      : "border-border hover:-translate-y-0.5 hover:border-accent/60",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                      active ? "bg-primary-foreground/20" : count > 0 ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {!active && count > 0 ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                  </span>
+                  <span className="w-full truncate text-[11px] font-medium sm:text-xs">{tr(s.label)}</span>
+                  <span className={cn("text-[10px] tabular-nums", active ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                    {count} {tr("ta")}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div key={stage} className="mt-3 flex flex-wrap items-center justify-between gap-3 animate-fade-up">
+            {/* Full row on phones, so the dish names wrap normally and the
+                "next" button drops underneath instead of squeezing them. */}
+            <div className="min-w-0 basis-full sm:flex-1 sm:basis-0">
+              <p className="text-sm font-semibold">
+                {tr("Hozir:")} <span className="text-accent">{tr(STAGES[stageIndex].purpose)}</span> {tr("yozyapsiz")}
+              </p>
+              {dishes.length > 0 ? (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {dishes.map((d) => (
+                    <span key={d} className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {event ? tr("Menyuda bu bo'limga taom kiritilmagan.") : tr("To'yni tanlasangiz, taomlar shu yerda ko'rinadi.")}
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full shrink-0 sm:w-auto"
+              onClick={() => (nextStage ? goToStage(nextStage.id) : setReviewing(true))}
+              disabled={!nextStage && lines.length === 0}
+            >
+              {nextStage ? tr(`Keyingisi: ${tr(nextStage.label)}`) : tr("Savatni ko'rish")} <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -260,43 +391,132 @@ export function ListBuilder({
           })}
         </div>
 
-        {products.length === 0 ? (
+        {browsing ? (
+          // Category covers first: the chef steps into one to pick from it.
+          <div className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-3">
+            {sections.map((category, index) => {
+              const count = catalog.filter((p) => (p.productCategory ?? "OTHER") === category).length;
+              const picked = lines.filter((l) => (l.category ?? "OTHER") === category).length;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setSection(category)}
+                  style={{ animationDelay: `${index * 40}ms`, animationFillMode: "backwards" }}
+                  className={cn(
+                    "group relative aspect-[4/3] overflow-hidden rounded-2xl border text-left shadow-sm outline-none transition duration-300 animate-fade-up",
+                    "hover:-translate-y-1 hover:border-accent/60 hover:shadow-xl hover:shadow-primary/20 focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98]",
+                    picked > 0 ? "border-accent ring-1 ring-accent" : "border-border",
+                  )}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={categoryCover(category)}
+                    alt=""
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 ease-out group-hover:scale-110"
+                  />
+                  <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10 transition duration-300 group-hover:from-black/90 group-hover:via-black/45" />
+                  {/* Light sweep across the photo on hover. */}
+                  <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-0 transition-all duration-700 group-hover:left-full group-hover:opacity-100" />
+                  <span className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition duration-300 group-hover:scale-110 group-hover:bg-gold group-hover:text-ink">
+                    <ProductCategoryIcon category={category} className="h-4 w-4" />
+                  </span>
+                  {picked > 0 && (
+                    <span className="bg-gold-foil absolute right-2.5 top-2.5 flex h-6 min-w-6 items-center justify-center gap-0.5 rounded-full px-1.5 text-[11px] font-semibold tabular-nums text-ink shadow-sm">
+                      <Check className="h-3 w-3" /> {picked}
+                    </span>
+                  )}
+                  <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3">
+                    <span className="min-w-0">
+                      <span className="line-clamp-2 text-sm font-semibold leading-tight text-white drop-shadow sm:text-base">
+                        {tr(PRODUCT_CATEGORY_LABELS_UZ[category])}
+                      </span>
+                      <span className="block text-[11px] text-white/75">{tr(`${count} ta mahsulot`)}</span>
+                    </span>
+                    <span className="flex h-7 w-7 shrink-0 translate-x-2 items-center justify-center rounded-full bg-white/20 text-white opacity-0 backdrop-blur-sm transition duration-300 group-hover:translate-x-0 group-hover:opacity-100 pointer-coarse:translate-x-0 pointer-coarse:opacity-100">
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : products.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
             {tr(`"${query}" topilmadi — pastdan qo'lda qo'shing.`)}
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5 min-[480px]:grid-cols-3">
-            {products.map((p) => {
-              const qty = cart.get(key(p.name))?.quantity ?? 0;
-              const on = qty > 0;
-              return (
-                <div
-                  key={p.id}
-                  className={cn("overflow-hidden rounded-2xl border bg-card transition", on ? "border-primary ring-1 ring-primary" : "border-border")}
+          <div className="space-y-3">
+            {section !== "ALL" && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSection("ALL")}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-sm font-medium transition hover:border-accent/60 hover:bg-muted"
                 >
-                  {/* Photo header only when there is a photo — icon-only tiles stay compact. */}
-                  {p.photoUrl && (
-                    <button type="button" onClick={() => !on && step(p, 1)} className="relative block aspect-[4/3] w-full bg-muted">
+                  <ArrowLeft className="h-4 w-4" /> {tr("Bo'limlar")}
+                </button>
+                <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
+                  <ProductCategoryIcon category={section} className="h-4 w-4 shrink-0 text-accent" />
+                  <span className="truncate">{tr(PRODUCT_CATEGORY_LABELS_UZ[section])}</span>
+                </span>
+              </div>
+            )}
+            <div key={section} className="grid grid-cols-2 gap-2.5 min-[480px]:grid-cols-3">
+              {products.map((p, index) => {
+                const qty = partOf(p.name);
+                const on = qty > 0;
+                const total = cart.get(key(p.name))?.quantity ?? 0;
+                return (
+                  <div
+                    key={p.id}
+                    style={{ animationDelay: `${Math.min(index, 12) * 30}ms`, animationFillMode: "backwards" }}
+                    className={cn(
+                      "group overflow-hidden rounded-2xl border bg-card transition duration-300 animate-fade-up hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/15",
+                      on ? "border-accent ring-1 ring-accent" : "border-border hover:border-accent/60",
+                    )}
+                  >
+                    {/* Name and unit sit on the photo. Products without their
+                        own photo borrow their category's cover, so every tile
+                        looks the same. */}
+                    <button
+                      type="button"
+                      onClick={() => !on && step(p, 1)}
+                      className="relative block aspect-[4/3] w-full overflow-hidden bg-muted text-left"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.photoUrl} alt={p.name} className="h-full w-full object-cover" />
-                    </button>
-                  )}
-                  <div className="p-2">
-                    <button type="button" onClick={() => !on && step(p, 1)} className="flex w-full items-center gap-2 text-left">
-                      {!p.photoUrl && (
-                        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", on ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
-                          <ProductCategoryIcon category={p.productCategory ?? "OTHER"} className="h-4 w-4" />
+                      <img
+                        src={p.photoUrl ?? categoryCover(p.productCategory ?? "OTHER")}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-110"
+                      />
+                      <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+                      {on && (
+                        <span className="bg-gold-foil absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-ink shadow-sm">
+                          <Check className="h-3.5 w-3.5" />
                         </span>
                       )}
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{p.name}</span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{tr(UNIT_LABELS_UZ[p.unit])}</span>
+                      {/* Already in the basket for another dish. */}
+                      {total > qty && (
+                        <span className="absolute left-1.5 top-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                          {tr("jami")} {fmt(total)} {tr(UNIT_LABELS_UZ[p.unit])}
+                        </span>
+                      )}
+                      <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-1.5 p-2">
+                        <span className="min-w-0 truncate text-sm font-semibold text-white drop-shadow">{p.name}</span>
+                        <span className="shrink-0 rounded-full bg-black/45 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                          {tr(UNIT_LABELS_UZ[p.unit])}
+                        </span>
+                      </span>
                     </button>
-                    <div className="mt-1.5 flex items-center gap-1">
+                    <div className="flex items-center gap-1 p-2">
                       <button
                         type="button"
                         onClick={() => step(p, -1)}
                         disabled={!on}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border disabled:opacity-30"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border transition active:scale-95 disabled:opacity-30"
                         aria-label={tr("Kamaytirish")}
                       >
                         <Minus className="h-4 w-4" />
@@ -309,29 +529,29 @@ export function ListBuilder({
                         }}
                         inputMode="decimal"
                         placeholder="0"
-                        className="h-9 w-full min-w-0 rounded-lg border border-input bg-transparent text-center text-sm font-semibold tabular-nums outline-none focus:ring-2 focus:ring-primary/30"
+                        className="h-10 w-full min-w-0 rounded-lg border border-input bg-transparent text-center text-sm font-semibold tabular-nums outline-none focus:ring-2 focus:ring-primary/30"
                         aria-label={`${p.name} miqdori`}
                       />
                       <button
                         type="button"
                         onClick={() => step(p, 1)}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition active:scale-95"
                         aria-label={tr("Ko'paytirish")}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
 
         <div className="rounded-2xl border border-dashed border-border p-3">
           <p className="mb-2 text-xs font-medium text-muted-foreground">{tr("Katalogda yo'q mahsulot")}</p>
-          <div className="grid grid-cols-[1fr_70px_80px_auto] gap-1.5">
-            <Input value={custom.name} onChange={(e) => setCustom({ ...custom, name: e.target.value })} placeholder={tr("nomi")} className="h-10" />
+          <div className="grid grid-cols-2 gap-1.5 min-[480px]:grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_2.5rem]">
+            <Input value={custom.name} onChange={(e) => setCustom({ ...custom, name: e.target.value })} placeholder={tr("nomi")} className="col-span-2 h-10 min-w-0 min-[480px]:col-span-1" />
             <Input
               value={custom.quantity}
               onChange={(e) => setCustom({ ...custom, quantity: e.target.value })}
@@ -357,7 +577,7 @@ export function ListBuilder({
                 .map((l) => (
                   <span key={l.name} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">
                     {l.name} · {fmt(l.quantity)} {tr(UNIT_LABELS_UZ[l.unit])}
-                    <button type="button" onClick={() => setQty(l, 0)} aria-label={tr("O'chirish")}>
+                    <button type="button" onClick={() => removeLine(l.name)} aria-label={tr("O'chirish")}>
                       <X className="h-3 w-3" />
                     </button>
                   </span>
@@ -367,11 +587,16 @@ export function ListBuilder({
         </div>
       </section>
 
-      {/* ---------- Sticky cart ---------- */}
-      <div className="sticky bottom-[84px] z-20 sm:bottom-4">
+      {/* ---------- Floating cart bar ---------- */}
+      {/* Fixed to the viewport (not `sticky`, which only re-engages once its own
+          in-flow position nears the bottom of a very long product grid) so it
+          stays reachable at a constant spot no matter how far the list scrolls,
+          on every screen size. `pb-40 sm:pb-24` above keeps the last grid row
+          and the custom-item box from ever sitting underneath it. */}
+      <div className="fixed inset-x-0 bottom-[84px] z-20 px-4 sm:bottom-4">
         <div
           className={cn(
-            "flex items-center justify-between gap-3 rounded-2xl border p-3 shadow-xl backdrop-blur-md transition",
+            "mx-auto flex max-w-2xl items-center justify-between gap-3 rounded-2xl border p-3 shadow-xl backdrop-blur-md transition",
             lines.length > 0 ? "border-primary/40 bg-card/95" : "border-border bg-card/80",
           )}
         >
@@ -387,8 +612,7 @@ export function ListBuilder({
             </div>
           </div>
           <Button type="button" onClick={() => setReviewing(true)} disabled={lines.length === 0} className="shrink-0">
-            
-            {tr("Ko'rib chiqish")} <ArrowRight className="h-4 w-4" />
+            {tr("Savat")} <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -397,55 +621,86 @@ export function ListBuilder({
       <Modal
         open={reviewing}
         onClose={() => setReviewing(false)}
-        title={tr("Ro'yxatni tekshiring")}
-        description={event ? `${event.clientName} — ${formatDate(event.eventDate, locale)}` : undefined}
+        title={tr("Ro'yxat tayyormi?")}
+        description={
+          event
+            ? `${event.clientName} — ${formatDate(event.eventDate, locale)} · ${tr(`savatda ${lines.length} ta mahsulot`)}`
+            : tr(`Savatda ${lines.length} ta mahsulot`)
+        }
         footer={
-          <>
-            <Button type="button" variant="ghost" onClick={() => setReviewing(false)} disabled={busy}>
-              Davom etish
-            </Button>
+          // The whole basket goes out as one list: send it, or go back to the
+          // categories and keep adding to the same basket.
+          <div className="grid w-full grid-cols-2 gap-2">
             <Button type="button" onClick={submit} disabled={busy || lines.length === 0}>
-              {busy ? tr("Yuborilmoqda...") : "Super adminga yuborish"}
+              <Send className="h-4 w-4" /> {busy ? tr("Yuborilmoqda...") : tr("Super adminga yuborish")}
             </Button>
-          </>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setReviewing(false);
+                setSection("ALL");
+                setQuery("");
+              }}
+              disabled={busy}
+            >
+              <ShoppingBasket className="h-4 w-4" /> {tr("Yana bozorlik")}
+            </Button>
+          </div>
         }
       >
         {event && (
           <p className="mb-3 flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-sm">
-            <Users className="h-4 w-4 text-muted-foreground" /> {event.guestCount}  {tr("mehmon ·")} {event.menu.name}
+            <Users className="h-4 w-4 text-muted-foreground" /> {event.guestCount} {tr("mehmon ·")} {event.menu.name}
           </p>
         )}
         {event && (
           <p className="mb-3 rounded-xl bg-accent/10 px-3 py-2 text-sm">
-            <span className="text-accent">1-ovqat:</span> <b>{event.firstDish ?? "belgilanmagan"}</b>
+            <span className="text-accent">{tr("1-ovqat:")}</span> <b>{event.firstDish ?? tr("belgilanmagan")}</b>
             <span className="mx-2 text-muted-foreground">·</span>
-            <span className="text-accent">2-ovqat:</span> <b>{event.secondDish ?? "belgilanmagan"}</b>
+            <span className="text-accent">{tr("2-ovqat:")}</span> <b>{event.secondDish ?? tr("belgilanmagan")}</b>
           </p>
         )}
         {events.length > 0 && !eventId && <p className="mb-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{tr("Yuqorida to'yni tanlang.")}</p>}
+        <p className="mb-1 text-xs text-muted-foreground">
+          {tr("Super adminga har bir mahsulotning faqat jami miqdori boradi.")}
+        </p>
         <ul className="divide-y divide-border">
           {lines.map((l) => (
-            <li key={l.name} className="flex items-center gap-2 py-2">
-              <span className="min-w-0 flex-1 truncate text-sm">{l.name}</span>
-              <input
-                value={fmt(l.quantity)}
-                onChange={(e) => {
-                  const n = Number(e.target.value.replace(",", "."));
-                  if (Number.isFinite(n)) setQty(l, n);
-                }}
-                inputMode="decimal"
-                className="h-9 w-20 rounded-lg border border-input bg-transparent text-center text-sm font-semibold tabular-nums"
-                aria-label={`${l.name} miqdori`}
-              />
-              <span className="w-9 text-xs text-muted-foreground">{tr(UNIT_LABELS_UZ[l.unit])}</span>
-              <button
-                type="button"
-                onClick={() => setQty(l, 0)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                aria-label={tr("O'chirish")}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+            <li key={l.name} className="py-2.5">
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.name}</span>
+                <span className="shrink-0 text-sm font-semibold tabular-nums">
+                  {fmt(l.quantity)} <span className="text-xs font-normal text-muted-foreground">{tr(UNIT_LABELS_UZ[l.unit])}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeLine(l.name)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  aria-label={tr("O'chirish")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              {/* What the total is made of — the chef's own working, not sent. */}
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {PART_ORDER.filter((part) => (l.parts[part] ?? 0) > 0).map((part) => (
+                  <label key={part} className="flex items-center gap-1.5 rounded-lg bg-muted/60 py-1 pl-2 pr-1 text-xs text-muted-foreground">
+                    {tr(PART_LABELS[part])}
+                    <input
+                      defaultValue={fmt(l.parts[part] ?? 0)}
+                      key={l.parts[part]}
+                      onBlur={(e) => {
+                        const n = Number(e.target.value.replace(",", "."));
+                        if (Number.isFinite(n)) setQty(l, n, part);
+                      }}
+                      inputMode="decimal"
+                      className="h-7 w-14 rounded-md border border-input bg-background text-center text-xs font-semibold tabular-nums text-foreground"
+                      aria-label={`${l.name}: ${PART_LABELS[part]} miqdori`}
+                    />
+                  </label>
+                ))}
+              </div>
             </li>
           ))}
         </ul>

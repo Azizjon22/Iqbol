@@ -32,10 +32,14 @@ pnpm --filter @iqbol/api prisma:migrate
 pnpm --filter @iqbol/api prisma:seed
 ```
 
-Seed skripti bitta `super_admin` hisobi yaratadi:
-telefon `+998900000000`, parol `Iqbol2024!` (`.env`dagi
-`SEED_SUPER_ADMIN_PHONE`/`SEED_SUPER_ADMIN_PASSWORD` orqali o'zgartiriladi) —
-**production'ga chiqarishdan oldin bu parolni albatta almashtiring.**
+Lokal seed demo ma'lumotlar yaratadi: `super_admin` (telefon `+998900000000`,
+parol `Iqbol2024!`), admin, zavzal, oshpazlar va namunaviy to'ylar. Bu hisoblar
+faqat ishlab chiqish uchun.
+
+**Serverga qo'yish** alohida yo'riqnomada: [DEPLOY.md](DEPLOY.md). Productionda
+seed demo hisob va to'ylarni yaratmaydi — faqat bitta super admin (parolni
+birinchi kirishda almashtirish majburiy), to'yxona menyulari, idishlar va
+mahsulotlar katalogi.
 
 ## Ishga tushirish (development)
 

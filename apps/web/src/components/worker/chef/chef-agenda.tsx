@@ -3,7 +3,7 @@ import { useTr } from "@/components/i18n/locale-provider";
 
 
 import { useState } from "react";
-import { CalendarDays, List } from "lucide-react";
+import { CalendarDays, CalendarHeart, List } from "lucide-react";
 import { EventsCalendar } from "@/components/events/events-calendar";
 import { cn } from "@/lib/utils";
 import { ChefEventCard } from "./chef-event-card";
@@ -72,7 +72,10 @@ export function ChefAgenda({ events }: { events: ChefEvent[] }) {
             </button>
           )}
           {shown.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">{tr("Rejada to'y yo'q.")}</div>
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border py-12 text-center">
+              <CalendarHeart className="h-7 w-7 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">{tr("Rejada to'y yo'q.")}</p>
+            </div>
           )}
           {BUCKETS.map((b) => {
             const items = shown.filter((e) => b.test(daysUntil(e.eventDate)));

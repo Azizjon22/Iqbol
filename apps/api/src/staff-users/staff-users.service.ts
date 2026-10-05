@@ -82,7 +82,13 @@ export class StaffUsersService {
       description: `"${staff.fullName}" (${ROLE_LABEL_UZ[staff.role] ?? staff.role}) xodimini qo'shdi`,
     });
 
-    const { passwordHash: _omit, ...safe } = staff;
+    const {
+      passwordHash: _omit,
+      tokenVersion: _tokenVersion,
+      failedLoginCount: _failedLoginCount,
+      lockedUntil: _lockedUntil,
+      ...safe
+    } = staff;
     return safe;
   }
 
@@ -118,6 +124,13 @@ export class StaffUsersService {
     const passwordHash = dto.password
       ? await bcrypt.hash(dto.password, 10)
       : undefined;
+    // Bump tokenVersion (checked on every request by JwtStrategy) whenever
+    // this change should kill the account's existing sessions immediately:
+    // deactivating it, forcing a new password, or changing its role.
+    const revokesSessions =
+      dto.isActive === false ||
+      Boolean(dto.password) ||
+      (dto.role !== undefined && dto.role !== existing.role);
     const staff = await this.prisma.staffUser.update({
       where: { id },
       data: {
@@ -127,6 +140,10 @@ export class StaffUsersService {
         isActive: dto.isActive,
         passwordHash,
         mustChangePassword: dto.password ? true : undefined,
+        tokenVersion: revokesSessions ? { increment: 1 } : undefined,
+        // A fresh password from the super admin also lifts a lockout.
+        failedLoginCount: dto.password ? 0 : undefined,
+        lockedUntil: dto.password ? null : undefined,
       },
     });
 
@@ -153,7 +170,13 @@ export class StaffUsersService {
       description: `"${existing.fullName}" xodimini tahrirladi${changes.length ? ` (${changes.join(', ')})` : ''}`,
     });
 
-    const { passwordHash: _omit, ...safe } = staff;
+    const {
+      passwordHash: _omit,
+      tokenVersion: _tokenVersion,
+      failedLoginCount: _failedLoginCount,
+      lockedUntil: _lockedUntil,
+      ...safe
+    } = staff;
     return safe;
   }
 

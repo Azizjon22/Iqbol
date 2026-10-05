@@ -7,7 +7,6 @@ import { netPaid } from '../common/money/net-paid';
 // in that zone explicitly so "tomorrow" stays right even when the server
 // itself runs in UTC.
 const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** UTC instant of local midnight `dayOffset` days from today, Tashkent time. */
 function localMidnight(now: Date, dayOffset = 0) {

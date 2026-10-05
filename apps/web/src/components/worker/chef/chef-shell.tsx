@@ -34,15 +34,22 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-background pb-24 sm:pb-8">
+    <div className="relative isolate min-h-svh bg-background pb-24 lg:pb-8">
+      {/* Backdrop: a working restaurant kitchen, veiled by the theme's own
+          background colour so text and cards stay readable in both themes. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/backgrounds/chef-kitchen.jpg" alt="" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/75 via-background/88 to-background/95" />
+      </div>
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-3 px-4">
-          <Link href="/worker" className="flex items-center gap-2.5">
-            <BrandMark className="h-9 w-9 text-lg shadow-sm shadow-primary/25" />
-            <span className="font-display text-xl font-semibold tracking-tight">{brand.brandName}</span>
+        <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-2 px-4 md:max-w-3xl lg:max-w-5xl">
+          <Link href="/worker" className="flex min-w-0 items-center gap-2.5">
+            <BrandMark className="h-9 w-9 shrink-0 text-lg shadow-sm shadow-primary/25" />
+            <span className="font-display truncate text-lg font-semibold tracking-tight sm:text-xl">{brand.brandName}</span>
           </Link>
-          <div className="flex items-center gap-1.5">
-            <nav className="mr-2 hidden items-center gap-1 sm:flex">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+            <nav className="mr-2 hidden items-center gap-1 lg:flex">
               {tabs.map((t) => {
                 const active = t.exact ? pathname === t.href : pathname.startsWith(t.href);
                 return (
@@ -77,9 +84,9 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-5 sm:py-8">{children}</main>
+      <main className="mx-auto max-w-2xl px-4 py-5 sm:py-8 md:max-w-3xl lg:max-w-5xl">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="mx-auto flex max-w-md">
           {tabs.map((t) => {
             const active = t.exact ? pathname === t.href : pathname.startsWith(t.href);

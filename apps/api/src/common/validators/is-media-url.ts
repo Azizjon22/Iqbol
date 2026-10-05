@@ -10,7 +10,8 @@ export function IsMediaUrl(validationOptions?: ValidationOptions) {
       name: 'isMediaUrl',
       validator: {
         validate: (value: unknown) =>
-          typeof value === 'string' && (LOCAL_UPLOAD.test(value) || isURL(value)),
+          typeof value === 'string' &&
+          (LOCAL_UPLOAD.test(value) || isURL(value)),
         defaultMessage: () => '$property must be a URL address',
       },
     },

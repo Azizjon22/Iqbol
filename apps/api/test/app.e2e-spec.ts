@@ -15,10 +15,19 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  afterEach(async () => {
+    await app.close();
+  });
+
+  // Needs the database from DATABASE_URL to be running.
+  it('/health (GET)', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/health')
       .expect(200)
-      .expect('Hello World!');
+      .expect({ status: 'ok', service: 'iqbol-api' });
+  });
+
+  it('refuses protected routes without a token', () => {
+    return request(app.getHttpServer()).get('/events').expect(401);
   });
 });

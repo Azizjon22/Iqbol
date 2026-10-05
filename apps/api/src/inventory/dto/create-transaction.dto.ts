@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Max,
 } from 'class-validator';
 
 export class CreateTransactionDto {
@@ -15,6 +16,7 @@ export class CreateTransactionDto {
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
+  @Max(100_000_000, { message: 'Miqdor juda katta' })
   quantity!: number;
 
   @IsOptional()

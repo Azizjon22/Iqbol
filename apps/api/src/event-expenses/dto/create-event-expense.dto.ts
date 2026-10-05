@@ -1,6 +1,13 @@
 import { EventExpenseCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Max,
+} from 'class-validator';
 
 export class CreateEventExpenseDto {
   @IsEnum(EventExpenseCategory)
@@ -9,6 +16,7 @@ export class CreateEventExpenseDto {
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
+  @Max(99_999_999_999, { message: 'Summa juda katta' })
   amount!: number;
 
   @IsOptional()

@@ -31,7 +31,10 @@ export function Lightbox({
   const fromSwipe = useRef(false);
   const programmatic = useRef(false);
   const settle = useRef<number | undefined>(undefined);
-  indexRef.current = index;
+  // Kept in a ref for the scroll handlers; written after render, not during it.
+  useLayoutEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
   function slideWidth(scroller: HTMLDivElement) {
     const slide = scroller.firstElementChild as HTMLElement | null;
@@ -128,7 +131,7 @@ export function Lightbox({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#1a221c] text-white"
+          className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-ink-soft text-white"
           aria-label={t("presentation.close")}
         >
           <X className="h-5 w-5" />
@@ -156,7 +159,10 @@ export function Lightbox({
                   key={slide.url}
                   src={slide.url}
                   controls
+                  // Only the slide in front downloads and plays; its neighbours wait.
                   autoPlay={i === index}
+                  preload={i === index ? "auto" : "none"}
+                  playsInline
                   className="max-h-[62vh] max-w-full rounded-lg"
                 />
               ) : (

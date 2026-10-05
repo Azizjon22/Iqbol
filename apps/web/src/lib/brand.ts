@@ -10,11 +10,15 @@ export const getBrand = cache(async (): Promise<Brand> => {
   try {
     const b = await publicApiFetch<Brand>("/settings/brand");
     const kind = b.heroMediaKind === "VIDEO" || b.heroMediaKind === "IMAGE" ? b.heroMediaKind : null;
+    // A hero video is only shown once it is ready to play everywhere; until
+    // then the presentation falls back to its default backdrop.
+    const pending = kind === "VIDEO" && !!b.heroMediaStatus && b.heroMediaStatus !== "READY";
     return {
       brandName: b.brandName || DEFAULT_BRAND.brandName,
       logoUrl: b.logoUrl ?? null,
-      heroMediaUrl: b.heroMediaUrl ?? null,
-      heroMediaKind: b.heroMediaUrl ? kind : null,
+      heroMediaUrl: pending ? null : (b.heroMediaUrl ?? null),
+      heroMediaKind: b.heroMediaUrl && !pending ? kind : null,
+      heroMediaStatus: b.heroMediaStatus ?? null,
     };
   } catch {
     return DEFAULT_BRAND;

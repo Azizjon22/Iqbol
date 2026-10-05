@@ -32,8 +32,9 @@ export class MustChangeCredentialGuard implements CanActivate {
     );
     if (skip) return true;
 
-    const user: AuthPayload | undefined = context.switchToHttp().getRequest()
-      .user;
+    const user: AuthPayload | undefined = context
+      .switchToHttp()
+      .getRequest().user;
     if (!user) return true;
 
     const mustChange =

@@ -16,7 +16,7 @@ export function UnassignButton({ eventId, workerId }: { eventId: string; workerI
       type="button"
       disabled={isPending}
       onClick={() => startTransition(() => unassignWorkerAction(eventId, workerId))}
-      className="ml-1 rounded-full p-0.5 hover:bg-black/10 disabled:opacity-50"
+      className="ml-1 rounded-full p-0.5 hover:bg-black/10 disabled:opacity-50 pointer-coarse:p-2"
       aria-label={tr("Ishchini olib tashlash")}
     >
       <X className="h-3 w-3" />

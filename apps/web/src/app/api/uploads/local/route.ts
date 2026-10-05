@@ -11,11 +11,16 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.arrayBuffer();
   const contentType = req.headers.get("content-type") ?? "application/octet-stream";
-  const res = await fetch(`${API_URL}/uploads/local?token=${encodeURIComponent(token)}`, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/uploads/local?token=${encodeURIComponent(token)}`, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body,
+    });
+  } catch {
+    return NextResponse.json({ message: "Faylni saqlab bo'lmadi — qayta urinib ko'ring" }, { status: 502 });
+  }
 
   const text = await res.text();
   return new NextResponse(text || null, {
