@@ -32,6 +32,22 @@ pnpm --filter @iqbol/api prisma:migrate
 pnpm --filter @iqbol/api prisma:seed
 ```
 
+### Yangilanishni olgandan keyin (`git pull`)
+
+Loyiha avval o'rnatilgan bo'lsa, har `git pull` dan keyin:
+
+```bash
+git pull origin dev
+pnpm install                                # yangi paketlar
+pnpm --filter @iqbol/shared build           # umumiy paket o'zgargan bo'lishi mumkin
+pnpm --filter @iqbol/api prisma:generate
+pnpm --filter @iqbol/api prisma:deploy      # yangi migratsiyalar; mavjud ma'lumot o'chmaydi
+```
+
+So'ng API va web'ni qayta ishga tushiring. Yuklangan videolarni qotmaydigan
+qilib qayta ishlash uchun kompyuterda `ffmpeg` bo'lishi kerak
+(`sudo apt install ffmpeg`); u bo'lmasa video o'zgarishsiz saqlanadi.
+
 Lokal seed demo ma'lumotlar yaratadi: `super_admin` (telefon `+998900000000`,
 parol `Iqbol2024!`), admin, zavzal, oshpazlar va namunaviy to'ylar. Bu hisoblar
 faqat ishlab chiqish uchun.
