@@ -24,7 +24,7 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   return (
-    <form
+    <form suppressHydrationWarning
       // onSubmit + formAction instead of action={formAction}: React resets an
       // action-bound form after every submit, wiping everything the user typed
       // whenever the server sends back a validation error.
@@ -35,7 +35,7 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
       }}
       className="space-y-4"
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
         <div>
           <Label htmlFor="clientName">{tr("Mijoz ismi")}</Label>
           <Input id="clientName" name="clientName" defaultValue={event.clientName} required />
@@ -46,8 +46,9 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
+      {/* Two columns on tablets (date gets a full row), three only when wide. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+        <div className="sm:col-span-2 xl:col-span-1">
           <Label htmlFor="eventDate">{tr("Sana va vaqt")}</Label>
           <Input
             id="eventDate"
@@ -64,8 +65,8 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
         <div>
           <Label htmlFor="tableCapacity">{tr("Stol turi")}</Label>
           <Select id="tableCapacity" name="tableCapacity" defaultValue={String(event.tableCapacity)} required>
-            <option value="10">10 kishilik</option>
-            <option value="12">12 kishilik</option>
+            <option value="10">{tr("10 kishilik")}</option>
+            <option value="12">{tr("12 kishilik")}</option>
           </Select>
         </div>
       </div>

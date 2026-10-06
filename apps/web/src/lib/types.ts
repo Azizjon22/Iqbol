@@ -2,6 +2,7 @@ import type {
   EventExpenseCategory,
   EventStatus,
   InventoryCategory,
+  MediaProcessingStatus,
   MediaType,
   MenuDishCategory,
   MenuMediaSection,
@@ -44,6 +45,7 @@ export interface MenuMedia {
   url: string;
   caption: string | null;
   order: number;
+  processingStatus: MediaProcessingStatus;
 }
 
 export interface WorkerSummary {

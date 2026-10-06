@@ -9,9 +9,9 @@ const CATEGORY_LABEL_UZ: Record<string, string> = {
   CAMERAMAN: 'Kamerachi',
   ARTIST: "San'atkor",
   KORTEJ: 'Kortej',
-  CHEF: 'Oshpazga to\'lov',
-  WAITERS: 'Afitsantlarga to\'lov',
-  ZAVZAL: 'Zavzalga to\'lov',
+  CHEF: "Oshpazga to'lov",
+  WAITERS: "Afitsantlarga to'lov",
+  ZAVZAL: "Zavzalga to'lov",
   CARWASH: 'Moyka',
   OTHER: 'Boshqa',
 };
@@ -29,7 +29,9 @@ export class EventExpensesService {
     actorId: string,
     actorName: string,
   ) {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
 
     const expense = await this.prisma.eventExpense.create({

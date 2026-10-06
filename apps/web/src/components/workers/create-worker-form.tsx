@@ -21,7 +21,7 @@ export function CreateWorkerForm({ onSuccess }: { onSuccess?: () => void }) {
   }, [state, onSuccess]);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <form suppressHydrationWarning action={formAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <Label htmlFor="fullName">{t("workers.fullName")}</Label>
         <Input id="fullName" name="fullName" required />

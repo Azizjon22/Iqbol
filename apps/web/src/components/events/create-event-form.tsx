@@ -26,7 +26,7 @@ export function CreateEventForm({
   const defaultDateTime = defaultDate ? `${defaultDate}T18:00` : undefined;
 
   return (
-    <form
+    <form suppressHydrationWarning
       // onSubmit + formAction instead of action={formAction}: React resets an
       // action-bound form after every submit, wiping everything the user typed
       // whenever the server sends back a validation error.
@@ -37,7 +37,7 @@ export function CreateEventForm({
       }}
       className="space-y-4"
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
         <div>
           <Label htmlFor="clientName">{tr("Mijoz ismi")}</Label>
           <Input id="clientName" name="clientName" required />
@@ -48,8 +48,9 @@ export function CreateEventForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
+      {/* Two columns on tablets (date gets a full row), three only when wide. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+        <div className="sm:col-span-2 xl:col-span-1">
           <Label htmlFor="eventDate">{tr("Sana va vaqt")}</Label>
           <Input id="eventDate" name="eventDate" type="datetime-local" defaultValue={defaultDateTime} required />
         </div>
@@ -60,8 +61,8 @@ export function CreateEventForm({
         <div>
           <Label htmlFor="tableCapacity">{tr("Stol turi")}</Label>
           <Select id="tableCapacity" name="tableCapacity" required>
-            <option value="10">10 kishilik</option>
-            <option value="12">12 kishilik</option>
+            <option value="10">{tr("10 kishilik")}</option>
+            <option value="12">{tr("12 kishilik")}</option>
           </Select>
         </div>
       </div>

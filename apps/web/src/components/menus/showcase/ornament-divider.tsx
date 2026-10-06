@@ -1,10 +1,20 @@
 import { cn } from "@/lib/utils";
 
-/** Hairline — eight-point star — hairline, in the current text colour. */
-export function OrnamentDivider({ className }: { className?: string }) {
+/**
+ * Hairline — eight-point star — hairline, in the current text colour.
+ * `align="start"` drops the leading line for a compact left-anchored
+ * "signature" mark under a heading, instead of the centred divider.
+ */
+export function OrnamentDivider({
+  className,
+  align = "center",
+}: {
+  className?: string;
+  align?: "center" | "start";
+}) {
   return (
-    <div className={cn("flex items-center justify-center gap-3", className)} aria-hidden="true">
-      <span className="h-px w-12 bg-gradient-to-r from-transparent to-current opacity-60 sm:w-20" />
+    <div className={cn("flex items-center gap-3", align === "center" ? "justify-center" : "justify-start", className)} aria-hidden="true">
+      {align === "center" && <span className="h-px w-12 bg-gradient-to-r from-transparent to-current opacity-60 sm:w-20" />}
       <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
         <path d="M12 1 L14.6 9.4 L23 12 L14.6 14.6 L12 23 L9.4 14.6 L1 12 L9.4 9.4 Z" fill="currentColor" />
       </svg>

@@ -65,7 +65,7 @@ export function WorkerEditModal({ worker, onClose }: { worker: WorkerSummary; on
         </>
       }
     >
-      <form id="worker-edit-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[180px_1fr]">
+      <form suppressHydrationWarning id="worker-edit-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[180px_1fr]">
         <div className="sm:row-span-4">
           <UploadField name="photoUrl" label={tr("Rasm")} folder="workers" aspect="square" defaultValue={worker.photoUrl} />
         </div>

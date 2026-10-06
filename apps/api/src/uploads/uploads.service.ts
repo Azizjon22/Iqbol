@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   PayloadTooLargeException,
   UnauthorizedException,
@@ -9,10 +10,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { createReadStream } from 'node:fs';
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, stat, unlink, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { VideoTranscodeService } from './video-transcode.service';
 
 const ALLOWED_CONTENT_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -44,11 +45,13 @@ interface UploadToken {
 
 @Injectable()
 export class UploadsService {
+  private readonly logger = new Logger(UploadsService.name);
   private client: S3Client | null = null;
 
   constructor(
     private config: ConfigService,
     private jwt: JwtService,
+    private transcode: VideoTranscodeService,
   ) {}
 
   /** Empty S3 settings mean files are stored on disk. */
@@ -66,7 +69,11 @@ export class UploadsService {
       throw new BadRequestException("Fayl yo'li noto'g'ri");
     }
     const match = /^([a-z]+)\/([0-9a-f-]{36})\.([a-z0-9]+)$/.exec(normalized);
-    if (!match || !FOLDERS.includes(match[1] as UploadFolder) || !EXTENSION_CONTENT_TYPES[match[3]]) {
+    if (
+      !match ||
+      !FOLDERS.includes(match[1] as UploadFolder) ||
+      !EXTENSION_CONTENT_TYPES[match[3]]
+    ) {
       throw new BadRequestException("Fayl yo'li noto'g'ri");
     }
     const root = this.uploadsRoot();
@@ -116,7 +123,11 @@ export class UploadsService {
     return { uploadUrl, publicUrl, key };
   }
 
-  async saveLocal(token: string | undefined, contentTypeHeader: string | undefined, body: Buffer) {
+  async saveLocal(
+    token: string | undefined,
+    contentTypeHeader: string | undefined,
+    body: Buffer,
+  ) {
     if (!token) throw new UnauthorizedException('Yuklash havolasi eskirgan');
     if (!this.useLocal()) {
       throw new BadRequestException("Lokal yuklash o'chiq");
@@ -142,7 +153,9 @@ export class UploadsService {
     const video = contentType.startsWith('video/');
     const maxBytes = video ? VIDEO_MAX_BYTES : IMAGE_MAX_BYTES;
     if (body.length > maxBytes) {
-      throw new PayloadTooLargeException(video ? 'Video 200 MB dan katta' : 'Fayl 80 MB dan katta');
+      throw new PayloadTooLargeException(
+        video ? 'Video 200 MB dan katta' : 'Fayl 80 MB dan katta',
+      );
     }
 
     const absolute = this.assertKey(payload.key);
@@ -151,35 +164,74 @@ export class UploadsService {
     return { ok: true };
   }
 
-  async openLocal(key: string, rangeHeader?: string) {
+  async openLocal(key: string) {
     const absolute = this.assertKey(key);
     const extension = path.extname(absolute).slice(1).toLowerCase();
     const type = EXTENSION_CONTENT_TYPES[extension];
     if (!type) throw new NotFoundException('Fayl topilmadi');
-    let size = 0;
     try {
       const info = await stat(absolute);
       if (!info.isFile()) throw new NotFoundException('Fayl topilmadi');
-      size = info.size;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new NotFoundException('Fayl topilmadi');
     }
+    return { absolute, type };
+  }
 
-    const range = parseByteRange(rangeHeader, size);
-    if (range === 'invalid') {
-      return { status: 416 as const, type, size, start: 0, end: 0, stream: null };
+  /**
+   * Makes an uploaded video play everywhere, start at once and run smoothly:
+   * see VideoTranscodeService.plan for when the picture is left untouched.
+   *
+   * Returns false when nothing needs doing (not a local upload, or already
+   * ideal) — the caller leaves its row READY. Otherwise the work runs in the
+   * background, the caller marks its row PROCESSING, and `onDone` is called
+   * with the new address, or a failure, once it settles. The original is
+   * kept until its replacement is complete.
+   */
+  async prepareVideo(
+    publicUrl: string,
+    onDone: (
+      result: { ok: true; url: string } | { ok: false },
+    ) => Promise<unknown>,
+  ): Promise<boolean> {
+    const match = /^\/uploads\/(.+)$/.exec(publicUrl);
+    if (!match) return false; // S3 or an outside address: not ours to rewrite
+
+    let inputPath: string;
+    try {
+      inputPath = this.assertKey(match[1]);
+    } catch {
+      return false;
     }
-    const start = range?.start ?? 0;
-    const end = range?.end ?? size - 1;
-    return {
-      status: range ? (206 as const) : (200 as const),
-      type,
-      size,
-      start,
-      end,
-      stream: createReadStream(absolute, { start, end }),
-    };
+    const probe = await this.transcode.probe(inputPath);
+    if (!probe) return false;
+    const plan = await this.transcode.plan(inputPath, probe);
+    if (plan.action === 'keep') return false;
+
+    // Always a fresh name: ffmpeg cannot write over its own input, and a new
+    // address also means no browser keeps showing a cached old copy.
+    const newKey = `${match[1].split('/')[0]}/${randomUUID()}.mp4`;
+    const outputPath = this.assertKey(newKey);
+    const work =
+      plan.action === 'remux'
+        ? this.transcode.remux(inputPath, outputPath)
+        : this.transcode.transcode(inputPath, outputPath, plan.scale);
+
+    work
+      .then(async () => {
+        await onDone({ ok: true, url: `/uploads/${newKey}` });
+        await unlink(inputPath).catch(() => undefined);
+      })
+      .catch(async (error: unknown) => {
+        this.logger.error(
+          `Video ${plan.action} failed for ${inputPath}: ${String(error)}`,
+        );
+        await unlink(outputPath).catch(() => undefined);
+        await Promise.resolve(onDone({ ok: false })).catch(() => undefined);
+      });
+
+    return true;
   }
 
   private s3(): S3Client {
@@ -189,33 +241,12 @@ export class UploadsService {
         endpoint: this.config.getOrThrow<string>('S3_ENDPOINT'),
         credentials: {
           accessKeyId: this.config.getOrThrow<string>('S3_ACCESS_KEY_ID'),
-          secretAccessKey: this.config.getOrThrow<string>('S3_SECRET_ACCESS_KEY'),
+          secretAccessKey: this.config.getOrThrow<string>(
+            'S3_SECRET_ACCESS_KEY',
+          ),
         },
       });
     }
     return this.client;
   }
-}
-
-/** `bytes=0-`, `bytes=100-200`, or `bytes=-500`. Browsers need this to play video. */
-function parseByteRange(header: string | undefined, size: number): { start: number; end: number } | null | 'invalid' {
-  if (!header) return null;
-  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
-  if (!match || size <= 0) return 'invalid';
-  const [, rawStart, rawEnd] = match;
-  if (rawStart === '' && rawEnd === '') return 'invalid';
-
-  if (rawStart === '') {
-    const suffix = Number(rawEnd);
-    if (!Number.isFinite(suffix) || suffix <= 0) return 'invalid';
-    const start = Math.max(size - suffix, 0);
-    return { start, end: size - 1 };
-  }
-
-  const start = Number(rawStart);
-  const end = rawEnd === '' ? size - 1 : Number(rawEnd);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start >= size || end < start) {
-    return 'invalid';
-  }
-  return { start, end: Math.min(end, size - 1) };
 }

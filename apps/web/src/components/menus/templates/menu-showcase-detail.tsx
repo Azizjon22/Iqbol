@@ -9,6 +9,7 @@ import { OrnamentDivider, CornerFlourish } from "@/components/menus/showcase/orn
 import { Reveal } from "@/components/menus/showcase/reveal";
 import { SafeImage } from "@/components/menus/showcase/safe-image";
 import { Lightbox, type LightboxItem } from "@/components/menus/showcase/lightbox";
+import { InViewVideo } from "@/components/menus/showcase/in-view-video";
 import { ClosingCta } from "@/components/menus/showcase/closing-cta";
 import { MENU_DISH_CATEGORIES, MENU_MEDIA_SECTIONS, type MenuMediaSection } from "@iqbol/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -50,7 +51,8 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
 
   // Dead links are dropped from the gallery entirely rather than shown torn.
   const media = useMemo(
-    () => menu.media.filter((m) => m.mediaType === "VIDEO" || !broken.has(m.url)),
+    // Clients only see videos that are ready to play, and photos that load.
+    () => menu.media.filter((m) => (m.mediaType === "VIDEO" ? m.processingStatus === "READY" : !broken.has(m.url))),
     [menu.media, broken],
   );
   const sectionsPresent = MENU_MEDIA_SECTIONS.filter((s) => media.some((m) => m.section === s));
@@ -86,7 +88,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
       <PresentationHeader />
 
       {/* ---------- Hero ---------- */}
-      <section className="relative isolate flex min-h-[calc(100svh-4rem-1px)] items-end overflow-hidden bg-[#111813] text-white">
+      <section className="relative isolate flex min-h-[calc(100svh-4rem-1px)] items-end overflow-hidden bg-ink text-white">
         <div className="absolute inset-0 -z-10 animate-ken-burns">
           <SafeImage
             src={menu.coverImageUrl}
@@ -95,8 +97,8 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
             className="h-full w-full object-cover"
           />
         </div>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#111813] via-[#111813]/65 to-[#111813]/45" />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(17,24,19,0.35),transparent)]" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/65 to-ink/45" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(14,12,9,0.35),transparent)]" />
 
         <div className="absolute inset-x-0 top-4 mx-auto w-full max-w-5xl px-4 sm:top-6 sm:px-6 2xl:max-w-7xl">
           <Link
@@ -108,18 +110,18 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
         </div>
 
         <div className="mx-auto w-full max-w-5xl px-4 pb-14 pt-24 text-center sm:px-6 sm:pb-20 2xl:max-w-6xl 2xl:pb-28 [@media(max-height:620px)]:pb-8 [@media(max-height:620px)]:pt-20">
-          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-[#c5d4c9] animate-fade-up">
+          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-champagne animate-fade-up">
             {t("common.brand")} · {t("presentation.eyebrow")}
           </p>
           <h1 className="font-display mt-5 text-[clamp(2.6rem,min(9vw,11svh),8.5rem)] font-semibold leading-[0.95] tracking-tight lining-nums [overflow-wrap:anywhere] animate-fade-up [@media(max-height:620px)]:mt-3">
             {menu.name}
           </h1>
           {menu.isVip && (
-            <span className="mt-5 inline-flex items-center rounded-full border border-[#c5d4c9]/50 bg-[#c5d4c9]/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[#e4eee7]">
+            <span className="mt-5 inline-flex items-center rounded-full border border-champagne/50 bg-champagne/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-pearl">
               {t("common.vip")}
             </span>
           )}
-          <OrnamentDivider className="mt-7 text-[#8fa898] [@media(max-height:620px)]:mt-4" />
+          <OrnamentDivider className="mt-7 text-gold [@media(max-height:620px)]:mt-4" />
           <div className="mt-6 animate-soft-scale [@media(max-height:620px)]:mt-3">
             <p className="font-display text-gilded text-[clamp(3rem,min(8vw,10svh),7.5rem)] font-semibold lining-nums tabular-nums leading-none">{priceDigits}</p>
             <p className="mt-2 text-sm uppercase tracking-[0.3em] text-white/70">
@@ -293,14 +295,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
                     )}
                   >
                     {item.mediaType === "VIDEO" || /\.(?:mp4|mov)(?:$|\?)/i.test(item.url) ? (
-                      <video
-                        src={item.url}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="pointer-events-none h-full w-full object-cover"
-                      />
+                      <InViewVideo src={item.url} className="pointer-events-none h-full w-full object-cover" />
                     ) : (
                       <SafeImage
                         src={item.url}
@@ -311,7 +306,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
                     )}
                     <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-80 transition-opacity group-hover:opacity-100" />
                     <span className="pointer-events-none absolute inset-x-0 bottom-0 p-3 sm:p-4">
-                      <span className="block text-[10px] font-medium uppercase tracking-[0.25em] text-[#c5d4c9]">
+                      <span className="block text-[10px] font-medium uppercase tracking-[0.25em] text-champagne">
                         {t(`mediaSections.${item.section}`)}
                       </span>
                       {item.caption && (

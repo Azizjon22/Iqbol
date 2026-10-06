@@ -16,38 +16,58 @@ export class PaymentsService {
     private auditLog: AuditLogService,
   ) {}
 
+  /**
+   * Row-locks the wedding for the rest of the transaction, then reads its
+   * payments. Two money movements on one wedding therefore run one after
+   * the other, and each checks the balance the other left behind — without
+   * it, a double click could collect (or refund) the same money twice.
+   */
+  private async lockEvent(tx: Prisma.TransactionClient, eventId: string) {
+    await tx.$queryRaw`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
+    const event = await tx.event.findUnique({
+      where: { id: eventId },
+      include: { payments: { select: { id: true, amount: true, type: true } } },
+    });
+    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    return event;
+  }
+
   async create(
     eventId: string,
     dto: CreatePaymentDto,
     actorId: string,
     actorName: string,
   ) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      include: { payments: { select: { amount: true, type: true } } },
-    });
-    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    const { payment, event } = await this.prisma.$transaction(async (tx) => {
+      const event = await this.lockEvent(tx, eventId);
+      if (event.status === 'CANCELLED') {
+        throw new BadRequestException(
+          "Bekor qilingan to'yga to'lov qabul qilinmaydi",
+        );
+      }
 
-    // A payment may settle the balance but never push it below zero —
-    // over-collection is almost always a typo or a duplicate entry.
-    const paid = netPaid(event.payments);
-    const remaining = event.totalPrice.sub(paid);
-    if (new Prisma.Decimal(dto.amount).greaterThan(remaining)) {
-      throw new BadRequestException(
-        remaining.lessThanOrEqualTo(0)
-          ? "Bu to'y to'liq to'langan — yangi to'lov qabul qilinmaydi"
-          : `To'lov qolgan qarzdan oshib ketadi: qolgan qarz ${remaining.toNumber().toLocaleString('ru-RU')} so'm`,
-      );
-    }
+      // A payment may settle the balance but never push it below zero —
+      // over-collection is almost always a typo or a duplicate entry.
+      const amount = new Prisma.Decimal(dto.amount);
+      const remaining = event.totalPrice.sub(netPaid(event.payments));
+      if (amount.greaterThan(remaining)) {
+        throw new BadRequestException(
+          remaining.lessThanOrEqualTo(0)
+            ? "Bu to'y to'liq to'langan — yangi to'lov qabul qilinmaydi"
+            : `To'lov qolgan qarzdan oshib ketadi: qolgan qarz ${remaining.toNumber().toLocaleString('ru-RU')} so'm`,
+        );
+      }
 
-    const payment = await this.prisma.payment.create({
-      data: {
-        eventId,
-        amount: new Prisma.Decimal(dto.amount),
-        method: dto.method,
-        note: dto.note,
-        createdById: actorId,
-      },
+      const payment = await tx.payment.create({
+        data: {
+          eventId,
+          amount,
+          method: dto.method,
+          note: dto.note,
+          createdById: actorId,
+        },
+      });
+      return { payment, event };
     });
 
     await this.auditLog.record({
@@ -72,29 +92,30 @@ export class PaymentsService {
     actorId: string,
     actorName: string,
   ) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      include: { payments: { select: { amount: true, type: true } } },
+    const { refund, event } = await this.prisma.$transaction(async (tx) => {
+      const event = await this.lockEvent(tx, eventId);
+      const amount = new Prisma.Decimal(dto.amount);
+      const kept = netPaid(event.payments);
+      if (amount.greaterThan(kept)) {
+        throw new BadRequestException(
+          kept.lessThanOrEqualTo(0)
+            ? "Bu to'y uchun qaytariladigan pul yo'q"
+            : `Olingan puldan ko'p qaytarib bo'lmaydi: qaytarish mumkin ${kept.toNumber().toLocaleString('ru-RU')} so'm`,
+        );
+      }
+      const refund = await tx.payment.create({
+        data: {
+          eventId,
+          type: 'REFUND',
+          amount,
+          method: dto.method,
+          note: dto.note,
+          createdById: actorId,
+        },
+      });
+      return { refund, event };
     });
-    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
-    const kept = netPaid(event.payments);
-    if (new Prisma.Decimal(dto.amount).greaterThan(kept)) {
-      throw new BadRequestException(
-        kept.lessThanOrEqualTo(0)
-          ? "Bu to'y uchun qaytariladigan pul yo'q"
-          : `Olingan puldan ko'p qaytarib bo'lmaydi: qaytarish mumkin ${kept.toNumber().toLocaleString('ru-RU')} so'm`,
-      );
-    }
-    const refund = await this.prisma.payment.create({
-      data: {
-        eventId,
-        type: 'REFUND',
-        amount: new Prisma.Decimal(dto.amount),
-        method: dto.method,
-        note: dto.note,
-        createdById: actorId,
-      },
-    });
+
     await this.auditLog.record({
       actorId,
       actorName,
@@ -115,28 +136,28 @@ export class PaymentsService {
   }
 
   async remove(id: string, actorId: string, actorName: string) {
-    const payment = await this.prisma.payment.findUnique({
+    const found = await this.prisma.payment.findUnique({
       where: { id },
-      include: {
-        event: {
-          select: {
-            clientName: true,
-            payments: { select: { id: true, amount: true, type: true } },
-          },
-        },
-      },
+      select: { eventId: true },
     });
-    if (!payment) throw new NotFoundException("To'lov topilmadi");
-    // Removing a payment must not leave more refunded than was ever paid.
-    if (payment.type === 'PAYMENT') {
-      const after = netPaid(payment.event.payments.filter((p) => p.id !== id));
-      if (after.isNegative()) {
-        throw new BadRequestException(
-          "Bu to'lovga qaytarish bog'langan — avval qaytarish yozuvini o'chiring",
-        );
+    if (!found) throw new NotFoundException("To'lov topilmadi");
+
+    const { payment, event } = await this.prisma.$transaction(async (tx) => {
+      const event = await this.lockEvent(tx, found.eventId);
+      const payment = await tx.payment.findUnique({ where: { id } });
+      if (!payment) throw new NotFoundException("To'lov topilmadi");
+      // Removing a payment must not leave more refunded than was ever paid.
+      if (payment.type === 'PAYMENT') {
+        const after = netPaid(event.payments.filter((p) => p.id !== id));
+        if (after.isNegative()) {
+          throw new BadRequestException(
+            "Bu to'lovga qaytarish bog'langan — avval qaytarish yozuvini o'chiring",
+          );
+        }
       }
-    }
-    await this.prisma.payment.delete({ where: { id } });
+      await tx.payment.delete({ where: { id } });
+      return { payment, event };
+    });
 
     await this.auditLog.record({
       actorId,
@@ -144,7 +165,7 @@ export class PaymentsService {
       action: 'DELETE',
       entityType: 'PAYMENT',
       entityId: id,
-      description: `"${payment.event.clientName}" to'yidan ${Number(payment.amount).toLocaleString('uz-UZ')} so'm ${payment.type === 'REFUND' ? 'qaytarish' : "to'lov"} yozuvini o'chirdi`,
+      description: `"${event.clientName}" to'yidan ${Number(payment.amount).toLocaleString('uz-UZ')} so'm ${payment.type === 'REFUND' ? 'qaytarish' : "to'lov"} yozuvini o'chirdi`,
     });
 
     return { success: true };

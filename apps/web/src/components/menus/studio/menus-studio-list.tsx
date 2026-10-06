@@ -107,7 +107,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
                 {menu.isVip && (
-                  <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-[#111813] via-[#e4eee7] to-[#111813] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#111813]">
+                  <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-gold-foil px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-ink">
                     <Crown className="h-3 w-3" /> VIP
                   </span>
                 )}

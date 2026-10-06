@@ -4,7 +4,7 @@ import { useLocale, useTr } from "@/components/i18n/locale-provider";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarHeart, Check, CheckCheck, ChefHat, Lock } from "lucide-react";
+import { ArrowLeft, CalendarHeart, Check, CheckCheck, ChefHat, ClipboardCheck, Lock } from "lucide-react";
 import { PRODUCT_CATEGORY_LABELS_UZ } from "@iqbol/shared";
 import type { ProductCatalogItem, ShoppingList } from "@/lib/types";
 import { ShoppingListEditor } from "@/components/shopping-lists/shopping-list-editor";
@@ -14,6 +14,7 @@ import { isShoppingListEditable } from "@/lib/shopping-list-status";
 import { formatDate, formatDateTime, formatSom, cn } from "@/lib/utils";
 import { catalogIndex, groupBySection, itemCost, listApi, listProgress } from "./helpers";
 import { PurchaseRow } from "./purchase-row";
+import { CloseConfirmModal } from "./close-confirm-modal";
 
 const STEPS = [
   { key: "SUBMITTED", label: "Yozildi" },
@@ -40,6 +41,7 @@ export function ListDetail({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [confirming, setConfirming] = useState(false);
   const lookup = catalogIndex(catalog);
   const { total, bought, spent, complete } = listProgress(list);
   const current = STEPS.findIndex((s) => s.key === list.status);
@@ -53,7 +55,7 @@ export function ListDetail({
     APPROVED: list.approvedAt,
   };
 
-  async function setStatus(status: "PURCHASED" | "CLOSED") {
+  async function setStatus(status: "PURCHASED") {
     setBusy(true);
     setError(undefined);
     try {
@@ -148,20 +150,33 @@ export function ListDetail({
                 <CheckCheck className="h-4 w-4" /> Xaridni yakunlash
               </button>
             )}
-            {list.status === "PURCHASED" && (
+          </div>
+          {list.status === "PURCHASED" && (
+            <div className="rounded-xl border border-accent/50 bg-accent/10 p-3">
+              <p className="text-sm font-semibold">{tr("Barcha narxlar kiritildi")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {tr("Adashib ketmaslik uchun har bir narxni tekshirib, tasdiqlang. Xato bo'lsa, avval qalamcha bilan tuzating.")}
+              </p>
               <button
                 type="button"
-                onClick={() => setStatus("CLOSED")}
-                disabled={busy}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                onClick={() => setConfirming(true)}
+                className="mt-2.5 inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:brightness-95"
               >
-                <Lock className="h-4 w-4" />  {tr("Ro'yxatni yopish")}
+                <ClipboardCheck className="h-4 w-4" /> {tr("Tekshirib tasdiqlash")}
               </button>
-            )}
-          </div>
+            </div>
+          )}
+          {list.status === "CLOSED" && (
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Lock className="h-4 w-4" /> {tr("Narxlar tasdiqlangan va yopilgan.")}
+            </p>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </div>
+      {list.status === "PURCHASED" && (
+        <CloseConfirmModal key={confirming ? "open" : "closed"} list={list} open={confirming} onClose={() => setConfirming(false)} />
+      )}
 
       {/* ---------- Items by bazaar section ---------- */}
       {groups.map((g) => {

@@ -79,7 +79,7 @@ export function MediaModal({
         </>
       }
     >
-      <form id="media-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+      <form suppressHydrationWarning id="media-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <UploadField
             name="url"

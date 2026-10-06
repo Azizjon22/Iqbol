@@ -5,6 +5,8 @@ export class ChangeStaffPasswordDto {
   currentPassword!: string;
 
   @IsString()
-  @MinLength(6, { message: "Yangi parol kamida 6 belgidan iborat bo'lishi kerak" })
+  @MinLength(8, {
+    message: "Yangi parol kamida 8 belgidan iborat bo'lishi kerak",
+  })
   newPassword!: string;
 }

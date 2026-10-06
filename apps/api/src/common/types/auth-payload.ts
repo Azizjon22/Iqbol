@@ -9,4 +9,6 @@ export interface AuthPayload {
   fullName: string;
   mustChangePassword?: boolean;
   mustChangePin?: boolean;
+  /** Must match the account's current value, or the token is dead. */
+  tokenVersion: number;
 }

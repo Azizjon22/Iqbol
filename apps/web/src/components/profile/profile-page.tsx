@@ -37,7 +37,7 @@ function PasswordCard({ justChanged }: { justChanged: boolean }) {
           <CheckCircle2 className="h-4 w-4" />  {tr("Parol yangilandi.")}
         </p>
       )}
-      <form
+      <form suppressHydrationWarning
         onSubmit={(e) => {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
@@ -52,11 +52,11 @@ function PasswordCard({ justChanged }: { justChanged: boolean }) {
         </div>
         <div>
           <Label htmlFor="newPassword">{tr("Yangi parol")}</Label>
-          <PasswordInput id="newPassword" name="newPassword" autoComplete="new-password" minLength={6} required />
+          <PasswordInput id="newPassword" name="newPassword" autoComplete="new-password" minLength={8} required />
         </div>
         <div>
           <Label htmlFor="confirmPassword">{tr("Takrorlang")}</Label>
-          <PasswordInput id="confirmPassword" name="confirmPassword" autoComplete="new-password" minLength={6} required />
+          <PasswordInput id="confirmPassword" name="confirmPassword" autoComplete="new-password" minLength={8} required />
         </div>
         <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
           <Button type="submit" variant="outline" disabled={isPending}>
@@ -89,9 +89,9 @@ function BrandPreview({ name, logoUrl }: { name: string; logoUrl: string | null 
         <BrandMark name={shown} logoUrl={logoUrl} className="mx-auto h-12 w-12 text-xl shadow-lg shadow-primary/25" />
         <p className="font-display mt-2 truncate text-2xl font-semibold">{shown}</p>
       </div>
-      <div className="rounded-xl bg-[#111813] p-4 text-center text-white">
+      <div className="rounded-xl bg-ink p-4 text-center text-white">
         <p className="mb-2 text-[10px] uppercase tracking-wider text-white/50">{tr("Mijozga taqdimot")}</p>
-        <p className="truncate text-[10px] font-medium uppercase tracking-[0.35em] text-[#c5d4c9]">{shown}  {tr("· To'y menyusi")}</p>
+        <p className="truncate text-[10px] font-medium uppercase tracking-[0.35em] text-champagne">{shown}  {tr("· To'y menyusi")}</p>
       </div>
     </div>
   );

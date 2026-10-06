@@ -27,7 +27,8 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           type="button"
           onClick={() => setLocale(opt.value)}
           className={cn(
-            "rounded-full px-2.5 py-1 transition-colors",
+            // Taller on touch screens, where 24px is too small to hit reliably.
+            "rounded-full px-2.5 py-1 transition-colors pointer-coarse:px-3 pointer-coarse:py-2",
             locale === opt.value
               ? "bg-card text-primary shadow-sm"
               : "text-muted-foreground hover:text-foreground",

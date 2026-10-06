@@ -12,7 +12,8 @@ import { formatDateTime, formatSom } from "@/lib/utils";
 import { WORKER_POSITION_LABELS_UZ, EVENT_EXPENSE_CATEGORY_LABELS_UZ } from "@iqbol/shared";
 import { StatusSelect } from "@/components/events/status-select";
 import { UnassignButton } from "@/components/events/unassign-button";
-import { PaymentForm, METHOD_LABEL } from "@/components/events/payment-form";
+import { PaymentForm } from "@/components/events/payment-form";
+import { METHOD_LABEL } from "@/lib/payment-methods";
 import { ExpenseForm } from "@/components/events/expense-form";
 import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";
@@ -266,7 +267,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                         {formatSom(p.amount, locale)}
                       </span>
                       <span className="ml-2 text-xs text-muted-foreground">
-                        {isRefund ? tr("Qaytarildi") : tr("To'lov")} · {tr(METHOD_LABEL[p.method]) ?? p.method}
+                        {isRefund ? tr("Qaytarildi") : tr("To'lov")} · {tr(METHOD_LABEL[p.method] ?? p.method)}
                         {p.note && ` · ${p.note}`}
                       </span>
                     </span>

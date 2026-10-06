@@ -1,47 +1,63 @@
 @import "tailwindcss";
 
+/*
+ * "Noir & Champagne" — warm onyx, ivory and champagne gold.
+ * The lux-* colours are theme-independent: they paint the always-dark
+ * presentation surfaces (heroes, menu cards, CTA) in both themes.
+ */
+:root {
+  --lux-ink: #0e0c09;
+  --lux-ink-soft: #1a1712;
+  --lux-gold: #c9a35a;
+  --lux-gold-deep: #8a6526;
+  --lux-champagne: #ebd6a6;
+  --lux-pearl: #f8edd3;
+}
+
 :root,
 :root[data-theme="light"] {
-  --background: #f4f6f4;
-  --foreground: #111813;
+  --background: #faf7f1;
+  --foreground: #17140f;
   --card: #ffffff;
-  --card-foreground: #111813;
-  --border: #d5ddd6;
-  --input: #d5ddd6;
-  --muted: #e7ece8;
-  --muted-foreground: #5c675f;
-  --primary: #111813;
-  --primary-foreground: #f4f6f4;
-  --accent: #3c4f44;
-  --accent-foreground: #f4f6f4;
-  --destructive: #c2342a;
+  --card-foreground: #17140f;
+  --border: #e7decd;
+  --input: #e1d6c1;
+  --muted: #f2ece1;
+  --muted-foreground: #6b6152;
+  --primary: #17140f;
+  --primary-foreground: #faf7f1;
+  --accent: #8a6526;
+  --accent-foreground: #fffbf2;
+  --destructive: #b42318;
   --destructive-foreground: #fef3f2;
-  --success: #1f7a62;
-  --success-foreground: #f0faf6;
-  --ring: #111813;
+  --success: #1e7a55;
+  --success-foreground: #effaf5;
+  --ring: #a8813a;
   --radius: 0.75rem;
-  --surface-glow: rgba(17, 24, 19, 0.08);
+  --surface-glow: rgba(138, 101, 38, 0.1);
+  --shadow-tint: 23, 20, 15;
 }
 
 :root[data-theme="dark"] {
-  --background: #111813;
-  --foreground: #e7eee9;
-  --card: #1c2620;
-  --card-foreground: #e7eee9;
-  --border: #2c3a32;
-  --input: #2c3a32;
-  --muted: #24302a;
-  --muted-foreground: #a8b5ac;
-  --primary: #d5e0d8;
-  --primary-foreground: #111813;
-  --accent: #8fa898;
-  --accent-foreground: #111813;
+  --background: #0e0c09;
+  --foreground: #f3ecdd;
+  --card: #18150f;
+  --card-foreground: #f3ecdd;
+  --border: #2e281d;
+  --input: #2e281d;
+  --muted: #211d15;
+  --muted-foreground: #b3a68c;
+  --primary: #ebd6a6;
+  --primary-foreground: #17140f;
+  --accent: #d4af62;
+  --accent-foreground: #17140f;
   --destructive: #f97066;
   --destructive-foreground: #2a0a08;
   --success: #5dcca0;
   --success-foreground: #062016;
-  --ring: #d5e0d8;
-  --surface-glow: rgba(17, 24, 19, 0.45);
+  --ring: #d4af62;
+  --surface-glow: rgba(212, 175, 98, 0.12);
+  --shadow-tint: 0, 0, 0;
 }
 
 /* Presentation uses the same light/dark tokens as the dashboard */
@@ -63,6 +79,12 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-ring: var(--ring);
+  --color-ink: var(--lux-ink);
+  --color-ink-soft: var(--lux-ink-soft);
+  --color-gold: var(--lux-gold);
+  --color-gold-deep: var(--lux-gold-deep);
+  --color-champagne: var(--lux-champagne);
+  --color-pearl: var(--lux-pearl);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 0.2rem);
   --radius-sm: calc(var(--radius) - 0.35rem);
@@ -86,6 +108,39 @@ body {
 @layer base {
   * {
     border-color: var(--border);
+  }
+}
+
+/* Native pickers (date wheel, select list) follow the site's theme. */
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* Date fields on iPad/iPhone and Android tablets: Safari gives them a fixed
+   intrinsic width that ignores width:100% and spills into the next column,
+   and shows an empty, collapsed box. Let them shrink and keep their height. */
+@layer base {
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.5rem;
+  }
+  input::-webkit-date-and-time-value {
+    min-height: 1.25em;
+    text-align: left;
   }
 }
 
@@ -163,7 +218,7 @@ body {
   --switch-width: 46px;
   --switch-height: 24px;
   --switch-bg: rgb(131, 131, 131);
-  --switch-checked-bg: rgb(0, 218, 80);
+  --switch-checked-bg: var(--accent);
   --switch-offset: calc((var(--switch-height) - var(--circle-diameter)) / 2);
   --switch-transition: all 0.2s cubic-bezier(0.27, 0.2, 0.25, 1.51);
   --circle-diameter: 18px;
@@ -328,26 +383,52 @@ body {
   }
 }
 
-/* Silk-blue text for prices and headings on the presentation. */
+/* Champagne-gold foil for prices and headings on the presentation. */
 .text-gilded {
-  background: linear-gradient(100deg, #3c4f44 0%, #e4eee7 38%, #8fa898 60%, #f4f7f5 82%, #243028 100%);
+  background: linear-gradient(
+    100deg,
+    var(--lux-gold-deep) 0%,
+    var(--lux-pearl) 36%,
+    var(--lux-gold) 58%,
+    #fff6e0 80%,
+    #6b4c1b 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-:root[data-theme="light"] .text-gilded-adaptive {
-  background: linear-gradient(100deg, #111813 0%, #3c4f44 45%, #243028 100%);
+/* On ivory the foil darkens to antique gold so it stays readable. */
+.text-gilded-adaptive {
+  background: linear-gradient(100deg, #3d2c10 0%, var(--lux-gold-deep) 48%, #5a4118 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 :root[data-theme="dark"] .text-gilded-adaptive {
-  background: linear-gradient(100deg, #3c4f44 0%, #e4eee7 38%, #8fa898 60%, #f4f7f5 82%, #243028 100%);
+  background: linear-gradient(
+    100deg,
+    var(--lux-gold-deep) 0%,
+    var(--lux-pearl) 36%,
+    var(--lux-gold) 58%,
+    #fff6e0 80%,
+    #6b4c1b 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+}
+
+/* Polished gold bar — VIP badges and the call button. */
+.bg-gold-foil {
+  background: linear-gradient(
+    100deg,
+    var(--lux-gold-deep) 0%,
+    var(--lux-champagne) 30%,
+    var(--lux-pearl) 50%,
+    var(--lux-gold) 72%,
+    var(--lux-gold-deep) 100%
+  );
 }
 
 .gold-range {
@@ -399,5 +480,16 @@ body {
 @media (min-width: 1600px) {
   :root:has(.presentation-root) {
     font-size: clamp(16px, calc(0.4vw + 9px), 22px);
+  }
+}
+
+/*
+ * The staff and chef screens on very wide monitors (2K at 100% scaling, 4K):
+ * the same idea, starting later and growing more gently, so tables and forms
+ * stay readable from a normal sitting distance instead of shrinking to dust.
+ */
+@media (min-width: 2200px) {
+  :root {
+    font-size: clamp(16px, calc(0.4vw + 7.2px), 24px);
   }
 }

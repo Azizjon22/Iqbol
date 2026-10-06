@@ -1,4 +1,5 @@
 import "server-only";
+import { headers as requestHeaders } from "next/headers";
 import { clearSession, getSession, setSession, SessionData } from "./session";
 
 const API_URL = process.env.API_URL ?? "http://localhost:3001/api";
@@ -12,8 +13,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The visitor's address as the reverse proxy in front of this server reported
+ * it — the last X-Forwarded-For entry is the one that proxy wrote itself.
+ * The API rate-limits by it, so users don't share one allowance.
+ */
+async function clientIp(): Promise<string | undefined> {
+  try {
+    const forwarded = (await requestHeaders()).get("x-forwarded-for");
+    return forwarded?.split(",").pop()?.trim() || undefined;
+  } catch {
+    return undefined; // outside a request (build time)
+  }
+}
+
 async function rawFetch(path: string, init: RequestInit, accessToken?: string) {
   const headers = new Headers(init.headers);
+  const ip = await clientIp();
+  if (ip) headers.set("X-Forwarded-For", ip);
   if (!headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");
   }

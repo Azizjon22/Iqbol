@@ -55,7 +55,7 @@ export function LoginForm() {
       </div>
 
       {mode === "staff" ? (
-        <form action={staffFormAction} className="space-y-4">
+        <form suppressHydrationWarning action={staffFormAction} className="space-y-4">
           <div>
             <Label htmlFor="phone">{t("authExtra.phoneLabel")}</Label>
             <Input
@@ -87,7 +87,7 @@ export function LoginForm() {
           </SubmitButton>
         </form>
       ) : (
-        <form action={workerFormAction} className="space-y-4">
+        <form suppressHydrationWarning action={workerFormAction} className="space-y-4">
           <div>
             <Label htmlFor="worker-phone">{t("authExtra.phoneLabel")}</Label>
             <Input

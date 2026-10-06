@@ -1,0 +1,79 @@
+# Production stack: Postgres + API + web behind Caddy (automatic HTTPS).
+#   cp deploy/.env.production.example .env.production   # then fill it in
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Only Caddy is reachable from outside; the API and the database are not.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: iqbol
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD kerak}
+      POSTGRES_DB: iqbol
+      TZ: Asia/Tashkent
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iqbol"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://iqbol:${POSTGRES_PASSWORD}@postgres:5432/iqbol?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET kerak}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET kerak}
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 30d
+      PORT: 3001
+      WEB_ORIGIN: https://${DOMAIN:?DOMAIN kerak}
+      # Only the web container can reach the API, so its X-Forwarded-For
+      # (the visitor's address, used for rate limiting) is believed.
+      TRUST_PROXY: 1
+      SEED_SUPER_ADMIN_PHONE: ${SEED_SUPER_ADMIN_PHONE:-}
+      SEED_SUPER_ADMIN_PASSWORD: ${SEED_SUPER_ADMIN_PASSWORD:-}
+    volumes:
+      - uploads:/app/apps/api/uploads
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_URL: http://api:3001/api
+        NEXT_PUBLIC_CONTACT_PHONE: ${CONTACT_PHONE:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      API_URL: http://api:3001/api
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET kerak}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  postgres_data:
+  uploads:
+  caddy_data:
+  caddy_config:

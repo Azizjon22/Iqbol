@@ -57,6 +57,13 @@ export class ShoppingListsController {
 
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
+  @Get('pending')
+  pending(@CurrentUser() user: AuthPayload) {
+    return this.lists.pending(user.role);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
   @Patch('mark-all-seen')
   markAllSeen(@CurrentUser() user: AuthPayload) {
     return this.lists.markAllSeen(user.role, user.sub);
@@ -115,6 +122,7 @@ export class ShoppingListsController {
       user.sub,
       user.fullName,
       user.role,
+      dto.confirmedItemIds,
     );
   }
 

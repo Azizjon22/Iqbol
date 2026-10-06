@@ -2,26 +2,10 @@
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
 
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  AlertTriangle,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  Check,
-  Copy,
-  Crown,
-  ExternalLink,
-  ImageIcon,
-  Pencil,
-  Plus,
-  Star,
-  Trash2,
-  UtensilsCrossed,
-} from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Copy, Crown, ExternalLink, ImageIcon, Pencil, Plus, Star, Trash2, UtensilsCrossed, Loader2 } from "lucide-react";
 import {
   MENU_DISH_CATEGORIES,
   MENU_DISH_CATEGORY_LABELS_UZ,
@@ -95,6 +79,15 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
 
   const refresh = () => router.refresh();
 
+  // A video just uploaded is being prepared in the background — poll until it
+  // flips to ready or failed, so it lands without a manual refresh.
+  const hasProcessingMedia = menu.media.some((m) => m.processingStatus === "PROCESSING");
+  useEffect(() => {
+    if (!hasProcessingMedia) return;
+    const id = setInterval(() => router.refresh(), 4000);
+    return () => clearInterval(id);
+  }, [hasProcessingMedia, router]);
+
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
     setError(undefined);
@@ -159,7 +152,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{menu.name}</h1>
                   {menu.isVip && (
-                    <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[#111813] via-[#e4eee7] to-[#111813] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#111813]">
+                    <span className="flex items-center gap-1 rounded-full bg-gold-foil px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-ink">
                       <Crown className="h-3 w-3" /> VIP
                     </span>
                   )}
@@ -400,6 +393,17 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                               ) : (
                                 <SafeImage src={item.url} alt={item.caption ?? ""} className="h-full w-full object-cover" />
                               )}
+                              {item.processingStatus === "PROCESSING" && (
+                                <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/65 px-3 text-center text-xs font-medium text-white">
+                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                  {tr("Video tayyorlanmoqda — mijozlarga tayyor bo'lgach ko'rinadi")}
+                                </span>
+                              )}
+                              {item.processingStatus === "FAILED" && (
+                                <span className="absolute inset-x-0 bottom-0 bg-destructive/90 px-3 py-1.5 text-xs font-medium text-white">
+                                  {tr("Videoni tayyorlab bo'lmadi — boshqa fayl yuklang")}
+                                </span>
+                              )}
                               {isBroken && (
                                 <span className="absolute inset-x-0 bottom-0 bg-destructive/90 px-3 py-1.5 text-xs font-medium text-white">
                                   
@@ -407,7 +411,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                                 </span>
                               )}
                               {isCover && (
-                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-[#e4eee7] backdrop-blur">
+                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-pearl backdrop-blur">
                                   <Star className="h-3 w-3 fill-current" />  {tr("Muqova")}
                                 </span>
                               )}

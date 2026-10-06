@@ -20,6 +20,9 @@ export interface TokenPair {
   refreshToken: string;
 }
 
+const MAX_FAILED_LOGINS = 5;
+const LOCKOUT_MINUTES = 15;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -28,6 +31,19 @@ export class AuthService {
     private config: ConfigService,
     private auditLog: AuditLogService,
   ) {}
+
+  /** Throws while a `lockedUntil` timestamp is still in the future. */
+  private assertNotLocked(lockedUntil: Date | null) {
+    if (lockedUntil && lockedUntil > new Date()) {
+      const minutesLeft = Math.max(
+        1,
+        Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000),
+      );
+      throw new UnauthorizedException(
+        `Ko'p marta xato urinish sabab hisob vaqtincha bloklandi. ${minutesLeft} daqiqadan keyin qayta urinib ko'ring.`,
+      );
+    }
+  }
 
   private signTokens(payload: AuthPayload): TokenPair {
     const accessToken = this.jwt.sign(payload, {
@@ -48,9 +64,27 @@ export class AuthService {
     if (!staff || !staff.isActive) {
       throw new UnauthorizedException("Login yoki parol noto'g'ri");
     }
+    this.assertNotLocked(staff.lockedUntil);
     const valid = await bcrypt.compare(dto.password, staff.passwordHash);
     if (!valid) {
+      const failedLoginCount = staff.failedLoginCount + 1;
+      await this.prisma.staffUser.update({
+        where: { id: staff.id },
+        data: {
+          failedLoginCount,
+          lockedUntil:
+            failedLoginCount >= MAX_FAILED_LOGINS
+              ? new Date(Date.now() + LOCKOUT_MINUTES * 60_000)
+              : null,
+        },
+      });
       throw new UnauthorizedException("Login yoki parol noto'g'ri");
+    }
+    if (staff.failedLoginCount > 0 || staff.lockedUntil) {
+      await this.prisma.staffUser.update({
+        where: { id: staff.id },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
     }
 
     const payload: AuthPayload = {
@@ -59,6 +93,7 @@ export class AuthService {
       role: staff.role,
       fullName: staff.fullName,
       mustChangePassword: staff.mustChangePassword,
+      tokenVersion: staff.tokenVersion,
     };
     const tokens = this.signTokens(payload);
     return {
@@ -86,9 +121,27 @@ export class AuthService {
         "Hisobingiz hali tasdiqlanmagan. Administrator bilan bog'laning.",
       );
     }
+    this.assertNotLocked(worker.lockedUntil);
     const valid = await bcrypt.compare(dto.pin, worker.pinHash);
     if (!valid) {
+      const failedLoginCount = worker.failedLoginCount + 1;
+      await this.prisma.worker.update({
+        where: { id: worker.id },
+        data: {
+          failedLoginCount,
+          lockedUntil:
+            failedLoginCount >= MAX_FAILED_LOGINS
+              ? new Date(Date.now() + LOCKOUT_MINUTES * 60_000)
+              : null,
+        },
+      });
       throw new UnauthorizedException("Login yoki PIN noto'g'ri");
+    }
+    if (worker.failedLoginCount > 0 || worker.lockedUntil) {
+      await this.prisma.worker.update({
+        where: { id: worker.id },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
     }
 
     const payload: AuthPayload = {
@@ -96,6 +149,7 @@ export class AuthService {
       kind: 'WORKER',
       fullName: worker.fullName,
       mustChangePin: worker.mustChangePin,
+      tokenVersion: worker.tokenVersion,
     };
     const tokens = this.signTokens(payload);
     return {
@@ -125,7 +179,11 @@ export class AuthService {
       const staff = await this.prisma.staffUser.findUnique({
         where: { id: payload.sub },
       });
-      if (!staff || !staff.isActive) {
+      if (
+        !staff ||
+        !staff.isActive ||
+        staff.tokenVersion !== payload.tokenVersion
+      ) {
         throw new UnauthorizedException('Hisob faol emas');
       }
       return this.signTokens({
@@ -134,13 +192,18 @@ export class AuthService {
         role: staff.role,
         fullName: staff.fullName,
         mustChangePassword: staff.mustChangePassword,
+        tokenVersion: staff.tokenVersion,
       });
     }
 
     const worker = await this.prisma.worker.findUnique({
       where: { id: payload.sub },
     });
-    if (!worker || worker.status !== 'APPROVED') {
+    if (
+      !worker ||
+      worker.status !== 'APPROVED' ||
+      worker.tokenVersion !== payload.tokenVersion
+    ) {
       throw new UnauthorizedException('Hisob faol emas');
     }
     return this.signTokens({
@@ -148,6 +211,7 @@ export class AuthService {
       kind: 'WORKER',
       fullName: worker.fullName,
       mustChangePin: worker.mustChangePin,
+      tokenVersion: worker.tokenVersion,
     });
   }
 
@@ -201,7 +265,12 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
     const updated = await this.prisma.staffUser.update({
       where: { id: staff.id },
-      data: { passwordHash, mustChangePassword: false },
+      // Signs every other device out; this one gets fresh tokens below.
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        tokenVersion: { increment: 1 },
+      },
     });
 
     await this.auditLog.record({
@@ -219,6 +288,7 @@ export class AuthService {
       role: updated.role,
       fullName: updated.fullName,
       mustChangePassword: false,
+      tokenVersion: updated.tokenVersion,
     };
     const tokens = this.signTokens(payload);
     return {
@@ -247,13 +317,19 @@ export class AuthService {
       throw new UnauthorizedException("Joriy PIN noto'g'ri");
     }
     if (dto.currentPin === dto.newPin) {
-      throw new BadRequestException('Yangi PIN avvalgisidan farq qilishi kerak');
+      throw new BadRequestException(
+        'Yangi PIN avvalgisidan farq qilishi kerak',
+      );
     }
 
     const pinHash = await bcrypt.hash(dto.newPin, 10);
     const updated = await this.prisma.worker.update({
       where: { id: worker.id },
-      data: { pinHash, mustChangePin: false },
+      data: {
+        pinHash,
+        mustChangePin: false,
+        tokenVersion: { increment: 1 },
+      },
     });
 
     await this.auditLog.record({
@@ -270,6 +346,7 @@ export class AuthService {
       kind: 'WORKER',
       fullName: updated.fullName,
       mustChangePin: false,
+      tokenVersion: updated.tokenVersion,
     };
     const tokens = this.signTokens(payload);
     return {
