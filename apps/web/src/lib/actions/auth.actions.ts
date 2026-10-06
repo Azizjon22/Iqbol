@@ -10,7 +10,22 @@ import { extractErrorMessage } from "@/lib/errors";
 
 type AuthTokenResponse = { accessToken: string; refreshToken: string; user: SessionUser };
 
-export type AuthActionState = { error?: string } | undefined;
+export type AuthActionState = { error?: string; kind?: "credentials" | "connection" } | undefined;
+
+const CONNECTION_ERROR = "Server bilan bog'lanib bo'lmadi. Ulanishni tekshirib, qayta urinib ko'ring.";
+
+async function postLogin(url: string, body: unknown): Promise<Response | "connection"> {
+  try {
+    return await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch {
+    return "connection";
+  }
+}
 
 export async function loginStaffAction(
   _prev: AuthActionState,
@@ -23,19 +38,16 @@ export async function loginStaffAction(
     password: formData.get("password"),
   });
   if (!parsed.success) {
-    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri"), kind: "credentials" };
   }
 
-  const res = await fetch(publicApiUrl("/auth/staff/login"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(parsed.data),
-    cache: "no-store",
-  });
-
+  const res = await postLogin(publicApiUrl("/auth/staff/login"), parsed.data);
+  if (res === "connection") return { error: tr(CONNECTION_ERROR), kind: "connection" };
   if (!res.ok) {
+    if (res.status >= 500) return { error: tr(CONNECTION_ERROR), kind: "connection" };
     const body = await res.json().catch(() => null);
-    return { error: tr(body?.message ?? "Login yoki parol noto'g'ri") };
+    const message = Array.isArray(body?.message) ? body.message[0] : body?.message;
+    return { error: tr(message ?? "Login yoki parol noto'g'ri"), kind: "credentials" };
   }
 
   const data = await res.json();
@@ -54,19 +66,16 @@ export async function loginWorkerAction(
     pin: formData.get("pin"),
   });
   if (!parsed.success) {
-    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
+    return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri"), kind: "credentials" };
   }
 
-  const res = await fetch(publicApiUrl("/auth/worker/login"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(parsed.data),
-    cache: "no-store",
-  });
-
+  const res = await postLogin(publicApiUrl("/auth/worker/login"), parsed.data);
+  if (res === "connection") return { error: tr(CONNECTION_ERROR), kind: "connection" };
   if (!res.ok) {
+    if (res.status >= 500) return { error: tr(CONNECTION_ERROR), kind: "connection" };
     const body = await res.json().catch(() => null);
-    return { error: tr(body?.message ?? "Login yoki PIN noto'g'ri") };
+    const message = Array.isArray(body?.message) ? body.message[0] : body?.message;
+    return { error: tr(message ?? "Login yoki PIN noto'g'ri"), kind: "credentials" };
   }
 
   const data = await res.json();

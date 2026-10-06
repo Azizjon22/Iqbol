@@ -37,7 +37,7 @@ async function bootstrap() {
 
   app.use(helmet());
   app.enableCors({
-    origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000',
+    origin: process.env.WEB_ORIGIN ?? 'http://localhost:3010',
     credentials: true,
   });
   app.setGlobalPrefix('api');
@@ -50,6 +50,6 @@ async function bootstrap() {
   );
 
   app.enableShutdownHooks();
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(process.env.PORT ?? 3011);
 }
 bootstrap();

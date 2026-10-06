@@ -11,7 +11,7 @@ function isZavzalAllowed(pathname: string) {
 }
 
 async function refreshTokens(session: SessionData): Promise<SessionData | null> {
-  const apiUrl = process.env.API_URL ?? "http://localhost:3001/api";
+  const apiUrl = process.env.API_URL ?? "http://localhost:3011/api";
   try {
     const res = await fetch(`${apiUrl}/auth/refresh`, {
       method: "POST",

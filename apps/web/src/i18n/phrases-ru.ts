@@ -128,6 +128,7 @@ export const PHRASES_RU: Record<string, string> = {
   "Ko'rinishi": "Вид",
   "Lavozim": "Должность",
   "Login yoki parol noto'g'ri": "Неверный логин или пароль",
+  "Server bilan bog'lanib bo'lmadi. Ulanishni tekshirib, qayta urinib ko'ring.": "Сервер недоступен. Проверьте соединение и попробуйте снова.",
   "Login yoki PIN noto'g'ri": "Неверный логин или PIN",
   "Ma'lumotlar noto'g'ri": "Неверные данные",
   "Mahsulot": "Товар",

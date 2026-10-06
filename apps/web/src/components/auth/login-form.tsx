@@ -11,6 +11,15 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 const initialState: AuthActionState = undefined;
 
+function LoginAlert({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+      {message}
+    </p>
+  );
+}
+
 export function LoginForm() {
   const [mode, setMode] = useState<"staff" | "worker">("staff");
   const [staffState, staffFormAction] = useActionState(loginStaffAction, initialState);
@@ -56,6 +65,7 @@ export function LoginForm() {
 
       {mode === "staff" ? (
         <form suppressHydrationWarning action={staffFormAction} className="space-y-4">
+          <LoginAlert message={staffState?.kind === "connection" ? staffState.error : undefined} />
           <div>
             <Label htmlFor="phone">{t("authExtra.phoneLabel")}</Label>
             <Input
@@ -66,7 +76,7 @@ export function LoginForm() {
               autoComplete="tel"
               value={staffPhone}
               onChange={(e) => setStaffPhone(e.target.value)}
-              className={cn(staffState?.error && "border-destructive")}
+              className={cn(staffState?.kind === "credentials" && "border-destructive")}
             />
           </div>
           <div>
@@ -78,16 +88,17 @@ export function LoginForm() {
               autoComplete="current-password"
               value={staffPassword}
               onChange={(e) => setStaffPassword(e.target.value)}
-              className={cn(staffState?.error && "border-destructive")}
+              className={cn(staffState?.kind === "credentials" && "border-destructive")}
             />
+            <FieldError>{staffState?.kind === "credentials" ? staffState.error : undefined}</FieldError>
           </div>
-          <FieldError>{staffState?.error}</FieldError>
           <SubmitButton className="w-full" pendingText={t("authExtra.loggingIn")}>
             {t("auth.login")}
           </SubmitButton>
         </form>
       ) : (
         <form suppressHydrationWarning action={workerFormAction} className="space-y-4">
+          <LoginAlert message={workerState?.kind === "connection" ? workerState.error : undefined} />
           <div>
             <Label htmlFor="worker-phone">{t("authExtra.phoneLabel")}</Label>
             <Input
@@ -98,7 +109,7 @@ export function LoginForm() {
               autoComplete="tel"
               value={workerPhone}
               onChange={(e) => setWorkerPhone(e.target.value)}
-              className={cn(workerState?.error && "border-destructive")}
+              className={cn(workerState?.kind === "credentials" && "border-destructive")}
             />
           </div>
           <div>
@@ -112,10 +123,10 @@ export function LoginForm() {
               required
               value={workerPin}
               onChange={(e) => setWorkerPin(e.target.value)}
-              className={cn(workerState?.error && "border-destructive")}
+              className={cn(workerState?.kind === "credentials" && "border-destructive")}
             />
+            <FieldError>{workerState?.kind === "credentials" ? workerState.error : undefined}</FieldError>
           </div>
-          <FieldError>{workerState?.error}</FieldError>
           <SubmitButton className="w-full" pendingText={t("authExtra.loggingIn")}>
             {t("auth.login")}
           </SubmitButton>

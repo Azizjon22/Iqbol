@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.API_URL ?? "http://localhost:3001/api";
+const API_URL = process.env.API_URL ?? "http://localhost:3011/api";
 
 /** Forwards the raw file bytes. The JSON API proxy would decode them as text. */
 export async function PUT(req: NextRequest) {

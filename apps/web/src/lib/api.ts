@@ -2,7 +2,7 @@ import "server-only";
 import { headers as requestHeaders } from "next/headers";
 import { clearSession, getSession, setSession, SessionData } from "./session";
 
-const API_URL = process.env.API_URL ?? "http://localhost:3001/api";
+const API_URL = process.env.API_URL ?? "http://localhost:3011/api";
 
 export class ApiError extends Error {
   constructor(

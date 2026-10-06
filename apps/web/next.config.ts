@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    const api = process.env.API_URL ?? "http://localhost:3001/api";
+    const api = process.env.API_URL ?? "http://localhost:3011/api";
     const origin = api.replace(/\/api\/?$/, "");
     return [
       {

@@ -9,7 +9,7 @@ services:
       POSTGRES_DB: iqbol
     ports:
       # Local development only — reachable from this machine, not the network.
-      - "127.0.0.1:5436:5432"
+      - "127.0.0.1:5437:5432"
     volumes:
       - iqbol_postgres_data:/var/lib/postgresql/data
     healthcheck:
