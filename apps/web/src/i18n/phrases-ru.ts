@@ -372,6 +372,7 @@ export const PHRASES_RU: Record<string, string> = {
   "VIP": "VIP",
   "VIP menyu — taqdimotda oltin ramka bilan ajratiladi": "VIP-меню — в презентации выделяется золотой рамкой",
   "Xarajat": "Расход",
+  "Xarajat qo'shish": "Добавить расход",
   "Xarajatlar": "Расходы",
   "Xarajatlar hali kiritilmagan.": "Расходы ещё не внесены.",
   "Xarajatni saqlab bo'lmadi": "Не удалось сохранить расход",
