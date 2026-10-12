@@ -192,9 +192,11 @@ model Worker {
 model Menu {
   id             String   @id @default(cuid())
   name           String
+  nameRu         String?
   pricePerPerson Decimal  @db.Decimal(12, 2)
   guestCount     Int      @default(150)
   description    String?
+  descriptionRu  String?
   coverImageUrl  String?
   isVip          Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -213,7 +215,9 @@ model MenuDish {
   menu        Menu             @relation(fields: [menuId], references: [id], onDelete: Cascade)
   category    MenuDishCategory
   name        String
+  nameRu      String?
   description String?
+  descriptionRu String?
   photoUrl    String?
   order       Int              @default(0)
 
@@ -229,6 +233,7 @@ model MenuMedia {
   mediaType        MediaType
   url              String
   caption          String?
+  captionRu        String?
   order            Int                   @default(0)
   processingStatus MediaProcessingStatus @default(READY)
 
@@ -241,6 +246,7 @@ model MenuMedia {
 model Event {
   id            String      @id @default(cuid())
   clientName    String
+  clientNameRu  String?
   clientPhone   String
   eventDate     DateTime
   tableCapacity Int
@@ -253,8 +259,11 @@ model Event {
   // these and the guest count. Stored as names so later menu edits don't
   // rewrite what was agreed. Set by SUPER_ADMIN only.
   firstDish     String?
+  firstDishRu   String?
   secondDish    String?
+  secondDishRu  String?
   notes         String?
+  notesRu       String?
   createdById   String
   createdBy     StaffUser   @relation("EventCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime    @default(now())
@@ -291,6 +300,7 @@ model EventWorkerAssignment {
 model InventoryItem {
   id              String            @id @default(cuid())
   name            String            @unique
+  nameRu          String?
   category        InventoryCategory @default(PRODUCT)
   productCategory ProductCategory?
   photoUrl        String?
@@ -312,6 +322,7 @@ model InventoryTransaction {
   type                     InventoryTxnType
   quantity                 Decimal           @db.Decimal(12, 3)
   note                     String?
+  noteRu                   String?
   sourceShoppingListItemId String?           @unique
   sourceShoppingListItem   ShoppingListItem? @relation(fields: [sourceShoppingListItemId], references: [id])
   createdById              String
@@ -355,6 +366,7 @@ model ShoppingListItem {
   shoppingListId   String
   shoppingList     ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   name             String
+  nameRu           String?
   quantity         Decimal      @db.Decimal(12, 3)
   // What the chef originally asked for, recorded the first time SUPER_ADMIN
   // changes the quantity. 0 means SUPER_ADMIN added the item themselves.
@@ -367,6 +379,7 @@ model ShoppingListItem {
   totalCost        Decimal?     @db.Decimal(14, 2)
   isPurchased      Boolean      @default(false)
   note             String?
+  noteRu           String?
 
   inventoryTransaction InventoryTransaction?
 
@@ -392,6 +405,7 @@ model Payment {
   paymentDate DateTime      @default(now())
   method      PaymentMethod
   note        String?
+  noteRu      String?
   createdById String
   createdBy   StaffUser     @relation(fields: [createdById], references: [id])
   createdAt   DateTime      @default(now())
@@ -407,6 +421,7 @@ model EventExpense {
   category    EventExpenseCategory
   amount      Decimal              @db.Decimal(14, 2)
   note        String?
+  noteRu      String?
   createdById String
   createdBy   StaffUser            @relation(fields: [createdById], references: [id])
   createdAt   DateTime             @default(now())
@@ -440,6 +455,7 @@ model AuditLog {
 model AppSettings {
   id              String                 @id @default("app")
   brandName       String                 @default("Iqbol")
+  brandNameRu     String?
   logoUrl         String?
   heroMediaUrl    String?
   heroMediaKind   String?

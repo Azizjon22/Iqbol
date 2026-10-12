@@ -8,33 +8,46 @@ import {
   TABLE_PHOTOS,
   type MenuSeed,
 } from './data/menus';
+import { CAPTION_RU, localizeDish } from './data/translations';
 
 async function upsertMenu(def: MenuSeed): Promise<Menu> {
   const fields = {
+    name: def.name,
+    nameRu: def.nameRu,
     pricePerPerson: def.pricePerPerson,
     guestCount: def.guestCount,
     description: def.description,
+    descriptionRu: def.descriptionRu,
     isVip: def.isVip,
     coverImageUrl: def.cover,
   };
-  const existing = await prisma.menu.findFirst({ where: { name: def.name } });
+  const existing = await prisma.menu.findFirst({
+    where: {
+      OR: [{ name: def.name }, { name: def.nameRu }, { nameRu: def.nameRu }],
+    },
+  });
   return existing
     ? prisma.menu.update({ where: { id: existing.id }, data: fields })
-    : prisma.menu.create({ data: { name: def.name, ...fields } });
+    : prisma.menu.create({ data: fields });
 }
 
 /** The dish list always follows this file: it is replaced, not merged. */
 async function replaceDishes(menuId: string, def: MenuSeed) {
   await prisma.menuDish.deleteMany({ where: { menuId } });
   await prisma.menuDish.createMany({
-    data: def.dishes.map((dish, order) => ({
-      menuId,
-      category: dish.category,
-      name: dish.name,
-      description: dish.description,
-      photoUrl: dish.photo,
-      order,
-    })),
+    data: def.dishes.map((dish, order) => {
+      const text = localizeDish(dish);
+      return {
+        menuId,
+        category: dish.category,
+        name: text.name,
+        nameRu: text.nameRu,
+        description: text.description,
+        descriptionRu: text.descriptionRu,
+        photoUrl: dish.photo,
+        order,
+      };
+    }),
   });
 }
 
@@ -49,6 +62,7 @@ async function addPlaceholderMedia(menuId: string) {
         section: 'HALL',
         url: HALL_PHOTOS[0],
         caption: 'Asosiy zal',
+        captionRu: CAPTION_RU['Asosiy zal'],
         order: 0,
       },
       {
@@ -56,6 +70,7 @@ async function addPlaceholderMedia(menuId: string) {
         section: 'HALL',
         url: HALL_PHOTOS[1],
         caption: 'Zal panoramasi',
+        captionRu: CAPTION_RU['Zal panoramasi'],
         order: 1,
       },
       {
@@ -63,6 +78,7 @@ async function addPlaceholderMedia(menuId: string) {
         section: 'TABLE_SETUP',
         url: TABLE_PHOTOS[0],
         caption: 'Stol bezagi',
+        captionRu: CAPTION_RU['Stol bezagi'],
         order: 0,
       },
       {
@@ -70,6 +86,7 @@ async function addPlaceholderMedia(menuId: string) {
         section: 'TABLE_SETUP',
         url: TABLE_PHOTOS[1],
         caption: 'Servirovka',
+        captionRu: CAPTION_RU.Servirovka,
         order: 1,
       },
       {
@@ -77,6 +94,7 @@ async function addPlaceholderMedia(menuId: string) {
         section: 'KORTEJ',
         url: KORTEJ_PHOTO,
         caption: 'Kortej',
+        captionRu: CAPTION_RU.Kortej,
         order: 0,
       },
       {
@@ -84,6 +102,7 @@ async function addPlaceholderMedia(menuId: string) {
         section: 'PHOTOGRAPHER',
         url: PHOTOGRAPHER_PHOTO,
         caption: 'Foto zona',
+        captionRu: CAPTION_RU['Foto zona'],
         order: 0,
       },
     ],

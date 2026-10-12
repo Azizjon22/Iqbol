@@ -7,7 +7,8 @@ import { MENU_DISH_CATEGORIES, MENU_DISH_CATEGORY_LABELS_UZ, type MenuDishCatego
 import type { MenuDish } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { Label, Select } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { UploadField } from "@/components/uploads/upload-field";
 import { menuApi, errorText } from "./api";
 
@@ -38,12 +39,15 @@ export function DishModal({
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
-    if (name.length < 2) return setError(tr("Taom nomini kiriting"));
+    const nameRu = String(form.get("nameRu") ?? "").trim();
+    if (name.length < 2 || nameRu.length < 2) return setError(tr("Ikkala tilda ham yozing"));
     const photo = String(form.get("photoUrl") ?? "");
     const body = {
       category: form.get("category"),
       name,
+      nameRu,
       description: String(form.get("description") ?? "").trim(),
+      descriptionRu: String(form.get("descriptionRu") ?? "").trim(),
       photoUrl: photo || (dish ? null : undefined),
     };
 
@@ -103,20 +107,23 @@ export function DishModal({
             ))}
           </Select>
         </div>
-        <div>
-          <Label htmlFor="dish-name">{tr("Taom nomi")}</Label>
-          <Input id="dish-name" name="name" defaultValue={dish?.name} placeholder={tr("masalan: Olivye")} autoFocus required />
-        </div>
-        <div>
-          <Label htmlFor="dish-description">{tr("Qisqa tavsif (ixtiyoriy)")}</Label>
-          <Textarea
-            id="dish-description"
-            name="description"
-            rows={3}
-            defaultValue={dish?.description ?? ""}
-            placeholder={tr("masalan: Klassik olivye salati")}
-          />
-        </div>
+        <BilingualField
+          name="name"
+          label={tr("Taom nomi")}
+          defaultValue={dish?.name}
+          defaultValueRu={dish?.nameRu}
+          placeholder={tr("masalan: Olivye")}
+          required
+        />
+        <BilingualField
+          name="description"
+          label={tr("Qisqa tavsif (ixtiyoriy)")}
+          multiline
+          rows={3}
+          defaultValue={dish?.description}
+          defaultValueRu={dish?.descriptionRu}
+          placeholder={tr("masalan: Klassik olivye salati")}
+        />
         {error && <p className="text-sm text-destructive sm:col-span-2">{error}</p>}
       </form>
     </Modal>

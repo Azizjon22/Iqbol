@@ -9,6 +9,7 @@ import type { Brand, HeroMediaKind } from "@/lib/brand-shared";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Input, Label, PasswordInput } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { UploadField } from "@/components/uploads/upload-field";
 import { useT, useTr } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -107,6 +108,8 @@ function BrandCard({ brand }: { brand: Brand }) {
 
   const router = useRouter();
   const [name, setName] = useState(brand.brandName);
+  const [nameRu, setNameRu] = useState(brand.brandNameRu ?? "");
+  const [fieldKey, setFieldKey] = useState(0);
   const [logoUrl, setLogoUrl] = useState<string | null>(brand.logoUrl);
   const [heroUrl, setHeroUrl] = useState<string | null>(brand.heroMediaUrl);
   const [heroKey, setHeroKey] = useState(0);
@@ -118,8 +121,14 @@ function BrandCard({ brand }: { brand: Brand }) {
   const [saved, setSaved] = useState(false);
 
   const trimmed = name.trim();
-  const dirty = trimmed !== brand.brandName || logoUrl !== brand.logoUrl || heroUrl !== brand.heroMediaUrl;
-  const validName = trimmed.length >= 2 && trimmed.length <= 40;
+  const trimmedRu = nameRu.trim();
+  const dirty =
+    trimmed !== brand.brandName ||
+    trimmedRu !== (brand.brandNameRu ?? "") ||
+    logoUrl !== brand.logoUrl ||
+    heroUrl !== brand.heroMediaUrl;
+  const validName =
+    trimmed.length >= 2 && trimmed.length <= 40 && trimmedRu.length >= 2 && trimmedRu.length <= 40;
 
   function applyLink() {
     try {
@@ -134,7 +143,7 @@ function BrandCard({ brand }: { brand: Brand }) {
   }
 
   async function save() {
-    if (!validName) return setError(tr("Nom 2 dan 40 belgigacha bo'lishi kerak"));
+    if (!validName) return setError(tr("Ikkala tilda ham yozing"));
     setBusy(true);
     setError(undefined);
     setSaved(false);
@@ -144,6 +153,7 @@ function BrandCard({ brand }: { brand: Brand }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           brandName: trimmed,
+          brandNameRu: trimmedRu,
           logoUrl,
           heroMediaUrl: heroUrl,
           heroMediaKind: heroKind(heroUrl),
@@ -167,7 +177,7 @@ function BrandCard({ brand }: { brand: Brand }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="flex items-center gap-2 font-semibold">
-            <Palette className="h-4 w-4 text-muted-foreground" /> Loyiha brendi
+            <Palette className="h-4 w-4 text-muted-foreground" /> {tr("Loyiha brendi")}
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             
@@ -175,17 +185,30 @@ function BrandCard({ brand }: { brand: Brand }) {
           </p>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-          <ShieldCheck className="h-3.5 w-3.5" /> Faqat super admin
+          <ShieldCheck className="h-3.5 w-3.5" /> {tr("Faqat super admin")}
         </span>
       </div>
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-5">
-          <div>
-            <Label htmlFor="brandName">{tr("Loyiha nomi")}</Label>
-            <Input id="brandName" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={tr("masalan: Iqbol")} />
-            <p className={cn("mt-1 text-xs", validName ? "text-muted-foreground" : "text-destructive")}>{trimmed.length}/40 belgi</p>
-          </div>
+          <BilingualField
+            key={fieldKey}
+            name="brandName"
+            submit={false}
+            label={tr("Loyiha nomi")}
+            defaultValue={brand.brandName}
+            defaultValueRu={brand.brandNameRu}
+            maxLength={40}
+            placeholder={tr("masalan: Iqbol")}
+            required
+            onValues={(uz, ru) => {
+              setName(uz);
+              setNameRu(ru);
+            }}
+          />
+          <p className={cn("mt-1 text-xs", validName ? "text-muted-foreground" : "text-destructive")}>
+            {trimmed.length}/40 · {trimmedRu.length}/40
+          </p>
 
           <div>
             <p className="mb-1.5 text-sm font-medium">{tr("Logo")}</p>
@@ -193,7 +216,7 @@ function BrandCard({ brand }: { brand: Brand }) {
               <BrandMark name={trimmed || "?"} logoUrl={logoUrl} className="h-20 w-20 text-3xl shadow-md" />
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => setLinkMode((v) => !v)}>
-                  <Link2 className="h-4 w-4" /> Havola orqali
+                  <Link2 className="h-4 w-4" /> {tr("Havola orqali")}
                 </Button>
                 {logoUrl && (
                   <Button
@@ -205,7 +228,7 @@ function BrandCard({ brand }: { brand: Brand }) {
                       setUploaderKey((k) => k + 1);
                     }}
                   >
-                    <RotateCcw className="h-4 w-4" /> Harfli logoga qaytarish
+                    <RotateCcw className="h-4 w-4" /> {tr("Harfli logoga qaytarish")}
                   </Button>
                 )}
               </div>
@@ -278,6 +301,8 @@ function BrandCard({ brand }: { brand: Brand }) {
                 variant="ghost"
                 onClick={() => {
                   setName(brand.brandName);
+                  setNameRu(brand.brandNameRu ?? "");
+                  setFieldKey((k) => k + 1);
                   setLogoUrl(brand.logoUrl);
                   setHeroUrl(brand.heroMediaUrl);
                   setUploaderKey((k) => k + 1);
@@ -328,7 +353,7 @@ export function ProfilePage({
           {initials(user.fullName)}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xl font-semibold">{user.fullName}</p>
+          <p className="truncate text-xl font-semibold">{tr(user.fullName)}</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Phone className="h-3.5 w-3.5" /> {user.phone}

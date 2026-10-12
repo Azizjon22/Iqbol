@@ -18,6 +18,10 @@ export class CreateMenuMediaDto {
   caption?: string;
 
   @IsOptional()
+  @IsString()
+  captionRu?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   order?: number;

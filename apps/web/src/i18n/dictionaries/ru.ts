@@ -110,6 +110,7 @@ export const ru: Dictionary = {
     pendingLists: "{count} новых списков покупок ждут проверки.",
     guest: "гостей",
     table: "мест за столом",
+    dishesNotChosen: "1-е и 2-е блюдо не выбраны",
   },
   authExtra: {
     welcome: "Добро пожаловать в систему управления банкетным залом",

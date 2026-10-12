@@ -23,6 +23,7 @@ export class SettingsService {
     });
     return {
       brandName: row.brandName,
+      brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
       heroMediaUrl: row.heroMediaUrl,
       heroMediaKind: row.heroMediaKind,
@@ -54,6 +55,7 @@ export class SettingsService {
       create: {
         id: ID,
         brandName: brandName || undefined,
+        brandNameRu: dto.brandNameRu?.trim() || undefined,
         logoUrl: dto.logoUrl ?? null,
         heroMediaUrl: heroMediaUrl ?? null,
         heroMediaKind: heroMediaKind ?? null,
@@ -61,6 +63,7 @@ export class SettingsService {
       },
       update: {
         brandName: brandName || undefined,
+        brandNameRu: dto.brandNameRu?.trim() || undefined,
         logoUrl: dto.logoUrl,
         heroMediaUrl,
         heroMediaKind,
@@ -111,6 +114,7 @@ export class SettingsService {
     }
     return {
       brandName: row.brandName,
+      brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
       heroMediaUrl: row.heroMediaUrl,
       heroMediaKind: row.heroMediaKind,

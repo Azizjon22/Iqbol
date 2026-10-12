@@ -13,6 +13,7 @@ import { InViewVideo } from "@/components/menus/showcase/in-view-video";
 import { ClosingCta } from "@/components/menus/showcase/closing-cta";
 import { MENU_DISH_CATEGORIES, MENU_MEDIA_SECTIONS, type MenuMediaSection } from "@iqbol/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 import { formatSom, cn } from "@/lib/utils";
 
 // Bento rhythm for the gallery: groups of five — one 2×2 feature plus four
@@ -33,6 +34,7 @@ function tileSpans(count: number) {
 
 export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
   const { t, locale } = useLocale();
+  const pick = usePick();
   const price = Number(menu.pricePerPerson);
   const guests = menu.guestCount;
 
@@ -61,7 +63,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
 
   const dishPhotos: LightboxItem[] = menu.dishes
     .filter((d) => d.photoUrl && !broken.has(d.photoUrl))
-    .map((d) => ({ id: d.id, url: d.photoUrl!, caption: d.name, kind: "PHOTO" }));
+    .map((d) => ({ id: d.id, url: d.photoUrl!, caption: pick(d.name, d.nameRu), kind: "PHOTO" as const }));
 
   function openDish(dish: MenuDish) {
     const index = dishPhotos.findIndex((p) => p.id === dish.id);
@@ -70,7 +72,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
 
   function openMedia(index: number) {
     setLightbox({
-      items: visibleMedia.map((m) => ({ url: m.url, caption: m.caption, kind: m.mediaType })),
+      items: visibleMedia.map((m) => ({ url: m.url, caption: pick(m.caption, m.captionRu), kind: m.mediaType })),
       index,
     });
   }
@@ -93,7 +95,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
           <SafeImage
             src={menu.coverImageUrl}
             fallbacks={menu.media.filter((m) => m.mediaType === "PHOTO").map((m) => m.url)}
-            alt={menu.name}
+            alt={pick(menu.name, menu.nameRu)}
             className="h-full w-full object-cover"
           />
         </div>
@@ -114,7 +116,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
             {t("common.brand")} · {t("presentation.eyebrow")}
           </p>
           <h1 className="font-display mt-5 text-[clamp(2.6rem,min(9vw,11svh),8.5rem)] font-semibold leading-[0.95] tracking-tight lining-nums [overflow-wrap:anywhere] animate-fade-up [@media(max-height:620px)]:mt-3">
-            {menu.name}
+            {pick(menu.name, menu.nameRu)}
           </h1>
           {menu.isVip && (
             <span className="mt-5 inline-flex items-center rounded-full border border-champagne/50 bg-champagne/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-pearl">
@@ -128,8 +130,8 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
               {somLabel} · {t("presentation.perGuest")}
             </p>
           </div>
-          {menu.description && (
-            <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg 2xl:max-w-2xl 2xl:text-xl [@media(max-height:620px)]:hidden">{menu.description}</p>
+          {(menu.description || menu.descriptionRu) && (
+            <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg 2xl:max-w-2xl 2xl:text-xl [@media(max-height:620px)]:hidden">{pick(menu.description, menu.descriptionRu)}</p>
           )}
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2 text-sm text-white/80 [@media(max-height:620px)]:mt-4">
             <span className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 backdrop-blur">
@@ -215,16 +217,16 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
                               <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full sm:h-16 sm:w-16 2xl:h-20 2xl:w-20 ring-1 ring-accent/30 ring-offset-2 ring-offset-card transition group-hover:ring-accent/70">
                                 <SafeImage
                                   src={dish.photoUrl}
-                                  alt={dish.name}
+                                  alt={pick(dish.name, dish.nameRu)}
                                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                   fallbackIcon={<UtensilsCrossed className="h-4 w-4" />}
                                   onBroken={dish.photoUrl ? () => markBroken(dish.photoUrl!) : undefined}
                                 />
                               </span>
                               <span className="min-w-0">
-                                <span className="font-display block text-xl font-semibold leading-tight min-[400px]:text-2xl 2xl:text-3xl">{dish.name}</span>
-                                {dish.description && (
-                                  <span className="mt-0.5 block text-sm italic text-muted-foreground">{dish.description}</span>
+                                <span className="font-display block text-xl font-semibold leading-tight min-[400px]:text-2xl 2xl:text-3xl">{pick(dish.name, dish.nameRu)}</span>
+                                {(dish.description || dish.descriptionRu) && (
+                                  <span className="mt-0.5 block text-sm italic text-muted-foreground">{pick(dish.description, dish.descriptionRu)}</span>
                                 )}
                               </span>
                             </button>
@@ -299,7 +301,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
                     ) : (
                       <SafeImage
                         src={item.url}
-                        alt={item.caption ?? ""}
+                        alt={pick(item.caption, item.captionRu)}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         onBroken={() => markBroken(item.url)}
                       />
@@ -309,9 +311,9 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
                       <span className="block text-[10px] font-medium uppercase tracking-[0.25em] text-champagne">
                         {t(`mediaSections.${item.section}`)}
                       </span>
-                      {item.caption && (
+                      {(item.caption || item.captionRu) && (
                         <span className="font-display mt-0.5 block text-lg font-semibold leading-tight text-white sm:text-xl">
-                          {item.caption}
+                          {pick(item.caption, item.captionRu)}
                         </span>
                       )}
                     </span>

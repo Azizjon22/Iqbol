@@ -1,5 +1,6 @@
 import { getTr } from "@/i18n/server-tr";
 import { getLocale } from "@/i18n/locale";
+import { pickLang } from "@/i18n/pick";
 import { Pencil } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { getSession } from "@/lib/session";
@@ -29,6 +30,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
   const { id } = await params;
   const [event, session] = await Promise.all([apiFetch<EventDetail>(`/events/${id}`), getSession()]);
 
+  const client = pickLang(locale, event.clientName, event.clientNameRu);
   const role = session?.user.kind === "STAFF" ? session.user.role : undefined;
   const canSeeFinancials = role === "SUPER_ADMIN";
   const canEdit = role === "SUPER_ADMIN" || role === "ADMIN";
@@ -55,7 +57,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">{event.clientName}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{client}</h1>
           <p className="text-sm text-muted-foreground">{event.clientPhone}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -64,7 +66,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
               <Pencil className="h-4 w-4" />  {tr("Tahrirlash")}
             </LinkButton>
           )}
-          {canDelete && <DeleteEventButton eventId={event.id} clientName={event.clientName} />}
+          {canDelete && <DeleteEventButton eventId={event.id} clientName={client} />}
           <StatusSelect eventId={event.id} status={event.status} />
         </div>
       </div>
@@ -80,7 +82,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
           </div>
           <div>
             <p className="text-muted-foreground">{tr("Menyu")}</p>
-            <p className="font-medium">{event.menu.name}</p>
+            <p className="font-medium">{pickLang(locale, event.menu.name, event.menu.nameRu)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">{tr("Mehmonlar soni")}</p>
@@ -95,8 +97,8 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
-                    [tr("1-ovqat"), event.firstDish],
-                    [tr("2-ovqat"), event.secondDish],
+                    [tr("1-ovqat"), event.firstDish ? pickLang(locale, event.firstDish, event.firstDishRu) : null],
+                    [tr("2-ovqat"), event.secondDish ? pickLang(locale, event.secondDish, event.secondDishRu) : null],
                   ] as const
                 ).map(([label, dish]) => (
                   <div key={label} className="rounded-xl border border-accent/30 bg-accent/5 px-3 py-2.5">
@@ -137,10 +139,10 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
               </div>
             </>
           )}
-          {event.notes && (
+          {(event.notes || event.notesRu) && (
             <div className="sm:col-span-2">
               <p className="text-muted-foreground">{tr("Izoh")}</p>
-              <p className="font-medium">{event.notes}</p>
+              <p className="font-medium">{pickLang(locale, event.notes, event.notesRu)}</p>
             </div>
           )}
         </CardContent>
@@ -199,7 +201,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
               <ul className="mt-2 space-y-1 text-sm">
                 {list.items.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3">
-                    <span>{item.name}</span>
+                    <span>{pickLang(locale, item.name, item.nameRu)}</span>
                     <span className="text-right text-muted-foreground">
                       <ItemQuantity item={item} />
                       {item.isPurchased && " · ✓"}
@@ -268,7 +270,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                       </span>
                       <span className="ml-2 text-xs text-muted-foreground">
                         {isRefund ? tr("Qaytarildi") : tr("To'lov")} · {tr(METHOD_LABEL[p.method] ?? p.method)}
-                        {p.note && ` · ${p.note}`}
+                        {(p.note || p.noteRu) && ` · ${pickLang(locale, p.note, p.noteRu)}`}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(p.paymentDate, locale)}</span>
@@ -323,7 +325,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                   <div className="min-w-0">
                     <p className="font-medium">
                       {tr(EVENT_EXPENSE_CATEGORY_LABELS_UZ[x.category])}
-                      {x.note && <span className="font-normal text-muted-foreground"> — {x.note}</span>}
+                      {(x.note || x.noteRu) && <span className="font-normal text-muted-foreground"> — {pickLang(locale, x.note, x.noteRu)}</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">{formatDateTime(x.createdAt, locale)}</p>
                   </div>

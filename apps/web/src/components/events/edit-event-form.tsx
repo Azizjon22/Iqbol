@@ -4,7 +4,8 @@ import { useTr } from "@/components/i18n/locale-provider";
 
 import { startTransition, useActionState } from "react";
 import { updateEventAction, type FormActionState } from "@/lib/actions/events.actions";
-import { Input, Label, Select, Textarea, FieldError } from "@/components/ui/input";
+import { Input, Label, Select, FieldError } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { MenuAndDishes } from "@/components/events/menu-and-dishes";
 import { Button } from "@/components/ui/button";
 import type { EventDetail, Menu } from "@/lib/types";
@@ -36,10 +37,13 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
       className="space-y-4"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
-        <div>
-          <Label htmlFor="clientName">{tr("Mijoz ismi")}</Label>
-          <Input id="clientName" name="clientName" defaultValue={event.clientName} required />
-        </div>
+        <BilingualField
+          name="clientName"
+          label={tr("Mijoz ismi")}
+          defaultValue={event.clientName}
+          defaultValueRu={event.clientNameRu}
+          required
+        />
         <div>
           <Label htmlFor="clientPhone">{tr("Mijoz telefoni")}</Label>
           <Input id="clientPhone" name="clientPhone" defaultValue={event.clientPhone} placeholder="+998901234567" required />
@@ -75,14 +79,20 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
         menus={menus}
         defaultMenuId={event.menuId}
         defaultFirst={event.firstDish}
+        defaultFirstRu={event.firstDishRu}
         defaultSecond={event.secondDish}
+        defaultSecondRu={event.secondDishRu}
         canSetDishes={canSetDishes}
       />
 
-      <div>
-        <Label htmlFor="notes">{tr("Izoh (ixtiyoriy)")}</Label>
-        <Textarea id="notes" name="notes" rows={3} defaultValue={event.notes ?? ""} />
-      </div>
+      <BilingualField
+        name="notes"
+        label={tr("Izoh (ixtiyoriy)")}
+        multiline
+        rows={3}
+        defaultValue={event.notes}
+        defaultValueRu={event.notesRu}
+      />
 
       <FieldError>{state?.error}</FieldError>
       <Button type="submit" disabled={isPending}>

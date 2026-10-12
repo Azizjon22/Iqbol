@@ -1,5 +1,6 @@
 import { prisma } from './client';
 import { DISHWARE, PRODUCT_CATALOG } from './data/inventory';
+import { INVENTORY_NAME_RU } from './data/translations';
 
 /** Development drops stock this seed no longer lists, with its history. */
 async function removeUnlistedItems() {
@@ -27,6 +28,7 @@ export async function seedInventory({ production }: { production: boolean }) {
       unit: item.unit,
       category: 'PRODUCT' as const,
       productCategory: item.productCategory,
+      nameRu: INVENTORY_NAME_RU[item.name],
     };
     await prisma.inventoryItem.upsert({
       where: { name: item.name },
@@ -43,6 +45,7 @@ export async function seedInventory({ production }: { production: boolean }) {
       quantity: item.quantity,
       productCategory: null,
       minThreshold: null,
+      nameRu: INVENTORY_NAME_RU[item.name],
     };
     await prisma.inventoryItem.upsert({
       where: { name: item.name },

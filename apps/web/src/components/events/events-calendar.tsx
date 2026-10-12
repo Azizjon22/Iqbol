@@ -1,5 +1,6 @@
 "use client";
 import { useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { useMemo, useState } from "react";
@@ -15,6 +16,7 @@ const WEEKDAYS_UZ = ["Dush", "Sesh", "Chor", "Pay", "Jum", "Shan", "Yak"];
 interface CalendarEvent {
   id: string;
   clientName: string;
+  clientNameRu?: string | null;
   eventDate: string;
 }
 
@@ -46,6 +48,7 @@ type Filter = "all" | "free" | "booked";
 
 export function EventsCalendar({ events, readOnly = false }: { events: CalendarEvent[]; readOnly?: boolean }) {
   const tr = useTr();
+  const pick = usePick();
 
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -116,14 +119,14 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-muted-foreground">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground sm:gap-1.5">
           {WEEKDAYS_UZ.map((w) => (
             <div key={w} className="py-1">
-              {w}
+              {tr(w)}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
           {cells.map(({ date, inMonth }) => {
             const key = toDateParam(date);
             const dayEvents = eventsByDay.get(key) ?? [];
@@ -135,7 +138,7 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
               <div
                 key={key}
                 className={cn(
-                  "flex min-h-20 flex-col gap-1 rounded-md border p-1.5 text-left transition",
+                  "flex min-h-20 flex-col gap-1 rounded-md border p-1 text-left transition sm:p-1.5",
                   !inMonth && "border-transparent opacity-30",
                   inMonth && isBooked && "border-primary/40 bg-primary/5 hover:border-primary/60 hover:bg-primary/10 hover:shadow-sm",
                   inMonth && !isBooked && "border-border bg-card hover:border-primary/30 hover:bg-muted/60 hover:shadow-sm",
@@ -150,12 +153,12 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
                   dayEvents.slice(0, 2).map((event) => {
                     const tagContent = (
                       <>
-                        <span className="shrink-0 font-semibold">{formatTime(event.eventDate)}</span>
-                        <span className="truncate">{event.clientName}</span>
+                        <span className="font-semibold tabular-nums">{formatTime(event.eventDate)}</span>
+                        <span className="hidden truncate sm:inline">{pick(event.clientName, event.clientNameRu)}</span>
                       </>
                     );
                     const tagClassName =
-                      "flex items-baseline gap-1 truncate rounded bg-primary/15 px-1 py-0.5 text-[10px] font-medium text-primary";
+                      "flex min-w-0 items-center justify-center rounded bg-primary/15 px-0.5 py-0.5 text-[10px] font-medium text-primary sm:items-baseline sm:justify-start sm:gap-1 sm:truncate sm:px-1";
                     return readOnly ? (
                       <span key={event.id} className={tagClassName}>
                         {tagContent}
@@ -172,9 +175,11 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
                 {inMonth && !readOnly && (
                   <Link
                     href={`/dashboard/events/new?date=${key}`}
-                    className="mt-auto flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary"
+                    aria-label={tr("to'y")}
+                    className="mt-auto flex items-center justify-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary sm:justify-start"
                   >
-                    <Plus className="h-3 w-3" />  {tr("to'y")}
+                    <Plus className="h-3 w-3" />
+                    <span className="hidden sm:inline">{tr("to'y")}</span>
                   </Link>
                 )}
               </div>

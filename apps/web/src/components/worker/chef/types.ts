@@ -3,14 +3,17 @@ import type { MenuDishCategory, ShoppingListStatus } from "@iqbol/shared";
 export interface ChefEvent {
   id: string;
   clientName: string;
+  clientNameRu?: string | null;
   eventDate: string;
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   guestCount: number;
   tableCapacity: number;
-  menu: { name: string; dishes: { id: string; name: string; category: MenuDishCategory }[] };
+  menu: { name: string; nameRu?: string | null; dishes: { id: string; name: string; nameRu?: string | null; category: MenuDishCategory }[] };
   /** The couple's chosen dishes — what the chef actually cooks and shops for. */
   firstDish: string | null;
+  firstDishRu?: string | null;
   secondDish: string | null;
+  secondDishRu?: string | null;
   /** Non-empty when this chef is assigned to the wedding. */
   assignments: { id: string }[];
   /** This chef's own lists for the wedding. */

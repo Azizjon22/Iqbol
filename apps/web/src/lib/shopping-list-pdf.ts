@@ -4,6 +4,7 @@ import { jsPDF } from "jspdf";
 import { UNIT_LABELS_UZ } from "@iqbol/shared";
 import type { ShoppingList } from "@/lib/types";
 import { formatDate, formatDateTime, formatSom } from "@/lib/utils";
+import { pickLang } from "@/i18n/pick";
 import { trText } from "@/i18n/tr";
 import type { Locale } from "@/i18n/types";
 
@@ -31,7 +32,7 @@ export function downloadShoppingListPdf(list: ShoppingList, locale: Locale = "uz
   doc.text(tr(`Yubordi: ${list.createdByWorker.fullName}`), left, y);
   y += 6;
   if (list.event) {
-    doc.text(tr(`To'y: ${list.event.clientName} — ${formatDate(list.event.eventDate, locale)}`), left, y);
+    doc.text(tr(`To'y: ${pickLang(locale, list.event.clientName, list.event.clientNameRu)} — ${formatDate(list.event.eventDate, locale)}`), left, y);
     y += 6;
   }
   y += 4;
@@ -56,7 +57,8 @@ export function downloadShoppingListPdf(list: ShoppingList, locale: Locale = "uz
       item.totalCost != null ? Number(item.totalCost) : item.unitPrice ? Number(item.unitPrice) * Number(item.quantity) : 0;
     total += itemTotal;
 
-    doc.text(item.name, left, y, { maxWidth: 88 });
+    const label = pickLang(locale, item.name, item.nameRu);
+    doc.text(label, left, y, { maxWidth: 88 });
     doc.text(`${item.quantity} ${tr(UNIT_LABELS_UZ[item.unit])}`, 105, y);
     doc.text(item.unitPrice ? formatSom(item.unitPrice, locale) : "-", 140, y);
     doc.text(item.isPurchased ? tr("Olindi") : tr("Kutilmoqda"), 175, y);
@@ -69,6 +71,6 @@ export function downloadShoppingListPdf(list: ShoppingList, locale: Locale = "uz
   doc.setFontSize(12);
   doc.text(tr(`Jami: ${formatSom(total, locale)}`), left, y);
 
-  const parts = ["bozorlik", list.event ? slug(list.event.clientName) : "royxat", slug(formatDate(list.createdAt))];
+  const parts = ["bozorlik", list.event ? slug(pickLang(locale, list.event.clientName, list.event.clientNameRu)) : "royxat", slug(formatDate(list.createdAt))];
   doc.save(`${parts.join("_")}.pdf`);
 }

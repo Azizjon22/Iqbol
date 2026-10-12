@@ -18,9 +18,11 @@ import type {
 export interface Menu {
   id: string;
   name: string;
+  nameRu?: string | null;
   pricePerPerson: string;
   guestCount: number;
   description: string | null;
+  descriptionRu?: string | null;
   coverImageUrl: string | null;
   isVip: boolean;
   dishes: MenuDish[];
@@ -32,7 +34,9 @@ export interface MenuDish {
   menuId: string;
   category: MenuDishCategory;
   name: string;
+  nameRu?: string | null;
   description: string | null;
+  descriptionRu?: string | null;
   photoUrl: string | null;
   order: number;
 }
@@ -44,6 +48,7 @@ export interface MenuMedia {
   mediaType: MediaType;
   url: string;
   caption: string | null;
+  captionRu?: string | null;
   order: number;
   processingStatus: MediaProcessingStatus;
 }
@@ -79,6 +84,7 @@ export interface Payment {
   paymentDate: string;
   method: PaymentMethod;
   note: string | null;
+  noteRu?: string | null;
   createdBy?: { id: string; fullName: string };
 }
 
@@ -88,6 +94,7 @@ export interface EventExpense {
   category: EventExpenseCategory;
   amount: string;
   note: string | null;
+  noteRu?: string | null;
   createdAt: string;
   createdBy?: { id: string; fullName: string };
 }
@@ -95,6 +102,7 @@ export interface EventExpense {
 export interface EventDetail {
   id: string;
   clientName: string;
+  clientNameRu?: string | null;
   clientPhone: string;
   eventDate: string;
   tableCapacity: number;
@@ -103,9 +111,12 @@ export interface EventDetail {
   menu: Menu;
   status: EventStatus;
   notes: string | null;
+  notesRu?: string | null;
   /** The couple's chosen 1st / 2nd dish; set by SUPER_ADMIN. */
   firstDish: string | null;
+  firstDishRu?: string | null;
   secondDish: string | null;
+  secondDishRu?: string | null;
   assignments: EventAssignment[];
   payments?: Payment[];
   expenses?: EventExpense[];
@@ -120,12 +131,14 @@ export interface EventDetail {
 export interface UpcomingEvent {
   id: string;
   clientName: string;
+  clientNameRu?: string | null;
   eventDate: string;
 }
 
 export interface InventoryItem {
   id: string;
   name: string;
+  nameRu?: string | null;
   category: InventoryCategory;
   productCategory: ProductCategory | null;
   photoUrl: string | null;
@@ -141,13 +154,14 @@ export interface InventoryTxn {
   type: "IN" | "OUT";
   quantity: string;
   note: string | null;
+  noteRu?: string | null;
   createdAt: string;
   createdBy: { id: string; fullName: string };
   sourceShoppingListItem: {
-    shoppingList: { id: string; event: { id: string; clientName: string } | null };
+    shoppingList: { id: string; event: { id: string; clientName: string; clientNameRu?: string | null } | null };
   } | null;
   /** Only on the store-wide recent feed. */
-  item?: { id: string; name: string; unit: Unit; category: InventoryCategory };
+  item?: { id: string; name: string; nameRu?: string | null; unit: Unit; category: InventoryCategory };
 }
 
 export interface DailyReportDay {
@@ -170,6 +184,7 @@ export interface DailyReport {
 export interface ProductCatalogItem {
   id: string;
   name: string;
+  nameRu?: string | null;
   productCategory: ProductCategory | null;
   unit: Unit;
   photoUrl: string | null;
@@ -179,6 +194,7 @@ export interface ShoppingListItem {
   id: string;
   shoppingListId: string;
   name: string;
+  nameRu?: string | null;
   quantity: string;
   /** Chef's original figure when SUPER_ADMIN changed it; "0" = added by SUPER_ADMIN. */
   originalQuantity: string | null;
@@ -188,6 +204,7 @@ export interface ShoppingListItem {
   totalCost?: string | null;
   isPurchased: boolean;
   note: string | null;
+  noteRu?: string | null;
 }
 
 export interface ShoppingList {
@@ -197,7 +214,7 @@ export interface ShoppingList {
   createdAt: string;
   reviewedAt: string | null;
   createdByWorker: { id: string; fullName: string; position: WorkerPosition };
-  event: { id: string; clientName: string; eventDate: string; guestCount?: number } | null;
+  event: { id: string; clientName: string; clientNameRu?: string | null; eventDate: string; guestCount?: number } | null;
   reviewedBy: { id: string; fullName: string } | null;
   approvedAt: string | null;
   approvedBy: { id: string; fullName: string } | null;
