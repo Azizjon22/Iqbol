@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { useState, useTransition } from "react";
@@ -16,6 +17,7 @@ const WEEKDAYS = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
 /** Toggle a worker onto upcoming weddings, warning about same-day double bookings. */
 export function AssignModal({ worker, events, onClose }: { worker: TeamWorker; events: StaffingEvent[]; onClose: () => void }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const [isPending, startTransition] = useTransition();
@@ -78,7 +80,7 @@ export function AssignModal({ worker, events, onClose }: { worker: TeamWorker; e
                 <span className="font-display text-xl font-semibold leading-none lining-nums">{date.getDate()}</span>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{event.clientName}</p>
+                <p className="truncate text-sm font-medium">{pick(event.clientName, event.clientNameRu)}</p>
                 <p className="text-xs text-muted-foreground">
                   {formatDate(date, locale)}, {formatTime(date)} · {tr(`${event.guestCount} mehmon`)}
                 </p>
@@ -95,7 +97,7 @@ export function AssignModal({ worker, events, onClose }: { worker: TeamWorker; e
                 checked={checked}
                 disabled={isPending}
                 onChange={() => toggle(event.id, !checked)}
-                aria-label={event.clientName}
+                aria-label={pick(event.clientName, event.clientNameRu)}
               />
             </li>
           );

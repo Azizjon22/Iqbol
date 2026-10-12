@@ -12,4 +12,8 @@ export class StockCountDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  noteRu?: string;
 }

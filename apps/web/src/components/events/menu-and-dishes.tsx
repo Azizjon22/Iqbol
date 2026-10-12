@@ -6,7 +6,9 @@ import { useState } from "react";
 import { Check, PenLine, Soup, UtensilsCrossed } from "lucide-react";
 import type { MenuDishCategory } from "@iqbol/shared";
 import type { Menu } from "@/lib/types";
-import { Input, Label, Select } from "@/components/ui/input";
+import { Label, Select } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
+import { usePick } from "@/components/i18n/use-pick";
 import { formatSom, cn } from "@/lib/utils";
 
 function DishChoice({
@@ -15,35 +17,39 @@ function DishChoice({
   icon,
   options,
   value,
+  valueRu,
   onChange,
 }: {
   name: "firstDish" | "secondDish";
   label: string;
   icon: React.ReactNode;
-  options: string[];
+  options: { uz: string; ru: string | null }[];
   value: string;
-  onChange: (v: string) => void;
+  valueRu: string;
+  onChange: (uz: string, ru: string) => void;
 }) {
   const tr = useTr();
-
-  const custom = value !== "" && !options.includes(value);
+  const pick = usePick();
+  const names = options.map((o) => o.uz);
+  const custom = value !== "" && !names.includes(value);
   const [typing, setTyping] = useState(custom || options.length === 0);
 
   return (
     <div className="rounded-xl border border-border bg-muted/30 p-3">
       <input type="hidden" name={name} value={value} />
+      <input type="hidden" name={`${name}Ru`} value={valueRu} />
       <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
         {icon} {tr(label)} <span className="text-destructive">*</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
         {options.map((o) => {
-          const on = value === o;
+          const on = value === o.uz;
           return (
             <button
-              key={o}
+              key={o.uz}
               type="button"
               onClick={() => {
-                onChange(o);
+                onChange(o.uz, o.ru?.trim() || o.uz);
                 setTyping(false);
               }}
               className={cn(
@@ -52,7 +58,7 @@ function DishChoice({
               )}
             >
               {on && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-              {o}
+              {pick(o.uz, o.ru)}
             </button>
           );
         })}
@@ -60,23 +66,25 @@ function DishChoice({
           type="button"
           onClick={() => {
             setTyping(true);
-            if (options.includes(value)) onChange("");
+            if (names.includes(value)) onChange("", "");
           }}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-sm transition",
             typing ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground",
           )}
         >
-          <PenLine className="h-3.5 w-3.5" /> Boshqa
+          <PenLine className="h-3.5 w-3.5" /> {tr("Boshqa")}
         </button>
       </div>
       {typing && (
-        <Input
-          value={custom ? value : ""}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={tr("Taom nomini yozing")}
+        <BilingualField
+          name={`${name}-draft`}
+          submit={false}
           className="mt-2"
-          autoFocus={options.length > 0}
+          placeholder={tr("Taom nomini yozing")}
+          defaultValue={custom ? value : ""}
+          defaultValueRu={custom ? valueRu : ""}
+          onValues={onChange}
         />
       )}
     </div>
@@ -91,23 +99,31 @@ export function MenuAndDishes({
   menus,
   defaultMenuId = "",
   defaultFirst = "",
+  defaultFirstRu = "",
   defaultSecond = "",
+  defaultSecondRu = "",
   canSetDishes,
 }: {
   menus: Menu[];
   defaultMenuId?: string;
   defaultFirst?: string | null;
+  defaultFirstRu?: string | null;
   defaultSecond?: string | null;
+  defaultSecondRu?: string | null;
   canSetDishes: boolean;
 }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const [menuId, setMenuId] = useState(defaultMenuId);
   const [first, setFirst] = useState(defaultFirst ?? "");
+  const [firstRu, setFirstRu] = useState(defaultFirstRu ?? "");
   const [second, setSecond] = useState(defaultSecond ?? "");
+  const [secondRu, setSecondRu] = useState(defaultSecondRu ?? "");
   const menu = menus.find((m) => m.id === menuId);
-  const optionsFor = (c: MenuDishCategory) => (menu?.dishes ?? []).filter((d) => d.category === c).map((d) => d.name);
+  const optionsFor = (c: MenuDishCategory) =>
+    (menu?.dishes ?? []).filter((d) => d.category === c).map((d) => ({ uz: d.name, ru: d.nameRu ?? null }));
 
   return (
     <div className="space-y-3">
@@ -117,7 +133,7 @@ export function MenuAndDishes({
           <option value="">{tr("Tanlang")}</option>
           {menus.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.name} — {formatSom(m.pricePerPerson, locale)} {tr("/ kishi")}
+              {pick(m.name, m.nameRu)} — {formatSom(m.pricePerPerson, locale)} {tr("/ kishi")}
             </option>
           ))}
         </Select>
@@ -135,7 +151,11 @@ export function MenuAndDishes({
                 icon={<Soup className="h-4 w-4 text-accent" />}
                 options={optionsFor("FIRST_DISH")}
                 value={first}
-                onChange={setFirst}
+                valueRu={firstRu}
+                onChange={(uz, ru) => {
+                  setFirst(uz);
+                  setFirstRu(ru);
+                }}
               />
               <DishChoice
                 key={`second-${menuId}`}
@@ -144,7 +164,11 @@ export function MenuAndDishes({
                 icon={<UtensilsCrossed className="h-4 w-4 text-accent" />}
                 options={optionsFor("SECOND_DISH")}
                 value={second}
-                onChange={setSecond}
+                valueRu={secondRu}
+                onChange={(uz, ru) => {
+                  setSecond(uz);
+                  setSecondRu(ru);
+                }}
               />
             </div>
           ) : (

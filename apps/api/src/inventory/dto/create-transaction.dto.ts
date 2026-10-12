@@ -22,4 +22,8 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  noteRu?: string;
 }

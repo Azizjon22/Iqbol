@@ -10,6 +10,7 @@ import { Reveal } from "@/components/menus/showcase/reveal";
 import { SafeImage } from "@/components/menus/showcase/safe-image";
 import { ClosingCta } from "@/components/menus/showcase/closing-cta";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 import { formatSom, cn } from "@/lib/utils";
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
@@ -38,6 +39,7 @@ export function MenuShowcaseList({
   hero?: { url: string | null; kind: "IMAGE" | "VIDEO" | null } | null;
 }) {
   const { t, locale } = useLocale();
+  const pick = usePick();
 
   const sorted = [...menus].sort(
     (a, b) => a.guestCount - b.guestCount || Number(a.pricePerPerson) - Number(b.pricePerPerson),
@@ -133,7 +135,7 @@ export function MenuShowcaseList({
                     <SafeImage
                       src={menu.coverImageUrl}
                       fallbacks={photoFallbacks(menu)}
-                      alt={menu.name}
+                      alt={pick(menu.name, menu.nameRu)}
                       className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.06]"
                     />
                   </div>
@@ -154,9 +156,9 @@ export function MenuShowcaseList({
                   </div>
 
                   <div className="relative p-[clamp(1.1rem,7cqw,2rem)]">
-                    <h2 className="font-display text-[clamp(1.6rem,10.5cqw,3rem)] font-semibold leading-[1.05] lining-nums">{menu.name}</h2>
-                    {menu.description && (
-                      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/65">{menu.description}</p>
+                    <h2 className="font-display text-[clamp(1.6rem,10.5cqw,3rem)] font-semibold leading-[1.05] lining-nums">{pick(menu.name, menu.nameRu)}</h2>
+                    {(menu.description || menu.descriptionRu) && (
+                      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/65">{pick(menu.description, menu.descriptionRu)}</p>
                     )}
                     <div className="mt-4 h-px w-full bg-gradient-to-r from-gold/60 via-gold/20 to-transparent" />
                     <div className="mt-4 flex items-end justify-between gap-3">

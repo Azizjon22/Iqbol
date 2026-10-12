@@ -64,6 +64,7 @@ export class PaymentsService {
           amount,
           method: dto.method,
           note: dto.note,
+          noteRu: dto.noteRu,
           createdById: actorId,
         },
       });
@@ -110,6 +111,7 @@ export class PaymentsService {
           amount,
           method: dto.method,
           note: dto.note,
+          noteRu: dto.noteRu,
           createdById: actorId,
         },
       });

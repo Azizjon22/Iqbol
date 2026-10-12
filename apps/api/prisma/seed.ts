@@ -4,6 +4,7 @@ import { seedDemo } from './seed/demo';
 import { seedInventory } from './seed/inventory';
 import { seedMenus } from './seed/menus';
 import { seedDemoStaff, seedProductionAdmin } from './seed/staff';
+import { fillBilingualContent } from './fill-bilingual';
 
 /**
  * `prisma db seed`.
@@ -21,6 +22,7 @@ async function main() {
   if (production) await seedProductionAdmin();
   const menus = await seedMenus({ production });
   await seedInventory({ production });
+  await fillBilingualContent(prisma);
 
   if (production) {
     console.log(

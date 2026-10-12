@@ -6,6 +6,7 @@ import { startTransition, useActionState, useEffect, useRef } from "react";
 import { PAYMENT_METHODS } from "@iqbol/shared";
 import { addPaymentAction, addRefundAction, type FormActionState } from "@/lib/actions/events.actions";
 import { Input, Select, Label, FieldError } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { Button } from "@/components/ui/button";
 
 import { METHOD_LABEL } from "@/lib/payment-methods";
@@ -55,10 +56,12 @@ export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mo
           ))}
         </Select>
       </div>
-      <div className="flex-1">
-        <Label htmlFor={`${mode}-note`}>{tr("Izoh")}</Label>
-        <Input id={`${mode}-note`} name="note" placeholder={refund ? tr("masalan: to'y bekor qilindi, zaklad qaytarildi") : undefined} />
-      </div>
+      <BilingualField
+        name="note"
+        label={tr("Izoh")}
+        className="min-w-48 flex-1"
+        placeholder={refund ? tr("masalan: to'y bekor qilindi, zaklad qaytarildi") : undefined}
+      />
       <Button type="submit" variant={refund ? "destructive" : "primary"} disabled={isPending}>
         {isPending ? tr("Saqlanmoqda...") : refund ? tr("Pulni qaytarish") : tr("To'lov qo'shish")}
       </Button>

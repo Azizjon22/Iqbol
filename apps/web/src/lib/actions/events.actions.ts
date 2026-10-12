@@ -19,13 +19,19 @@ export type FormActionState = { error?: string } | undefined;
  * SUPER_ADMIN's form carries the couple's 1st/2nd dish (both required);
  * other roles never send them — the API refuses them from anyone else.
  */
-function readDishes(formData: FormData): { error?: string; dishes?: { firstDish: string; secondDish: string } } {
+function readDishes(formData: FormData): {
+  error?: string;
+  dishes?: { firstDish: string; secondDish: string; firstDishRu: string; secondDishRu: string };
+} {
   if (formData.get("canSetDishes") !== "1") return {};
   const firstDish = String(formData.get("firstDish") ?? "").trim();
   const secondDish = String(formData.get("secondDish") ?? "").trim();
+  const firstDishRu = String(formData.get("firstDishRu") ?? "").trim();
+  const secondDishRu = String(formData.get("secondDishRu") ?? "").trim();
   if (!firstDish) return { error: "1-ovqatni tanlang" };
   if (!secondDish) return { error: "2-ovqatni tanlang" };
-  return { dishes: { firstDish, secondDish } };
+  if (!firstDishRu || !secondDishRu) return { error: "Ikkala tilda ham yozing" };
+  return { dishes: { firstDish, secondDish, firstDishRu, secondDishRu } };
 }
 
 export async function createEventAction(
@@ -36,12 +42,14 @@ export async function createEventAction(
 
   const parsed = createEventSchema.safeParse({
     clientName: formData.get("clientName"),
+    clientNameRu: formData.get("clientNameRu"),
     clientPhone: formData.get("clientPhone"),
     eventDate: formData.get("eventDate"),
     tableCapacity: Number(formData.get("tableCapacity")),
     guestCount: formData.get("guestCount"),
     menuId: formData.get("menuId"),
     notes: formData.get("notes") || undefined,
+    notesRu: formData.get("notesRu") || undefined,
   });
   if (!parsed.success) {
     return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
@@ -74,12 +82,14 @@ export async function updateEventAction(
 
   const parsed = updateEventSchema.safeParse({
     clientName: formData.get("clientName"),
+    clientNameRu: formData.get("clientNameRu"),
     clientPhone: formData.get("clientPhone"),
     eventDate: formData.get("eventDate"),
     tableCapacity: Number(formData.get("tableCapacity")),
     guestCount: formData.get("guestCount"),
     menuId: formData.get("menuId"),
     notes: formData.get("notes") || undefined,
+    notesRu: formData.get("notesRu") || undefined,
   });
   if (!parsed.success) {
     return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
@@ -145,6 +155,7 @@ export async function addPaymentAction(
     amount: formData.get("amount"),
     method: formData.get("method"),
     note: formData.get("note") || undefined,
+    noteRu: formData.get("noteRu") || undefined,
   });
   if (!parsed.success) {
     return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
@@ -175,6 +186,7 @@ export async function addRefundAction(
     amount: formData.get("amount"),
     method: formData.get("method"),
     note: formData.get("note") || undefined,
+    noteRu: formData.get("noteRu") || undefined,
   });
   if (!parsed.success) {
     return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };
@@ -206,6 +218,7 @@ export async function addExpenseAction(
     category: formData.get("category"),
     amount: formData.get("amount"),
     note: formData.get("note") || undefined,
+    noteRu: formData.get("noteRu") || undefined,
   });
   if (!parsed.success) {
     return { error: tr(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri") };

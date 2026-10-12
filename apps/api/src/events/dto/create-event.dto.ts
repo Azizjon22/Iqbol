@@ -17,6 +17,10 @@ export class CreateEventDto {
   clientName!: string;
 
   @IsString()
+  @MinLength(2)
+  clientNameRu!: string;
+
+  @IsString()
   @Matches(/^\+?[0-9]{9,15}$/, { message: "Telefon raqami noto'g'ri" })
   clientPhone!: string;
 
@@ -42,9 +46,21 @@ export class CreateEventDto {
 
   @IsOptional()
   @IsString()
+  notesRu?: string;
+
+  @IsOptional()
+  @IsString()
   firstDish?: string;
 
   @IsOptional()
   @IsString()
+  firstDishRu?: string;
+
+  @IsOptional()
+  @IsString()
   secondDish?: string;
+
+  @IsOptional()
+  @IsString()
+  secondDishRu?: string;
 }

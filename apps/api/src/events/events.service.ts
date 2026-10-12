@@ -87,15 +87,19 @@ export class EventsService {
     const event = await this.prisma.event.create({
       data: {
         clientName: dto.clientName,
+        clientNameRu: dto.clientNameRu,
         clientPhone: dto.clientPhone,
         eventDate: new Date(dto.eventDate),
         tableCapacity: dto.tableCapacity,
         guestCount: dto.guestCount,
         menuId: dto.menuId,
         totalPrice,
-        notes: dto.notes,
+        notes: dto.notes?.trim() || null,
+        notesRu: dto.notesRu?.trim() || null,
         firstDish: dto.firstDish?.trim() || null,
+        firstDishRu: dto.firstDishRu?.trim() || null,
         secondDish: dto.secondDish?.trim() || null,
+        secondDishRu: dto.secondDishRu?.trim() || null,
         createdById: actorId,
       },
       include: eventDetailInclude,
@@ -118,7 +122,7 @@ export class EventsService {
     startOfToday.setHours(0, 0, 0, 0);
     return this.prisma.event.findMany({
       where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
-      select: { id: true, clientName: true, eventDate: true },
+      select: { id: true, clientName: true, clientNameRu: true, eventDate: true },
       orderBy: { eventDate: 'asc' },
       // Also backs the chef's read-only events calendar, which needs every
       // upcoming booking in view, not just the nearest handful.
@@ -138,6 +142,7 @@ export class EventsService {
       select: {
         id: true,
         clientName: true,
+        clientNameRu: true,
         eventDate: true,
         status: true,
         guestCount: true,
@@ -145,15 +150,18 @@ export class EventsService {
         menu: {
           select: {
             name: true,
+            nameRu: true,
             dishes: {
-              select: { id: true, name: true, category: true },
+              select: { id: true, name: true, nameRu: true, category: true },
               orderBy: { order: 'asc' },
             },
           },
         },
         assignments: { where: { workerId }, select: { id: true } },
         firstDish: true,
+        firstDishRu: true,
         secondDish: true,
+        secondDishRu: true,
         shoppingLists: {
           where: { createdByWorkerId: workerId },
           select: { id: true, status: true, createdAt: true },
@@ -252,21 +260,31 @@ export class EventsService {
         where: { id },
         data: {
           clientName: dto.clientName,
+          clientNameRu: dto.clientNameRu,
           clientPhone: dto.clientPhone,
           eventDate: dto.eventDate ? new Date(dto.eventDate) : undefined,
           tableCapacity: dto.tableCapacity,
           guestCount: dto.guestCount,
           menuId: dto.menuId,
-          notes: dto.notes,
+          notes: dto.notes === undefined ? undefined : dto.notes.trim() || null,
+          notesRu: dto.notesRu === undefined ? undefined : dto.notesRu.trim() || null,
           // "" clears a choice; undefined leaves it untouched.
           firstDish:
             dto.firstDish === undefined
               ? undefined
               : dto.firstDish.trim() || null,
+          firstDishRu:
+            dto.firstDishRu === undefined
+              ? undefined
+              : dto.firstDishRu.trim() || null,
           secondDish:
             dto.secondDish === undefined
               ? undefined
               : dto.secondDish.trim() || null,
+          secondDishRu:
+            dto.secondDishRu === undefined
+              ? undefined
+              : dto.secondDishRu.trim() || null,
           totalPrice,
         },
         include: eventDetailInclude,

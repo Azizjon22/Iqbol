@@ -17,6 +17,10 @@ export class CreateMenuDto {
   @MinLength(2)
   name!: string;
 
+  @IsString()
+  @MinLength(2)
+  nameRu!: string;
+
   @Type(() => Number)
   @IsNumber()
   @IsPositive({ message: "Narx 0 dan katta bo'lishi kerak" })
@@ -33,6 +37,10 @@ export class CreateMenuDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  descriptionRu?: string;
 
   @IsOptional()
   @IsMediaUrl()

@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { STANDARD_DESCRIPTION, VIP_DESCRIPTION } from './translations';
 
 /**
  * The hall's menus as they are sold. Photos are stock placeholders until the
@@ -342,9 +343,11 @@ const vipDishes: DishSeed[] = [
 
 export interface MenuSeed {
   name: string;
+  nameRu: string;
   pricePerPerson: number;
   guestCount: number;
   description: string;
+  descriptionRu: string;
   isVip: boolean;
   cover: string;
   dishes: DishSeed[];
@@ -352,31 +355,31 @@ export interface MenuSeed {
 
 export const MENU_SEEDS: MenuSeed[] = [
   {
-    name: '150 гостей',
+    name: '150 mehmon',
+    nameRu: '150 гостей',
     pricePerPerson: 300000,
     guestCount: 150,
-    description:
-      'Холодные и горячие закуски, горячие блюда, салаты, фрукты и напитки без ограничений.',
+    ...STANDARD_DESCRIPTION,
     isVip: false,
     cover: coverImages[0],
     dishes: standardDishes,
   },
   {
-    name: '200 гостей',
+    name: '200 mehmon',
+    nameRu: '200 гостей',
     pricePerPerson: 300000,
     guestCount: 200,
-    description:
-      'Холодные и горячие закуски, горячие блюда, салаты, фрукты и напитки без ограничений.',
+    ...STANDARD_DESCRIPTION,
     isVip: false,
     cover: coverImages[1],
     dishes: standardDishes,
   },
   {
     name: 'VIP menyu',
+    nameRu: 'VIP меню',
     pricePerPerson: 370000,
     guestCount: 408,
-    description:
-      'Расширенный VIP-стол: рыба, икра, оливки, сухофрукты и напитки без ограничений.',
+    ...VIP_DESCRIPTION,
     isVip: true,
     cover: coverImages[3],
     dishes: vipDishes,

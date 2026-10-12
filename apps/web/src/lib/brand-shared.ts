@@ -3,6 +3,7 @@ export type HeroMediaKind = "IMAGE" | "VIDEO";
 
 export interface Brand {
   brandName: string;
+  brandNameRu?: string | null;
   logoUrl: string | null;
   heroMediaUrl: string | null;
   heroMediaKind: HeroMediaKind | null;

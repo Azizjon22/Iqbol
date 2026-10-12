@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { useMemo, useState } from "react";
@@ -18,6 +19,7 @@ import { menuApi, errorText } from "./api";
 
 export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record<string, number> }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const router = useRouter();
@@ -58,7 +60,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
             target="_blank"
             className="inline-flex h-10 items-center gap-2 rounded-md border border-input px-4 text-sm font-medium transition hover:bg-muted"
           >
-            <ExternalLink className="h-4 w-4" /> Taqdimotni ochish
+            <ExternalLink className="h-4 w-4" /> {tr("Taqdimotni ochish")}
           </Link>
           <Button type="button" onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" />  {tr("Yangi menyu")}
@@ -72,7 +74,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
             { label: tr("Menyular"), value: sorted.length },
             { label: tr("Narx oralig'i"), value: tr(`${Number(sorted[0].pricePerPerson) / 1000}–${Number(sorted[sorted.length - 1].pricePerPerson) / 1000} ming`) },
             { label: tr("Jami to'ylarda"), value: Object.values(usage).reduce((s, n) => s + n, 0) },
-            { label: "E'tibor kerak", value: needAttention, warn: needAttention > 0 },
+            { label: tr("E'tibor kerak"), value: needAttention, warn: needAttention > 0 },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-border bg-card px-4 py-3">
               <p className="text-xs text-muted-foreground">{tr(s.label)}</p>
@@ -102,7 +104,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                 <SafeImage
                   src={menu.coverImageUrl}
                   fallbacks={menu.media.filter((m) => m.mediaType === "PHOTO").map((m) => m.url)}
-                  alt={menu.name}
+                  alt={pick(menu.name, menu.nameRu)}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
@@ -117,7 +119,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                   </span>
                 )}
                 <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                  <p className="font-display text-2xl font-semibold leading-tight">{menu.name}</p>
+                  <p className="font-display text-2xl font-semibold leading-tight">{pick(menu.name, menu.nameRu)}</p>
                   <p className="text-sm text-white/80 tabular-nums">{formatSom(menu.pricePerPerson, locale)} {tr("/ kishi")}</p>
                 </div>
               </Link>
@@ -131,7 +133,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                     ) : (
                       issues.map((c) => (
                         <p key={c.key} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" /> {c.hint}
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" /> {c.hint ? tr(c.hint) : null}
                         </p>
                       ))
                     )}
@@ -141,11 +143,11 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="rounded-lg bg-muted/60 px-2 py-2">
                     <UtensilsCrossed className="mx-auto mb-1 h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-semibold tabular-nums">{menu.dishes.length}</span> taom
+                    <span className="font-semibold tabular-nums">{tr(`${menu.dishes.length} taom`)}</span>
                   </div>
                   <div className="rounded-lg bg-muted/60 px-2 py-2">
                     <ImageIcon className="mx-auto mb-1 h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-semibold tabular-nums">{photos}</span> rasm
+                    <span className="font-semibold tabular-nums">{tr(`${photos} rasm`)}</span>
                   </div>
                   <div className="rounded-lg bg-muted/60 px-2 py-2">
                     <CalendarHeart className="mx-auto mb-1 h-3.5 w-3.5 text-muted-foreground" />

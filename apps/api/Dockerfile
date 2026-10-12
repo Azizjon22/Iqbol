@@ -22,10 +22,25 @@ RUN pnpm --filter @iqbol/shared build \
 
 FROM base AS run
 ENV NODE_ENV=production
-# Weddings are in Tashkent; logs and any local-time code agree with that.
 ENV TZ=Asia/Tashkent
+# TEST ENV — rotate these creds before any real use
+ENV DATABASE_URL="postgresql://postgres:uzUnJFkjDDJwerGONFwTYGdpxmAkDECk@postgres.railway.internal:5432/railway"
+ENV JWT_ACCESS_SECRET="test-jwt-access-secret-change-before-prod"
+ENV JWT_REFRESH_SECRET="test-jwt-refresh-secret-change-before-prod"
+ENV JWT_ACCESS_TTL="15m"
+ENV JWT_REFRESH_TTL="30d"
+ENV PORT=3001
+ENV S3_ENDPOINT="https://t3.storageapi.dev"
+ENV S3_REGION="auto"
+ENV S3_BUCKET="roomy-room-isg3shja2qfa12"
+ENV S3_ACCESS_KEY_ID="tid_kEZdIqEhxhDoTkGyUUEclOWpLwWQcihypoDhUQwLefDKXFlorr"
+ENV S3_SECRET_ACCESS_KEY="tsec_RgJZ7-N4cjfxY-xsLWcPuEd8DZVqHGA8Qb_tsYeQDXx0ga8zTx7FUUXPF6KmZapn-5GH2L"
+ENV S3_PUBLIC_BASE_URL="https://t3.storageapi.dev/roomy-room-isg3shja2qfa12"
+ENV SEED_SUPER_ADMIN_PHONE="+998901234567"
+ENV SEED_SUPER_ADMIN_PASSWORD="TestAdmin2024!"
+ENV WEB_ORIGIN="https://cooperative-strength-production-e477.up.railway.app"
 COPY --from=build /app /app
 WORKDIR /app/apps/api
 EXPOSE 3001
 # Apply pending migrations, then start.
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/src/main"]
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && pnpm exec prisma db seed && node dist/src/main"]

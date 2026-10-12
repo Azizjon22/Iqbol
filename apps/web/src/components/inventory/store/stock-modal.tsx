@@ -10,6 +10,8 @@ import type { InventoryItem, UpcomingEvent } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
+import { usePick } from "@/components/i18n/use-pick";
 import { formatDate, cn } from "@/lib/utils";
 import { inventoryApi, qty } from "./helpers";
 
@@ -34,6 +36,7 @@ export function StockModal({
   onClose: () => void;
 }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const router = useRouter();
@@ -41,6 +44,7 @@ export function StockModal({
   const [amount, setAmount] = useState(initialMode === "COUNT" ? String(Number(item.quantity)) : "");
   const [eventId, setEventId] = useState("");
   const [note, setNote] = useState("");
+  const [noteRu, setNoteRu] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -64,12 +68,15 @@ export function StockModal({
     setBusy(true);
     setError(undefined);
     const event = events.find((e) => e.id === eventId);
-    const fullNote = [event ? tr(`To'y: ${event.clientName}`) : "", note.trim()].filter(Boolean).join(" — ");
+    const fullNote = [event ? `To'y: ${event.clientName}` : "", note.trim()].filter(Boolean).join(" — ");
+    const fullNoteRu = noteRu.trim()
+      ? [event ? `Свадьба: ${event.clientNameRu?.trim() || event.clientName}` : "", noteRu.trim()].filter(Boolean).join(" — ")
+      : undefined;
     try {
       if (mode === "COUNT") {
-        await inventoryApi(`/${item.id}/count`, "POST", { actual: value, note: fullNote || undefined });
+        await inventoryApi(`/${item.id}/count`, "POST", { actual: value, note: fullNote || undefined, noteRu: fullNoteRu });
       } else {
-        await inventoryApi(`/${item.id}/transactions`, "POST", { type: mode, quantity: value, note: fullNote || undefined });
+        await inventoryApi(`/${item.id}/transactions`, "POST", { type: mode, quantity: value, note: fullNote || undefined, noteRu: fullNoteRu });
       }
       onClose();
       router.refresh();
@@ -86,8 +93,8 @@ export function StockModal({
     <Modal
       open
       onClose={onClose}
-      title={item.name}
-      description={`Hozirgi qoldiq: ${qty(item.quantity, item.unit)}`}
+      title={pick(item.name, item.nameRu)}
+      description={tr(`Hozirgi qoldiq: ${qty(item.quantity, item.unit)}`)}
       size="md"
       footer={
         <>
@@ -166,22 +173,24 @@ export function StockModal({
             <option value="">— tanlanmagan —</option>
             {events.map((e) => (
               <option key={e.id} value={e.id}>
-                {formatDate(e.eventDate, locale)} — {e.clientName}
+                {formatDate(e.eventDate, locale)} — {pick(e.clientName, e.clientNameRu)}
               </option>
             ))}
           </Select>
         </div>
       )}
 
-      <div className="mt-4">
-        <Label htmlFor="stock-note">{tr("Izoh (ixtiyoriy)")}</Label>
-        <Input
-          id="stock-note"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder={mode === "IN" ? tr("masalan: Chorsu bozoridan") : mode === "OUT" ? (dishware ? "masalan: 3 ta singan" : "masalan: oshxonaga") : "masalan: oylik sanoq"}
-        />
-      </div>
+      <BilingualField
+        name="stock-note"
+        submit={false}
+        label={tr("Izoh (ixtiyoriy)")}
+        className="mt-4"
+        placeholder={mode === "IN" ? tr("masalan: Chorsu bozoridan") : mode === "OUT" ? (dishware ? "masalan: 3 ta singan" : "masalan: oshxonaga") : "masalan: oylik sanoq"}
+        onValues={(uz, ru) => {
+          setNote(uz);
+          setNoteRu(ru);
+        }}
+      />
 
       <div
         className={cn(
@@ -189,10 +198,10 @@ export function StockModal({
           overdraw ? "border-destructive/40 bg-destructive/10" : "border-border bg-muted/40",
         )}
       >
-        <span className="tabular-nums text-muted-foreground">{qty(current, item.unit)}</span>
+        <span className="tabular-nums text-muted-foreground">{tr(qty(current, item.unit))}</span>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <span className={cn("text-base font-semibold tabular-nums", overdraw ? "text-destructive" : after > current ? "text-success" : after < current ? "text-accent" : "")}>
-          {overdraw ? "Yetarli emas" : qty(after, item.unit)}
+          {overdraw ? tr("Yetarli emas") : tr(qty(after, item.unit))}
         </span>
       </div>
       {noChange && <p className="mt-2 text-center text-xs text-muted-foreground">{tr("Sanoq hisob bilan bir xil — o'zgarish yo'q.")}</p>}

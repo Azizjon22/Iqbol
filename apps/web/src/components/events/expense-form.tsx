@@ -6,6 +6,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { EVENT_EXPENSE_CATEGORIES, EVENT_EXPENSE_CATEGORY_LABELS_UZ, type EventExpenseCategory } from "@iqbol/shared";
 import { addExpenseAction, type FormActionState } from "@/lib/actions/events.actions";
 import { Input } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 const initialState: FormActionState = undefined;
@@ -50,11 +51,12 @@ function ExpenseRow({
         className="h-9 min-w-28 flex-1"
         required
       />
-      <Input
+      <BilingualField
         name="note"
-        placeholder={tr("Izoh (ixtiyoriy)")}
-        defaultValue={suggestedAmount ? tr("Bozorlik ro'yxatlari bo'yicha") : undefined}
-        className="h-9 min-w-28 flex-1"
+        label={tr("Izoh (ixtiyoriy)")}
+        className="min-w-48 flex-1"
+        defaultValue={suggestedAmount ? "Bozorlik ro'yxatlari bo'yicha" : ""}
+        defaultValueRu={suggestedAmount ? "По спискам покупок" : ""}
       />
       <SubmitButton pendingText={tr("Qo'shilmoqda...")} size="sm" variant="outline" className="shrink-0">
         

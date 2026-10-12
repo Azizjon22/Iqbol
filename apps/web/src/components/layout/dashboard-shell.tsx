@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { logoutAction } from "@/lib/actions/auth.actions";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { useLocale } from "@/components/i18n/locale-provider";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { ShoppingListToast, useLivePendingLists } from "./live-shopping-alerts";
 
@@ -32,6 +32,7 @@ export function DashboardShell({
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const { t } = useLocale();
+  const tr = useTr();
   const live = useLivePendingLists(initialPendingCount, role === "SUPER_ADMIN" || role === "ADMIN");
   const pendingShoppingListsCount = live.count;
 
@@ -243,7 +244,7 @@ export function DashboardShell({
                   .toUpperCase()}
               </span>
               <div className="min-w-0 text-left">
-                <p className="max-w-[120px] truncate text-xs font-medium leading-none">{fullName}</p>
+                <p className="max-w-[120px] truncate text-xs font-medium leading-none">{tr(fullName)}</p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">{t(`roles.${role}`)}</p>
               </div>
             </Link>

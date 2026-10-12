@@ -18,6 +18,10 @@ export class ShoppingListItemInput {
   @MinLength(2)
   name!: string;
 
+  @IsString()
+  @MinLength(2)
+  nameRu!: string;
+
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
@@ -30,6 +34,10 @@ export class ShoppingListItemInput {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  noteRu?: string;
 }
 
 export class CreateShoppingListDto {

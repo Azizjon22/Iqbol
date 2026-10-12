@@ -12,6 +12,7 @@ import { ProfitTrendChart } from "@/components/accounting/profit-trend-chart";
 import { ExpensesCategoryChart } from "@/components/accounting/expenses-category-chart";
 import { formatDate, formatSom } from "@/lib/utils";
 import { getLocale } from "@/i18n/locale";
+import { pickLang } from "@/i18n/pick";
 import { getDictionary, translate } from "@/i18n/get-dictionary";
 
 export default async function AccountingPage() {
@@ -105,7 +106,7 @@ export default async function AccountingPage() {
               className="flex items-center justify-between rounded-md border border-border p-3 text-sm transition-colors hover:border-primary/40 hover:bg-muted/50"
             >
               <div>
-                <p className="font-medium">{event.clientName}</p>
+                <p className="font-medium">{pickLang(locale, event.clientName, event.clientNameRu)}</p>
                 <p className="text-xs text-muted-foreground">{formatDate(event.eventDate, locale)}</p>
               </div>
               <span className="font-medium text-destructive">{formatSom(event.balance ?? "0", locale)}</span>
