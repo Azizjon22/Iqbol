@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { useState } from "react";
@@ -17,6 +18,7 @@ const PREVIEW = 6;
 /** One of the chef's own lists: where it is in the pipeline, what changed, what's bought. No prices. */
 export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: boolean }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const router = useRouter();
@@ -33,7 +35,7 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-semibold">{list.event?.clientName ?? tr("To'ysiz ro'yxat")}</p>
+            <p className="truncate font-semibold">{list.event ? pick(list.event.clientName, list.event.clientNameRu) : tr("To'ysiz ro'yxat")}</p>
             <p className="text-xs text-muted-foreground">
               {list.event ? tr(`To'y: ${formatDate(list.event.eventDate, locale)} · `) : ""}
               {formatDateTime(list.createdAt, locale)}
@@ -79,7 +81,7 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
                   ) : (
                     <span className="h-4 w-4 shrink-0 rounded-full border border-border" />
                   )}
-                  <span className="truncate">{item.name}</span>
+                  <span className="truncate">{pick(item.name, item.nameRu)}</span>
                 </span>
                 <span className="shrink-0 text-muted-foreground tabular-nums">
                   <ItemQuantity item={item} />

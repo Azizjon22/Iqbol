@@ -15,7 +15,7 @@ const include = {
   items: true,
   createdByWorker: { select: { id: true, fullName: true, position: true } },
   event: {
-    select: { id: true, clientName: true, eventDate: true, guestCount: true },
+    select: { id: true, clientName: true, clientNameRu: true, eventDate: true, guestCount: true },
   },
   reviewedBy: { select: { id: true, fullName: true } },
   approvedBy: { select: { id: true, fullName: true } },
@@ -68,7 +68,14 @@ const STATUS_LABEL_UZ: Record<string, string> = {
  * first dish arrive as one total. Same name (any case) and unit add up.
  */
 export function mergeSameProduct<
-  T extends { name: string; quantity: number; unit: string; note?: string },
+  T extends {
+    name: string;
+    nameRu?: string;
+    quantity: number;
+    unit: string;
+    note?: string;
+    noteRu?: string;
+  },
 >(items: T[]): T[] {
   const merged = new Map<string, T>();
   for (const item of items) {
@@ -82,8 +89,11 @@ export function mergeSameProduct<
             quantity: +(prev.quantity + item.quantity).toFixed(3),
             note:
               [prev.note, item.note].filter(Boolean).join('; ') || undefined,
+            noteRu:
+              [prev.noteRu, item.noteRu].filter(Boolean).join('; ') ||
+              undefined,
           }
-        : { ...item, name: item.name.trim() },
+        : { ...item, name: item.name.trim(), nameRu: item.nameRu?.trim() },
     );
   }
   return [...merged.values()];
@@ -127,9 +137,11 @@ export class ShoppingListsService {
         items: {
           create: mergeSameProduct(dto.items).map((item) => ({
             name: item.name,
+            nameRu: item.nameRu,
             quantity: item.quantity,
             unit: item.unit,
             note: item.note,
+            noteRu: item.noteRu,
           })),
         },
       },
@@ -312,6 +324,7 @@ export class ShoppingListsService {
     for (const input of dto.items) {
       const quantity = new Prisma.Decimal(input.quantity);
       const note = input.note?.trim() || null;
+      const noteRu = input.noteRu?.trim() || null;
 
       if (!input.id) {
         changes.push(
@@ -322,10 +335,12 @@ export class ShoppingListsService {
             data: {
               shoppingListId: id,
               name: input.name,
+              nameRu: input.nameRu,
               quantity,
               originalQuantity: 0,
               unit: input.unit,
               note,
+              noteRu,
             },
           }),
         );
@@ -337,8 +352,10 @@ export class ShoppingListsService {
       if (
         !quantityChanged &&
         existing.name === input.name &&
+        existing.nameRu === input.nameRu &&
         existing.unit === input.unit &&
-        existing.note === note
+        existing.note === note &&
+        (existing.noteRu ?? null) === noteRu
       ) {
         continue;
       }
@@ -362,10 +379,12 @@ export class ShoppingListsService {
           where: { id: existing.id },
           data: {
             name: input.name,
+            nameRu: input.nameRu,
             quantity,
             originalQuantity,
             unit: input.unit,
             note,
+            noteRu,
           },
         }),
       );
@@ -443,7 +462,7 @@ export class ShoppingListsService {
         select: {
           id: true,
           createdByWorker: { select: { fullName: true } },
-          event: { select: { clientName: true } },
+          event: { select: { clientName: true, clientNameRu: true } },
           _count: { select: { items: true } },
         },
       }),
@@ -454,6 +473,7 @@ export class ShoppingListsService {
         id: latest.id,
         workerName: latest.createdByWorker.fullName,
         clientName: latest.event?.clientName ?? null,
+        clientNameRu: latest.event?.clientNameRu ?? null,
         itemCount: latest._count.items,
       },
     };

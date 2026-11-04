@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { CalendarClock, CalendarPlus, Check, KeyRound, Pencil, Phone, RotateCcw, Trash2, UserX } from "lucide-react";
@@ -26,6 +27,7 @@ export interface CardHandlers {
 
 export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: CardPermissions; on: CardHandlers }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const active = worker.status === "APPROVED";
@@ -58,7 +60,7 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
           items={[
             { label: tr("Tahrirlash"), icon: <Pencil className="h-4 w-4" />, onSelect: () => on.onEdit(worker), hidden: !perms.canManage },
             {
-              label: "PIN kodni tiklash",
+              label: tr("PIN kodni tiklash"),
               icon: <KeyRound className="h-4 w-4" />,
               onSelect: () => on.onPin(worker),
               hidden: !perms.canManage || worker.position !== "CHEF" || !active,
@@ -70,7 +72,7 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
               hidden: !perms.canManage || !active,
             },
             {
-              label: "Qayta faollashtirish",
+              label: tr("Qayta faollashtirish"),
               icon: <RotateCcw className="h-4 w-4" />,
               onSelect: () => on.onReactivate(worker),
               hidden: !perms.canManage || active,
@@ -94,10 +96,10 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
               <p className="truncate font-medium text-foreground">
                 {formatDate(next.eventDate, locale)}, {formatTime(next.eventDate)}
               </p>
-              <p className="truncate text-muted-foreground">{next.clientName}</p>
+              <p className="truncate text-muted-foreground">{pick(next.clientName, next.clientNameRu)}</p>
             </div>
             <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary tabular-nums">
-              {worker.upcoming.length}  {tr("ta to'y")}
+              {tr(`${worker.upcoming.length} ta to'y`)}
             </span>
           </div>
         ) : (
@@ -120,7 +122,7 @@ export function TeamCard({ worker, perms, on }: { worker: TeamWorker; perms: Car
             onClick={() => on.onAssign(worker)}
             className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-3 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
           >
-            <CalendarPlus className="h-3.5 w-3.5" /> Biriktirish
+            <CalendarPlus className="h-3.5 w-3.5" /> {tr("Biriktirish")}
           </button>
         )}
       </div>

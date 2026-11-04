@@ -17,6 +17,7 @@ import {
   type WeekDay,
 } from "@/components/dashboard/overview-parts";
 import { getLocale } from "@/i18n/locale";
+import { pickLang } from "@/i18n/pick";
 import { getDictionary, translate } from "@/i18n/get-dictionary";
 
 interface DashboardOverview {
@@ -25,7 +26,7 @@ interface DashboardOverview {
   todayEvents: PrepEvent[];
   tomorrowEvents: PrepEvent[];
   week: WeekDay[];
-  lowStockItems?: { id: string; name: string; quantity: string; unit: string }[];
+  lowStockItems?: { id: string; name: string; nameRu?: string | null; quantity: string; unit: string }[];
   pendingShoppingLists?: number;
   monthlyFinancials?: {
     eventCount: number;
@@ -155,7 +156,7 @@ export default async function DashboardOverviewPage() {
             {counts.week === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{t("dashboard.nothingThisWeek")}</p>
             ) : (
-              <WeekPlan week={overview.week} t={t} weekdays={dict.weekdaysShort} />
+              <WeekPlan week={overview.week} t={t} weekdays={dict.weekdaysShort} locale={locale} />
             )}
           </section>
 
@@ -258,7 +259,7 @@ export default async function DashboardOverviewPage() {
                     )}
                     {prepAlerts.map(({ event, issues }) => (
                       <AttentionItem key={event.id} href={`/dashboard/events/${event.id}`} icon={<CalendarHeart className="h-4 w-4" />}>
-                        <span className="block font-medium">{event.clientName}</span>
+                        <span className="block font-medium">{pickLang(locale, event.clientName, event.clientNameRu)}</span>
                         <span className="block text-xs text-muted-foreground">
                           {formatTime(event.eventDate)} · {issues.join(", ")}
                         </span>
@@ -270,7 +271,7 @@ export default async function DashboardOverviewPage() {
                         <span className="block text-xs text-muted-foreground">
                           {lowStock
                             .slice(0, 4)
-                            .map((i) => `${i.name} (${Number(i.quantity)})`)
+                            .map((i) => `${pickLang(locale, i.name, i.nameRu)} (${Number(i.quantity)})`)
                             .join(", ")}
                           {lowStock.length > 4 && ` +${lowStock.length - 4}`}
                         </span>

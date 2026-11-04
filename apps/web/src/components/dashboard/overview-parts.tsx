@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlertTriangle, ArrowRight, Check, ChefHat, ClipboardList, Users, Wallet } from "lucide-react";
 import type { Locale } from "@/i18n/types";
+import { pickLang } from "@/i18n/pick";
 import { formatSom, formatTime, cn } from "@/lib/utils";
 
 export interface PrepWorker {
@@ -14,14 +15,18 @@ export interface PrepWorker {
 export interface PrepEvent {
   id: string;
   clientName: string;
+  clientNameRu?: string | null;
   clientPhone: string;
   eventDate: string;
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   guestCount: number;
   tableCapacity: number;
   menuName: string;
+  menuNameRu?: string | null;
   firstDish: string | null;
+  firstDishRu?: string | null;
   secondDish: string | null;
+  secondDishRu?: string | null;
   assignedWorkers: PrepWorker[];
   shoppingListCount: number;
   /** Only present for SUPER_ADMIN. */
@@ -30,7 +35,7 @@ export interface PrepEvent {
 
 export interface WeekDay {
   date: string;
-  events: { id: string; clientName: string; eventDate: string; guestCount: number; status: PrepEvent["status"] }[];
+  events: { id: string; clientName: string; clientNameRu?: string | null; eventDate: string; guestCount: number; status: PrepEvent["status"] }[];
 }
 
 type T = (key: string, params?: Record<string, string | number>) => string;
@@ -101,7 +106,7 @@ export function StatTile({
   );
 }
 
-export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekdays: string[] }) {
+export function WeekPlan({ week, t, weekdays, locale }: { week: WeekDay[]; t: T; weekdays: string[]; locale: Locale }) {
   return (
     <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 @xl:mx-0 @xl:grid @xl:grid-cols-7 @xl:gap-1.5 @xl:overflow-visible @xl:px-0 @xl:pb-0 @3xl:gap-2">
       {week.map((day, i) => {
@@ -140,10 +145,10 @@ export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekday
                     "min-w-0 rounded-lg px-2 py-1.5 text-xs transition hover:brightness-110 @xl:px-1.5 @3xl:px-2",
                     e.status === "CONFIRMED" ? "bg-primary/15 text-foreground" : "bg-accent/15 text-foreground",
                   )}
-                  title={e.clientName}
+                  title={pickLang(locale, e.clientName, e.clientNameRu)}
                 >
                   <span className="block font-semibold tabular-nums">{formatTime(e.eventDate)}</span>
-                  <span className="line-clamp-2 leading-snug text-muted-foreground [overflow-wrap:anywhere]">{e.clientName}</span>
+                  <span className="line-clamp-2 leading-snug text-muted-foreground [overflow-wrap:anywhere]">{pickLang(locale, e.clientName, e.clientNameRu)}</span>
                 </Link>
               ))}
             </div>
@@ -204,7 +209,7 @@ export function EventPrepCard({ event, t, locale, weekdays }: { event: PrepEvent
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate font-semibold">{event.clientName}</p>
+            <p className="truncate font-semibold">{pickLang(locale, event.clientName, event.clientNameRu)}</p>
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 text-[11px] font-medium",
@@ -215,16 +220,16 @@ export function EventPrepCard({ event, t, locale, weekdays }: { event: PrepEvent
             </span>
           </div>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {event.clientPhone} · {event.menuName}
+            {event.clientPhone} · {pickLang(locale, event.menuName, event.menuNameRu)}
           </p>
           <p className="mt-0.5 line-clamp-2 text-sm [overflow-wrap:anywhere]">
             {event.firstDish || event.secondDish ? (
               <>
-                <span className="text-accent">1:</span> {event.firstDish ?? "—"} <span className="mx-1 text-muted-foreground">·</span>
-                <span className="text-accent">2:</span> {event.secondDish ?? "—"}
+                <span className="text-accent">1:</span> {event.firstDish ? pickLang(locale, event.firstDish, event.firstDishRu) : "—"} <span className="mx-1 text-muted-foreground">·</span>
+                <span className="text-accent">2:</span> {event.secondDish ? pickLang(locale, event.secondDish, event.secondDishRu) : "—"}
               </>
             ) : (
-              <span className="text-accent">1/2-ovqat tanlanmagan</span>
+              <span className="text-accent">{t("dashboard.dishesNotChosen")}</span>
             )}
           </p>
           <p className="mt-1 text-sm">

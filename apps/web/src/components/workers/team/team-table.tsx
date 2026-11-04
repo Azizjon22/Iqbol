@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { CalendarPlus, Phone } from "lucide-react";
@@ -23,6 +24,7 @@ export function TeamTable({
   busyOn?: Set<string>;
 }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   return (
@@ -72,7 +74,7 @@ export function TeamTable({
                       <span className="block whitespace-nowrap">
                         {formatDate(next.eventDate, locale)}, {formatTime(next.eventDate)}
                       </span>
-                      <span className="block max-w-56 truncate text-xs text-muted-foreground">{next.clientName}</span>
+                      <span className="block max-w-56 truncate text-xs text-muted-foreground">{pick(next.clientName, next.clientNameRu)}</span>
                     </span>
                   ) : (
                     <span className="text-muted-foreground">—</span>
@@ -86,7 +88,7 @@ export function TeamTable({
                       onClick={() => onAssign(w)}
                       className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary/10 px-3 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
                     >
-                      <CalendarPlus className="h-3.5 w-3.5" /> Biriktirish
+                      <CalendarPlus className="h-3.5 w-3.5" /> {tr("Biriktirish")}
                     </button>
                   )}
                 </td>

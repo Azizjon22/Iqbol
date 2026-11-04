@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import type { Menu } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { Switch } from "@/components/ui/switch";
 import { UploadField } from "@/components/uploads/upload-field";
 import { menuApi, errorText } from "./api";
@@ -24,18 +25,21 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
+    const nameRu = String(form.get("nameRu") ?? "").trim();
     const price = Number(form.get("pricePerPerson"));
     const guestCount = Number(form.get("guestCount"));
-    if (name.length < 2) return setError(tr("Menyu nomini kiriting"));
+    if (name.length < 2 || nameRu.length < 2) return setError(tr("Ikkala tilda ham yozing"));
     if (!(price > 0)) return setError(tr("Narx 0 dan katta bo'lishi kerak"));
     if (!(guestCount >= 1)) return setError(tr("Mehmonlar soni 1 dan kam bo'lmasin"));
 
     const cover = String(form.get("coverImageUrl") ?? "");
     const body = {
       name,
+      nameRu,
       pricePerPerson: price,
       guestCount,
       description: String(form.get("description") ?? "").trim(),
+      descriptionRu: String(form.get("descriptionRu") ?? "").trim(),
       isVip: form.get("isVip") === "on",
       coverImageUrl: cover || (menu ? null : undefined),
     };
@@ -82,10 +86,14 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
           <UploadField name="coverImageUrl" label={tr("Muqova rasmi")} folder="menus" defaultValue={menu?.coverImageUrl} />
           <p className="mt-1.5 text-xs text-muted-foreground">{tr("Taqdimotning birinchi ekrani va menyu kartasi")}</p>
         </div>
-        <div>
-          <Label htmlFor="menu-name">{tr("Menyu nomi")}</Label>
-          <Input id="menu-name" name="name" defaultValue={menu?.name} placeholder={tr("masalan: 200 ming menyu")} required />
-        </div>
+        <BilingualField
+          name="name"
+          label={tr("Menyu nomi")}
+          defaultValue={menu?.name}
+          defaultValueRu={menu?.nameRu}
+          placeholder={tr("masalan: 200 ming menyu")}
+          required
+        />
         <div>
           <Label htmlFor="menu-price">{tr("1 kishiga narx (so'm)")}</Label>
           <Input
@@ -111,16 +119,16 @@ export function MenuInfoModal({ open, onClose, menu }: { open: boolean; onClose:
             required
           />
         </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="menu-description">{tr("Tavsif — mijoz taqdimotda ko'radi")}</Label>
-          <Textarea
-            id="menu-description"
-            name="description"
-            rows={3}
-            defaultValue={menu?.description ?? ""}
-            placeholder={tr("masalan: Standart to'y menyusi — salatlar, birinchi va ikkinchi ovqatlar, meva va ichimliklar.")}
-          />
-        </div>
+        <BilingualField
+          name="description"
+          label={tr("Tavsif — mijoz taqdimotda ko'radi")}
+          multiline
+          rows={3}
+          defaultValue={menu?.description}
+          defaultValueRu={menu?.descriptionRu}
+          placeholder={tr("masalan: Standart to'y menyusi — salatlar, birinchi va ikkinchi ovqatlar, meva va ichimliklar.")}
+          className="sm:col-span-2"
+        />
         <div className="sm:col-span-2">
           <Switch name="isVip" defaultChecked={menu?.isVip} label={tr("VIP menyu — taqdimotda oltin ramka bilan ajratiladi")} />
         </div>

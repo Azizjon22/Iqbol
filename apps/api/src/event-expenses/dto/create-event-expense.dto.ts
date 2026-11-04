@@ -22,4 +22,8 @@ export class CreateEventExpenseDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  noteRu?: string;
 }

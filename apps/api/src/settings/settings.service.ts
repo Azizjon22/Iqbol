@@ -23,6 +23,7 @@ export class SettingsService {
     });
     return {
       brandName: row.brandName,
+      brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
       contactPhone: row.contactPhone,
       heroMediaUrl: row.heroMediaUrl,
@@ -36,6 +37,7 @@ export class SettingsService {
     const before = await this.getBrand();
     const brandName = dto.brandName?.trim();
     const contactPhone = dto.contactPhone?.trim();
+    const brandNameRu = dto.brandNameRu?.trim();
     const heroMediaUrl =
       dto.heroMediaUrl === undefined ? undefined : dto.heroMediaUrl;
     const heroMediaKind =
@@ -57,6 +59,7 @@ export class SettingsService {
         id: ID,
         brandName: brandName || undefined,
         contactPhone: contactPhone || undefined,
+        brandNameRu: brandNameRu || undefined,
         logoUrl: dto.logoUrl ?? null,
         heroMediaUrl: heroMediaUrl ?? null,
         heroMediaKind: heroMediaKind ?? null,
@@ -65,6 +68,7 @@ export class SettingsService {
       update: {
         brandName: brandName || undefined,
         contactPhone: contactPhone || undefined,
+        brandNameRu: brandNameRu || undefined,
         logoUrl: dto.logoUrl,
         heroMediaUrl,
         heroMediaKind,
@@ -117,6 +121,7 @@ export class SettingsService {
     }
     return {
       brandName: row.brandName,
+      brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
       contactPhone: row.contactPhone,
       heroMediaUrl: row.heroMediaUrl,

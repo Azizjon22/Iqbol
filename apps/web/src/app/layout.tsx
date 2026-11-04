@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { BrandProvider } from "@/components/brand/brand-provider";
 import { getBrand } from "@/lib/brand";
+import { getLocale } from "@/i18n/locale";
+import { pickLang } from "@/i18n/pick";
 import { getDictionary } from "@/i18n/get-dictionary";
 import type { Locale } from "@/i18n/types";
 import "./globals.css";
@@ -24,11 +26,12 @@ const cormorant = Cormorant_Garamond({
 
 export async function generateMetadata(): Promise<Metadata> {
   const tr = await getTr();
-
-  const { brandName, logoUrl } = await getBrand();
+  const locale = await getLocale();
+  const { brandName, brandNameRu, logoUrl } = await getBrand();
+  const titleName = pickLang(locale, brandName, brandNameRu);
   return {
-    title: tr(`${brandName} | To'yxona boshqaruv tizimi`),
-    description: tr(`${brandName} to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.`),
+    title: tr(`${titleName} | To'yxona boshqaruv tizimi`),
+    description: tr(`${titleName} to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.`),
     manifest: "/manifest.webmanifest",
     icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : { icon: "/icon.svg?v=2", apple: "/icon.svg?v=2" },
   };
@@ -45,7 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const brand = await getBrand();
   // The configured brand name replaces the built-in one everywhere t("common.brand") is used.
   const base = getDictionary(locale);
-  const dictionary = { ...base, common: { ...base.common, brand: brand.brandName } };
+  const dictionary = { ...base, common: { ...base.common, brand: pickLang(locale, brand.brandName, brand.brandNameRu) } };
 
   return (
     <html

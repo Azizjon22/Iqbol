@@ -14,10 +14,11 @@ COPY packages/shared packages/shared
 COPY apps/web apps/web
 # The /uploads rewrite is fixed at build time, so the API address must be
 # known here. Inside the compose network the API is simply "api".
-ARG API_URL=http://api:3001/api
+# TEST ENV — update these before production
+ARG API_URL=https://iqbol-production.up.railway.app/api
 ENV API_URL=$API_URL
 # NEXT_PUBLIC_* values are baked into the browser bundle at build time.
-ARG NEXT_PUBLIC_CONTACT_PHONE=
+ARG NEXT_PUBLIC_CONTACT_PHONE=+998901234567
 ENV NEXT_PUBLIC_CONTACT_PHONE=$NEXT_PUBLIC_CONTACT_PHONE
 ENV NEXT_TELEMETRY_DISABLED=1
 # Nested workspace files in apps/web would make pnpm treat it as its own root.

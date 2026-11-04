@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { useState } from "react";
@@ -18,6 +19,7 @@ const STAGES: { key: Stage; label: string; hint: string; icon: React.ReactNode }
 
 function ListCard({ list, selected, onSelect }: { list: ShoppingList; selected: boolean; onSelect: () => void }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const { total, bought, spent } = listProgress(list);
@@ -33,7 +35,7 @@ function ListCard({ list, selected, onSelect }: { list: ShoppingList; selected: 
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-semibold">{list.event?.clientName ?? tr("To'ysiz ro'yxat")}</p>
+          <p className="truncate font-semibold">{list.event ? pick(list.event.clientName, list.event.clientNameRu) : tr("To'ysiz ro'yxat")}</p>
           <p className="truncate text-xs text-muted-foreground">
             {list.event ? tr(`To'y: ${formatDate(list.event.eventDate, locale)} · `) : ""}
             {list.createdByWorker.fullName}

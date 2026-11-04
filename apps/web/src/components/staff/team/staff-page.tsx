@@ -388,7 +388,7 @@ export function StaffPage({ staff, chefs, currentUserId }: { staff: StaffUserSum
                   </div>
                   <DropdownMenu
                     items={[
-                      { label: "PIN kodni tiklash", icon: <KeyRound className="h-4 w-4" />, onSelect: () => setDialog({ kind: "pin", chef: c }), hidden: !active },
+                      { label: tr("PIN kodni tiklash"), icon: <KeyRound className="h-4 w-4" />, onSelect: () => setDialog({ kind: "pin", chef: c }), hidden: !active },
                       {
                         label: active ? tr("Faolsizlantirish") : tr("Faollashtirish"),
                         icon: active ? <Power className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />,

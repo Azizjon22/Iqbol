@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ const fmtQty = (q: string) => Number(q).toLocaleString("uz-UZ", { maximumFractio
  */
 export function CloseConfirmModal({ list, open, onClose }: { list: ShoppingList; open: boolean; onClose: () => void }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
   const router = useRouter();
   const [checked, setChecked] = useState<Set<string>>(new Set());
@@ -105,7 +107,7 @@ export function CloseConfirmModal({ list, open, onClose }: { list: ShoppingList;
                   {on && <Check className="h-4 w-4" strokeWidth={3} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium [overflow-wrap:anywhere]">{item.name}</span>
+                  <span className="block text-sm font-medium [overflow-wrap:anywhere]">{pick(item.name, item.nameRu)}</span>
                   <span className="block text-xs text-muted-foreground tabular-nums">
                     {fmtQty(item.quantity)} {unit}
                     {item.unitPrice !== null && ` × ${formatSom(Number(item.unitPrice), locale)}`}

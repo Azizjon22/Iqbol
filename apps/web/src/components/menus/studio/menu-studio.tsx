@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { useEffect, useMemo, useState } from "react";
@@ -62,6 +63,7 @@ const iconButton =
 
 export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; usedInEvents: number; canDelete: boolean }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const router = useRouter();
@@ -135,7 +137,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
             className="group relative aspect-[16/10] overflow-hidden bg-muted md:aspect-auto md:min-h-64"
             title={tr("Muqovani almashtirish")}
           >
-            <SafeImage src={menu.coverImageUrl} alt={menu.name} className="absolute inset-0 h-full w-full object-cover" />
+            <SafeImage src={menu.coverImageUrl} alt={pick(menu.name, menu.nameRu)} className="absolute inset-0 h-full w-full object-cover" />
             <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-black/45 group-hover:opacity-100">
               <ImageIcon className="mr-2 h-4 w-4" />  {tr("Muqovani almashtirish")}
             </span>
@@ -150,7 +152,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{menu.name}</h1>
+                  <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{pick(menu.name, menu.nameRu)}</h1>
                   {menu.isVip && (
                     <span className="flex items-center gap-1 rounded-full bg-gold-foil px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-ink">
                       <Crown className="h-3 w-3" /> VIP
@@ -166,8 +168,8 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
               </Button>
             </div>
 
-            {menu.description ? (
-              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{menu.description}</p>
+            {menu.description || menu.descriptionRu ? (
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{pick(menu.description, menu.descriptionRu)}</p>
             ) : (
               <button
                 type="button"
@@ -180,8 +182,8 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
             )}
 
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-muted px-3 py-1">{menu.dishes.length} ta taom</span>
-              <span className="rounded-full bg-muted px-3 py-1">{menu.media.length} ta fayl</span>
+              <span className="rounded-full bg-muted px-3 py-1">{tr(`${menu.dishes.length} ta taom`)}</span>
+              <span className="rounded-full bg-muted px-3 py-1">{tr(`${menu.media.length} ta fayl`)}</span>
               <span className="rounded-full bg-muted px-3 py-1">{usedInEvents}  {tr("ta to'yda ishlatilgan")}</span>
             </div>
 
@@ -194,7 +196,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                 <ExternalLink className="h-4 w-4" />  {tr("Taqdimotda ko'rish")}
               </Link>
               <Button type="button" variant="outline" size="sm" onClick={duplicate} disabled={busy}>
-                <Copy className="h-4 w-4" /> Nusxa olish
+                <Copy className="h-4 w-4" /> {tr("Nusxa olish")}
               </Button>
               {canDelete && (
                 <Button
@@ -208,7 +210,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                     setDialog({
                       kind: "confirm",
                       title: tr("Menyuni o'chirish"),
-                      message: tr(`"${menu.name}" menyusi barcha taomlari va rasmlari bilan butunlay o'chiriladi.`),
+                      message: tr(`"${pick(menu.name, menu.nameRu)}" menyusi barcha taomlari va rasmlari bilan butunlay o'chiriladi.`),
                       run: async () => {
                         await menuApi(`/${menu.id}`, "DELETE");
                         router.push("/dashboard/menus");
@@ -300,14 +302,14 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">
                               <SafeImage
                                 src={dish.photoUrl}
-                                alt={dish.name}
+                                alt={pick(dish.name, dish.nameRu)}
                                 className="h-full w-full object-cover"
                                 fallbackIcon={<UtensilsCrossed className="h-4 w-4" />}
                               />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium">{dish.name}</p>
-                              {dish.description && <p className="truncate text-xs text-muted-foreground">{dish.description}</p>}
+                              <p className="truncate text-sm font-medium">{pick(dish.name, dish.nameRu)}</p>
+                              {(dish.description || dish.descriptionRu) && <p className="truncate text-xs text-muted-foreground">{pick(dish.description, dish.descriptionRu)}</p>}
                               <div className="mt-1 flex flex-wrap gap-1">
                                 {!dish.photoUrl && <Tag tone="warn">{tr("Rasm yo'q")}</Tag>}
                                 {isBroken && <Tag tone="danger">{tr("Rasm ochilmayapti")}</Tag>}
@@ -332,7 +334,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                                   setDialog({
                                     kind: "confirm",
                                     title: tr("Taomni o'chirish"),
-                                    message: tr(`"${dish.name}" menyudan olib tashlanadi.`),
+                                    message: tr(`"${pick(dish.name, dish.nameRu)}" menyudan olib tashlanadi.`),
                                     run: async () => {
                                       await menuApi(`/${menu.id}/dishes/${dish.id}`, "DELETE");
                                       refresh();
@@ -391,7 +393,7 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <SafeImage src={item.url} alt={item.caption ?? ""} className="h-full w-full object-cover" />
+                                <SafeImage src={item.url} alt={pick(item.caption, item.captionRu)} className="h-full w-full object-cover" />
                               )}
                               {item.processingStatus === "PROCESSING" && (
                                 <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/65 px-3 text-center text-xs font-medium text-white">
@@ -416,8 +418,8 @@ export function MenuStudio({ menu, usedInEvents, canDelete }: { menu: Menu; used
                                 </span>
                               )}
                             </div>
-                            <p className={cn("truncate px-3 pt-2.5 text-sm font-medium", !item.caption && "font-normal italic text-muted-foreground")}>
-                              {item.caption || tr("Izoh yo'q — qo'shing")}
+                            <p className={cn("truncate px-3 pt-2.5 text-sm font-medium", !(item.caption || item.captionRu) && "font-normal italic text-muted-foreground")}>
+                              {pick(item.caption, item.captionRu) || tr("Izoh yo'q — qo'shing")}
                             </p>
                             <div className="flex items-center gap-0.5 px-1.5 pb-1.5 pt-1">
                               <button type="button" className={iconButton} disabled={busy || i === 0} onClick={() => moveMedia(item.id, -1)} aria-label={tr("Oldinga")}>

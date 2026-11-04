@@ -54,12 +54,15 @@ function hideFinancials(
 
 /** The wedding's 1st/2nd dish is agreed with the couple — SUPER_ADMIN's call. */
 function assertCanSetDishes(
-  dto: { firstDish?: string; secondDish?: string },
+  dto: { firstDish?: string; secondDish?: string; firstDishRu?: string; secondDishRu?: string },
   user: AuthPayload,
 ) {
   if (
     user.role !== 'SUPER_ADMIN' &&
-    (dto.firstDish !== undefined || dto.secondDish !== undefined)
+    (dto.firstDish !== undefined ||
+      dto.secondDish !== undefined ||
+      dto.firstDishRu !== undefined ||
+      dto.secondDishRu !== undefined)
   ) {
     throw new ForbiddenException(
       '1-ovqat va 2-ovqatni faqat super admin belgilaydi',

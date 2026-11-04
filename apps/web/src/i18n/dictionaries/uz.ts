@@ -73,6 +73,7 @@ export const uz = {
     pendingLists: "{count} ta yangi bozorlik ro'yxati ko'rib chiqilishini kutmoqda.",
     guest: "mehmon",
     table: "kishilik stol",
+    dishesNotChosen: "1/2-ovqat tanlanmagan",
     greetingMorning: "Xayrli tong",
     greetingDay: "Xayrli kun",
     greetingEvening: "Xayrli kech",

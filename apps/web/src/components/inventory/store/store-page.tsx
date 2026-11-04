@@ -1,5 +1,6 @@
 "use client";
 import { useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 
 import { useState } from "react";
@@ -45,12 +46,13 @@ type Dialog =
   | null;
 
 function ItemThumb({ item }: { item: InventoryItem }) {
+  const pick = usePick();
   if (item.photoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={item.photoUrl}
-        alt={item.name}
+        alt={pick(item.name, item.nameRu)}
         className="h-11 w-11 shrink-0 rounded-xl object-cover"
       />
     );
@@ -81,6 +83,7 @@ export function StorePage({
   role: StaffRole;
 }) {
   const tr = useTr();
+  const pick = usePick();
 
   const router = useRouter();
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -250,7 +253,7 @@ export function StorePage({
               >
                 <ItemThumb item={i} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{i.name}</p>
+                  <p className="truncate text-sm font-medium">{pick(i.name, i.nameRu)}</p>
                   <p
                     className={cn(
                       "text-xs tabular-nums",
@@ -259,11 +262,11 @@ export function StorePage({
                         : "text-accent",
                     )}
                   >
-                    {qty(i.quantity, i.unit)}
+                    {tr(qty(i.quantity, i.unit))}
                     {i.minThreshold != null && (
                       <span className="text-muted-foreground">
                         {" "}
-                        / min {qty(i.minThreshold, i.unit)}
+                        / min {tr(qty(i.minThreshold, i.unit))}
                       </span>
                     )}
                   </p>
@@ -374,7 +377,7 @@ export function StorePage({
                 onClick={() => setOnlyLow((v) => !v)}
                 className={chip(onlyLow)}
               >
-                <AlertTriangle className="h-3.5 w-3.5" /> Faqat kam qolganlar
+                <AlertTriangle className="h-3.5 w-3.5" /> {tr("Faqat kam qolganlar")}
               </button>
             </div>
           </div>
@@ -426,11 +429,11 @@ export function StorePage({
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-2">
                               <span className="truncate text-sm font-medium">
-                                {item.name}
+                                {pick(item.name, item.nameRu)}
                               </span>
                               {level === "out" && (
                                 <span className="hidden shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive sm:inline">
-                                  Tugagan
+                                  {tr("Tugagan")}
                                 </span>
                               )}
                               {level === "low" && (
@@ -457,7 +460,7 @@ export function StorePage({
                               </span>
                               {item.minThreshold != null && (
                                 <span className="hidden text-[11px] text-muted-foreground sm:inline">
-                                  min {qty(item.minThreshold, item.unit)}
+                                  min {tr(qty(item.minThreshold, item.unit))}
                                 </span>
                               )}
                             </span>
@@ -473,7 +476,7 @@ export function StorePage({
                                 : "",
                           )}
                         >
-                          {qty(item.quantity, item.unit)}
+                          {tr(qty(item.quantity, item.unit))}
                         </span>
                         <div className="flex shrink-0 items-center gap-1">
                           <button
@@ -512,7 +515,7 @@ export function StorePage({
                                   }),
                               },
                               {
-                                label: "Tarix",
+                                label: tr("Tarix"),
                                 icon: <History className="h-4 w-4" />,
                                 onSelect: () =>
                                   setDialog({ kind: "history", item }),
@@ -594,7 +597,7 @@ export function StorePage({
           open
           onClose={() => setDialog(null)}
           title={tr("O'chirish")}
-          message={tr(`"${dialog.item.name}" ombordan o'chiriladi. Kirim-chiqim tarixi ham o'chadi.`)}
+          message={tr(`"${pick(dialog.item.name, dialog.item.nameRu)}" ombordan o'chiriladi. Kirim-chiqim tarixi ham o'chadi.`)}
           onConfirm={async () => {
             await inventoryApi(`/${dialog.item.id}`, "DELETE");
             router.refresh();

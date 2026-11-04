@@ -101,7 +101,7 @@ export function TeamPage({
     onReactivate: (worker) =>
       setDialog({
         kind: "confirm",
-        title: "Qayta faollashtirish",
+        title: tr("Qayta faollashtirish"),
         message: tr(`${worker.fullName} yana faol ishchilar qatoriga qaytadi.`),
         label: tr("Faollashtirish"),
         safe: true,
@@ -206,7 +206,7 @@ export function TeamPage({
           <div className="inline-flex rounded-xl bg-muted p-1">
             {(
               [
-                ["card", <LayoutGrid key="c" className="h-4 w-4" />, "Kartochka"],
+                ["card", <LayoutGrid key="c" className="h-4 w-4" />, tr("Kartochka")],
                 ["table", <List key="t" className="h-4 w-4" />, tr("Jadval")],
               ] as const
             ).map(([key, icon, label]) => (

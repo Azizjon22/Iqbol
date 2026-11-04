@@ -15,6 +15,7 @@ export const getBrand = cache(async (): Promise<Brand> => {
     const pending = kind === "VIDEO" && !!b.heroMediaStatus && b.heroMediaStatus !== "READY";
     return {
       brandName: b.brandName || DEFAULT_BRAND.brandName,
+      brandNameRu: b.brandNameRu ?? null,
       logoUrl: b.logoUrl ?? null,
       contactPhone: b.contactPhone?.trim() || DEFAULT_BRAND.contactPhone,
       heroMediaUrl: pending ? null : (b.heroMediaUrl ?? null),

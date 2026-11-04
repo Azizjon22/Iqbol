@@ -157,16 +157,20 @@ export class MenusService implements OnModuleInit {
     const copy = await this.prisma.menu.create({
       data: {
         name: `${source.name} (nusxa)`,
+        nameRu: source.nameRu ? `${source.nameRu} (копия)` : null,
         pricePerPerson: source.pricePerPerson,
         guestCount: source.guestCount,
         description: source.description,
+        descriptionRu: source.descriptionRu,
         coverImageUrl: source.coverImageUrl,
         isVip: source.isVip,
         dishes: {
           create: source.dishes.map((d) => ({
             category: d.category,
             name: d.name,
+            nameRu: d.nameRu,
             description: d.description,
+            descriptionRu: d.descriptionRu,
             photoUrl: d.photoUrl,
             order: d.order,
           })),
@@ -177,6 +181,7 @@ export class MenusService implements OnModuleInit {
             mediaType: m.mediaType,
             url: m.url,
             caption: m.caption,
+            captionRu: m.captionRu,
             order: m.order,
           })),
         },

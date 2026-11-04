@@ -4,7 +4,8 @@ import { useTr } from "@/components/i18n/locale-provider";
 
 import { startTransition, useActionState } from "react";
 import { createEventAction, type FormActionState } from "@/lib/actions/events.actions";
-import { Input, Label, Select, Textarea, FieldError } from "@/components/ui/input";
+import { Input, Label, Select, FieldError } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { MenuAndDishes } from "@/components/events/menu-and-dishes";
 import { Button } from "@/components/ui/button";
 import type { Menu } from "@/lib/types";
@@ -38,10 +39,7 @@ export function CreateEventForm({
       className="space-y-4"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
-        <div>
-          <Label htmlFor="clientName">{tr("Mijoz ismi")}</Label>
-          <Input id="clientName" name="clientName" required />
-        </div>
+        <BilingualField name="clientName" label={tr("Mijoz ismi")} required />
         <div>
           <Label htmlFor="clientPhone">{tr("Mijoz telefoni")}</Label>
           <Input id="clientPhone" name="clientPhone" placeholder="+998901234567" required />
@@ -69,10 +67,7 @@ export function CreateEventForm({
 
       <MenuAndDishes menus={menus} canSetDishes={canSetDishes} />
 
-      <div>
-        <Label htmlFor="notes">{tr("Izoh (ixtiyoriy)")}</Label>
-        <Textarea id="notes" name="notes" rows={3} />
-      </div>
+      <BilingualField name="notes" label={tr("Izoh (ixtiyoriy)")} multiline rows={3} />
 
       <FieldError>{state?.error}</FieldError>
       <Button type="submit" disabled={isPending}>

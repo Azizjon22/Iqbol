@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { useBrand } from "@/components/brand/brand-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 const TABS = [
   { href: "/worker", label: "Bosh sahifa", icon: Home, exact: true },
@@ -21,6 +22,7 @@ const TABS = [
 /** App-like frame for chefs: slim header on top, thumb-reachable tab bar at the bottom. */
 export function ChefShell({ name, isChef, children }: { name: string; isChef: boolean; children: React.ReactNode }) {
   const tr = useTr();
+  const pick = usePick();
 
   const pathname = usePathname();
   const brand = useBrand();
@@ -46,7 +48,7 @@ export function ChefShell({ name, isChef, children }: { name: string; isChef: bo
         <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-2 px-4 md:max-w-3xl lg:max-w-5xl">
           <Link href="/worker" className="flex min-w-0 items-center gap-2.5">
             <BrandMark className="h-9 w-9 shrink-0 text-lg shadow-sm shadow-primary/25" />
-            <span className="font-display truncate text-lg font-semibold tracking-tight sm:text-xl">{brand.brandName}</span>
+            <span className="font-display truncate text-lg font-semibold tracking-tight sm:text-xl">{pick(brand.brandName, brand.brandNameRu)}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
             <nav className="mr-2 hidden items-center gap-1 lg:flex">

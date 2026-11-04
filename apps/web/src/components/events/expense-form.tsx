@@ -8,6 +8,7 @@ import { useTr } from "@/components/i18n/locale-provider";
 import { Input, Label, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 
 const initialState: FormActionState = undefined;
 
@@ -93,15 +94,13 @@ export function ExpenseForm({
               defaultValue={suggested}
             />
           </div>
-          <div>
-            <Label htmlFor="expense-note">{tr("Izoh (ixtiyoriy)")}</Label>
-            <Input
-              id="expense-note"
-              name="note"
-              key={`note-${category}-${suggested ?? ""}`}
-              defaultValue={category === "SHOPPING" && suggested ? tr("Bozorlik ro'yxatlari bo'yicha") : undefined}
-            />
-          </div>
+          <BilingualField
+            key={`note-${category}-${suggested ?? ""}`}
+            name="note"
+            label={tr("Izoh (ixtiyoriy)")}
+            defaultValue={category === "SHOPPING" && suggested ? "Bozorlik ro'yxatlari bo'yicha" : ""}
+            defaultValueRu={category === "SHOPPING" && suggested ? "По спискам покупок" : ""}
+          />
           {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
         </form>
       </Modal>

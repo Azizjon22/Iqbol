@@ -22,4 +22,8 @@ export class CreatePaymentDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  noteRu?: string;
 }

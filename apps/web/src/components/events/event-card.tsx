@@ -4,6 +4,7 @@ import type { Locale } from "@/i18n/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDictionary, translate } from "@/i18n/get-dictionary";
+import { pickLang } from "@/i18n/pick";
 import { formatDateTime, formatSom } from "@/lib/utils";
 
 const STATUS_VARIANT: Record<string, "default" | "primary" | "success" | "destructive"> = {
@@ -23,7 +24,7 @@ export function EventCard({ event, locale }: { event: EventDetail; locale: Local
         <CardContent className="space-y-3 p-5">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="font-medium">{event.clientName}</p>
+              <p className="font-medium">{pickLang(locale, event.clientName, event.clientNameRu)}</p>
               <p className="text-sm text-muted-foreground">{formatDateTime(event.eventDate, locale)}</p>
             </div>
             <Badge variant={STATUS_VARIANT[event.status] ?? "default"}>{t(`eventStatus.${event.status}`)}</Badge>
@@ -35,7 +36,7 @@ export function EventCard({ event, locale }: { event: EventDetail; locale: Local
             <span>
               {event.tableCapacity} {t("dashboard.table")}
             </span>
-            <span>{event.menu.name}</span>
+            <span>{pickLang(locale, event.menu.name, event.menu.nameRu)}</span>
           </div>
           {event.totalPrice && <p className="text-sm font-medium text-primary">{formatSom(event.totalPrice, locale)}</p>}
           <div className="flex flex-wrap gap-1">

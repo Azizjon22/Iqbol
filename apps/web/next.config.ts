@@ -40,6 +40,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.r2.cloudflarestorage.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.storageapi.dev",
+      },
+      {
+        protocol: "https",
+        hostname: "t3.storageapi.dev",
+      },
     ],
   },
 };

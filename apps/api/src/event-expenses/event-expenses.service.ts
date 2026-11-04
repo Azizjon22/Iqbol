@@ -40,6 +40,7 @@ export class EventExpensesService {
         category: dto.category,
         amount: new Prisma.Decimal(dto.amount),
         note: dto.note,
+        noteRu: dto.noteRu,
         createdById: actorId,
       },
     });

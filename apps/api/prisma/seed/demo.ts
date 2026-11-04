@@ -10,6 +10,7 @@ import {
 } from './data/demo';
 import { daysAgo } from './dates';
 import type { DemoStaff } from './staff';
+import { CLIENT_NAME_RU, INVENTORY_NAME_RU, NOTE_RU } from './data/translations';
 
 /** The wedding whose presence means the demo weddings were already created. */
 const DEMO_MARKER = 'Demo: Karimovlar oilasi';
@@ -54,6 +55,7 @@ async function createDemoEvent(
   const event = await prisma.event.create({
     data: {
       clientName: spec.clientName,
+      clientNameRu: CLIENT_NAME_RU[spec.clientName],
       clientPhone: spec.clientPhone,
       eventDate: spec.eventDate,
       guestCount: spec.guestCount,
@@ -62,6 +64,7 @@ async function createDemoEvent(
       totalPrice: Number(menu.pricePerPerson) * spec.guestCount,
       status: spec.status,
       notes: spec.notes,
+      notesRu: spec.notes ? NOTE_RU[spec.notes] : undefined,
       createdById: staff.admin.id,
     },
   });
@@ -89,6 +92,7 @@ async function createDemoEvent(
         method: payment.method,
         createdById: staff.admin.id,
         note: "Demo to'lov",
+        noteRu: NOTE_RU["Demo to'lov"],
       },
     });
   }
@@ -100,6 +104,7 @@ async function createDemoEvent(
         category: expense.category,
         amount: expense.amount,
         note: expense.note,
+        noteRu: expense.note ? NOTE_RU[expense.note] : undefined,
         createdById: staff.admin.id,
       },
     });
@@ -127,11 +132,11 @@ async function seedDemoShoppingLists(
         status: 'SUBMITTED',
         items: {
           create: [
-            { name: 'Pomidor', quantity: 15, unit: 'KG' },
-            { name: 'Bodring', quantity: 10, unit: 'KG' },
-            { name: "Mol go'shti", quantity: 25, unit: 'KG' },
-            { name: 'Guruch', quantity: 30, unit: 'KG' },
-            { name: "O'simlik yog'i", quantity: 8, unit: 'LITER' },
+            { name: 'Pomidor', nameRu: INVENTORY_NAME_RU.Pomidor, quantity: 15, unit: 'KG' },
+            { name: 'Bodring', nameRu: INVENTORY_NAME_RU.Bodring, quantity: 10, unit: 'KG' },
+            { name: "Mol go'shti", nameRu: INVENTORY_NAME_RU["Mol go'shti"], quantity: 25, unit: 'KG' },
+            { name: 'Guruch', nameRu: INVENTORY_NAME_RU.Guruch, quantity: 30, unit: 'KG' },
+            { name: "O'simlik yog'i", nameRu: INVENTORY_NAME_RU["O'simlik yog'i"], quantity: 8, unit: 'LITER' },
           ],
         },
       },
@@ -153,6 +158,7 @@ async function seedDemoShoppingLists(
           create: [
             {
               name: 'Kartoshka',
+              nameRu: INVENTORY_NAME_RU.Kartoshka,
               quantity: 40,
               unit: 'KG',
               unitPrice: 4000,
@@ -160,6 +166,7 @@ async function seedDemoShoppingLists(
             },
             {
               name: 'Piyoz',
+              nameRu: INVENTORY_NAME_RU.Piyoz,
               quantity: 20,
               unit: 'KG',
               unitPrice: 3000,
@@ -167,6 +174,7 @@ async function seedDemoShoppingLists(
             },
             {
               name: "Qo'y go'shti",
+              nameRu: INVENTORY_NAME_RU["Qo'y go'shti"],
               quantity: 35,
               unit: 'KG',
               unitPrice: 95000,

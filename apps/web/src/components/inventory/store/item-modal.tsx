@@ -10,6 +10,7 @@ import type { InventoryItem } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { UploadField } from "@/components/uploads/upload-field";
 import { cn } from "@/lib/utils";
 import { inventoryApi } from "./helpers";
@@ -36,11 +37,13 @@ export function ItemModal({
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
-    if (name.length < 2) return setError(tr("Nomini kiriting"));
+    const nameRu = String(form.get("nameRu") ?? "").trim();
+    if (name.length < 2 || nameRu.length < 2) return setError(tr("Ikkala tilda ham yozing"));
     const min = String(form.get("minThreshold") ?? "").trim();
     const photo = String(form.get("photoUrl") ?? "");
     const body: Record<string, unknown> = {
       name,
+      nameRu,
       category,
       unit: form.get("unit"),
       // null clears an existing threshold on edit; omitted on create.
@@ -111,10 +114,14 @@ export function ItemModal({
           <UploadField name="photoUrl" label={tr("Rasm")} folder="inventory" aspect="square" defaultValue={item?.photoUrl} />
           {category === "PRODUCT" && <p className="mt-1.5 text-xs text-muted-foreground">{tr("Oshpaz bozorlik yozishda shu rasmni ko'radi")}</p>}
         </div>
-        <div>
-          <Label htmlFor="inv-name">{tr("Nomi")}</Label>
-          <Input id="inv-name" name="name" defaultValue={item?.name} placeholder={category === "DISHWARE" ? "masalan: Tarelka (katta)" : "masalan: Guruch"} required />
-        </div>
+        <BilingualField
+          name="name"
+          label={tr("Nomi")}
+          defaultValue={item?.name}
+          defaultValueRu={item?.nameRu}
+          placeholder={category === "DISHWARE" ? "masalan: Tarelka (katta)" : "masalan: Guruch"}
+          required
+        />
         {category === "PRODUCT" && (
           <div>
             <Label htmlFor="inv-pcat">{tr("Bo'lim")}</Label>

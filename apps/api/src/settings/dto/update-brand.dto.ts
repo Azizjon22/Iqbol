@@ -22,6 +22,12 @@ export class UpdateBrandDto {
   @MaxLength(30)
   contactPhone?: string;
 
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(40)
+  brandNameRu?: string;
+
   /** null resets to the default letter mark. */
   @IsOptional()
   @ValidateIf((_, v) => v !== null)

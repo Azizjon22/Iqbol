@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -36,6 +37,7 @@ export function ListDetail({
   onBack?: () => void;
 }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const router = useRouter();
@@ -82,7 +84,7 @@ export function ListDetail({
             {list.event ? (
               <Link href={`/dashboard/events/${list.event.id}`} className="group inline-flex items-center gap-2">
                 <CalendarHeart className="h-5 w-5 shrink-0 text-primary" />
-                <span className="font-display truncate text-2xl font-semibold group-hover:underline">{list.event.clientName}</span>
+                <span className="font-display truncate text-2xl font-semibold group-hover:underline">{pick(list.event.clientName, list.event.clientNameRu)}</span>
               </Link>
             ) : (
               <p className="font-display text-2xl font-semibold">{tr("To'ysiz ro'yxat")}</p>
@@ -147,7 +149,7 @@ export function ListDetail({
                 disabled={busy}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-success px-4 text-sm font-semibold text-success-foreground hover:brightness-95 disabled:opacity-50"
               >
-                <CheckCheck className="h-4 w-4" /> Xaridni yakunlash
+                <CheckCheck className="h-4 w-4" /> {tr("Xaridni yakunlash")}
               </button>
             )}
           </div>

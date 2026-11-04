@@ -39,7 +39,7 @@ export default async function EventsPage() {
       <EventsCalendar
         events={events
           .filter((e) => e.status !== "CANCELLED")
-          .map((e) => ({ id: e.id, clientName: e.clientName, eventDate: e.eventDate }))}
+          .map((e) => ({ id: e.id, clientName: e.clientName, clientNameRu: e.clientNameRu, eventDate: e.eventDate }))}
       />
 
       <UpcomingEventsGrid events={upcoming} locale={locale} />

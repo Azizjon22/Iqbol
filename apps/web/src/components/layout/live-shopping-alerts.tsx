@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, X } from "lucide-react";
 import { useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 const POLL_MS = 5000;
 const TOAST_MS = 12000;
 
 interface PendingLists {
   count: number;
-  latest: { id: string; workerName: string; clientName: string | null; itemCount: number } | null;
+  latest: { id: string; workerName: string; clientName: string | null; clientNameRu?: string | null; itemCount: number } | null;
 }
 
 /** A short two-note chime. Browsers mute it until the page has been clicked once. */
@@ -103,6 +104,7 @@ export function useLivePendingLists(initialCount: number, enabled: boolean) {
 
 export function ShoppingListToast({ alert, onClose }: { alert: PendingLists["latest"]; onClose: () => void }) {
   const tr = useTr();
+  const pick = usePick();
   if (!alert) return null;
   return (
     <div
@@ -118,7 +120,7 @@ export function ShoppingListToast({ alert, onClose }: { alert: PendingLists["lat
           <p className="text-sm font-semibold">{tr("Yangi bozorlik ro'yxati")}</p>
           <p className="mt-0.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">
             {alert.workerName}
-            {alert.clientName ? ` · ${alert.clientName}` : ""} · {alert.itemCount} {tr("ta mahsulot")}
+            {alert.clientName ? ` · ${pick(alert.clientName, alert.clientNameRu)}` : ""} · {alert.itemCount} {tr("ta mahsulot")}
           </p>
           <Link
             href="/dashboard/shopping-lists"

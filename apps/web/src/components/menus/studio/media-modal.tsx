@@ -7,7 +7,8 @@ import { MENU_MEDIA_SECTIONS, MENU_MEDIA_SECTION_LABELS_UZ, type MenuMediaSectio
 import type { MenuMedia } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { Label, Select } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { UploadField } from "@/components/uploads/upload-field";
 import { menuApi, errorText } from "./api";
 
@@ -45,6 +46,7 @@ export function MediaModal({
       mediaType: mediaKind(url),
       url,
       caption: String(form.get("caption") ?? "").trim(),
+      captionRu: String(form.get("captionRu") ?? "").trim(),
     };
 
     setBusy(true);
@@ -103,10 +105,13 @@ export function MediaModal({
             ))}
           </Select>
         </div>
-        <div>
-          <Label htmlFor="media-caption">{tr("Izoh — taqdimotda rasm ustida chiqadi")}</Label>
-          <Input id="media-caption" name="caption" defaultValue={item?.caption ?? ""} placeholder={tr("masalan: Asosiy zal")} />
-        </div>
+        <BilingualField
+          name="caption"
+          label={tr("Izoh — taqdimotda rasm ustida chiqadi")}
+          defaultValue={item?.caption}
+          defaultValueRu={item?.captionRu}
+          placeholder={tr("masalan: Asosiy zal")}
+        />
         {error && <p className="text-sm text-destructive sm:col-span-2">{error}</p>}
       </form>
     </Modal>
