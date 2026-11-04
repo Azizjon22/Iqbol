@@ -611,6 +611,9 @@ export const PHRASES_RU: Record<string, string> = {
   "Joriy parol": "Текущий пароль",
   "Takrorlang": "Повторите",
   "Loyiha nomi": "Название проекта",
+  "Aloqa telefoni": "Контактный телефон",
+  "Mijozga taqdimot sahifasida ko'rinadi (header va pastki tugma)":
+    "Отображается на странице презентации для клиента (шапка и нижняя кнопка)",
   "masalan: Iqbol": "например: Iqbol",
   "Logo": "Логотип",
   "sotib olingan mahsulotlar": "купленные товары",

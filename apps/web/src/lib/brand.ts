@@ -16,6 +16,7 @@ export const getBrand = cache(async (): Promise<Brand> => {
     return {
       brandName: b.brandName || DEFAULT_BRAND.brandName,
       logoUrl: b.logoUrl ?? null,
+      contactPhone: b.contactPhone?.trim() || DEFAULT_BRAND.contactPhone,
       heroMediaUrl: pending ? null : (b.heroMediaUrl ?? null),
       heroMediaKind: b.heroMediaUrl && !pending ? kind : null,
       heroMediaStatus: b.heroMediaStatus ?? null,

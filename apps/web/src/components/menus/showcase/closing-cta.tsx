@@ -1,6 +1,7 @@
 "use client";
 
 import { Phone } from "lucide-react";
+import { useBrand } from "@/components/brand/brand-provider";
 import { OrnamentalPattern } from "@/components/menus/ornamental-pattern";
 import { OrnamentDivider } from "@/components/menus/showcase/ornament-divider";
 import { Reveal } from "@/components/menus/showcase/reveal";
@@ -8,7 +9,7 @@ import { useT } from "@/components/i18n/locale-provider";
 
 export function ClosingCta({ title, subtitle }: { title: string; subtitle: string }) {
   const t = useT();
-  const phone = process.env.NEXT_PUBLIC_CONTACT_PHONE ?? "+998 90 000 00 00";
+  const { contactPhone: phone } = useBrand();
 
   return (
     <section className="relative isolate overflow-hidden bg-ink px-4 py-20 text-center text-white sm:py-28">
