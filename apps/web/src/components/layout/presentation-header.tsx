@@ -6,10 +6,11 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useT } from "@/components/i18n/locale-provider";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { useBrand } from "@/components/brand/brand-provider";
 
 export function PresentationHeader() {
   const t = useT();
-  const phone = process.env.NEXT_PUBLIC_CONTACT_PHONE ?? "+998 90 000 00 00";
+  const { contactPhone: phone } = useBrand();
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur-md">

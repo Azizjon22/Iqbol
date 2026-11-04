@@ -25,6 +25,7 @@ export class SettingsService {
       brandName: row.brandName,
       brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
+      contactPhone: row.contactPhone,
       heroMediaUrl: row.heroMediaUrl,
       heroMediaKind: row.heroMediaKind,
       heroMediaStatus: row.heroMediaStatus,
@@ -35,6 +36,8 @@ export class SettingsService {
   async updateBrand(dto: UpdateBrandDto, actorId: string, actorName: string) {
     const before = await this.getBrand();
     const brandName = dto.brandName?.trim();
+    const contactPhone = dto.contactPhone?.trim();
+    const brandNameRu = dto.brandNameRu?.trim();
     const heroMediaUrl =
       dto.heroMediaUrl === undefined ? undefined : dto.heroMediaUrl;
     const heroMediaKind =
@@ -55,7 +58,8 @@ export class SettingsService {
       create: {
         id: ID,
         brandName: brandName || undefined,
-        brandNameRu: dto.brandNameRu?.trim() || undefined,
+        contactPhone: contactPhone || undefined,
+        brandNameRu: brandNameRu || undefined,
         logoUrl: dto.logoUrl ?? null,
         heroMediaUrl: heroMediaUrl ?? null,
         heroMediaKind: heroMediaKind ?? null,
@@ -63,7 +67,8 @@ export class SettingsService {
       },
       update: {
         brandName: brandName || undefined,
-        brandNameRu: dto.brandNameRu?.trim() || undefined,
+        contactPhone: contactPhone || undefined,
+        brandNameRu: brandNameRu || undefined,
         logoUrl: dto.logoUrl,
         heroMediaUrl,
         heroMediaKind,
@@ -92,6 +97,8 @@ export class SettingsService {
     const changes: string[] = [];
     if (brandName && brandName !== before.brandName)
       changes.push(`nom: "${before.brandName}" → "${brandName}"`);
+    if (contactPhone && contactPhone !== before.contactPhone)
+      changes.push(`telefon: "${before.contactPhone}" → "${contactPhone}"`);
     if (dto.logoUrl !== undefined && dto.logoUrl !== before.logoUrl) {
       changes.push(dto.logoUrl ? 'logo yangilandi' : 'logo olib tashlandi');
     }
@@ -116,6 +123,7 @@ export class SettingsService {
       brandName: row.brandName,
       brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
+      contactPhone: row.contactPhone,
       heroMediaUrl: row.heroMediaUrl,
       heroMediaKind: row.heroMediaKind,
       heroMediaStatus: row.heroMediaStatus,

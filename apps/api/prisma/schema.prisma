@@ -457,6 +457,8 @@ model AppSettings {
   brandName       String                 @default("Iqbol")
   brandNameRu     String?
   logoUrl         String?
+  /// Public contact number shown on the client presentation (header + CTA).
+  contactPhone    String                 @default("+998 90 000 00 00")
   heroMediaUrl    String?
   heroMediaKind   String?
   // Null when no hero media is set.

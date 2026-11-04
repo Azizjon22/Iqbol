@@ -309,8 +309,12 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
 
       {canSeeFinancials && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between gap-3">
             <CardTitle>{tr("Xarajatlar")}</CardTitle>
+            <ExpenseForm
+              eventId={event.id}
+              suggestedAmounts={!hasShoppingExpense && shoppingTotal > 0 ? { SHOPPING: shoppingTotal } : undefined}
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -336,10 +340,6 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                 </div>
               ))}
             </div>
-            <ExpenseForm
-              eventId={event.id}
-              suggestedAmounts={!hasShoppingExpense && shoppingTotal > 0 ? { SHOPPING: shoppingTotal } : undefined}
-            />
           </CardContent>
         </Card>
       )}

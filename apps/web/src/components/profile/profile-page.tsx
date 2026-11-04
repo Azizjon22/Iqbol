@@ -103,11 +103,16 @@ function heroKind(url: string | null): HeroMediaKind | null {
   return /\.(?:mp4|mov)(?:$|\?)/i.test(url) ? "VIDEO" : "IMAGE";
 }
 
+function phoneDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 function BrandCard({ brand }: { brand: Brand }) {
   const tr = useTr();
 
   const router = useRouter();
   const [name, setName] = useState(brand.brandName);
+  const [phone, setPhone] = useState(brand.contactPhone);
   const [nameRu, setNameRu] = useState(brand.brandNameRu ?? "");
   const [fieldKey, setFieldKey] = useState(0);
   const [logoUrl, setLogoUrl] = useState<string | null>(brand.logoUrl);
@@ -121,14 +126,18 @@ function BrandCard({ brand }: { brand: Brand }) {
   const [saved, setSaved] = useState(false);
 
   const trimmed = name.trim();
+  const trimmedPhone = phone.trim();
   const trimmedRu = nameRu.trim();
+  const digits = phoneDigits(trimmedPhone);
   const dirty =
     trimmed !== brand.brandName ||
     trimmedRu !== (brand.brandNameRu ?? "") ||
+    trimmedPhone !== brand.contactPhone ||
     logoUrl !== brand.logoUrl ||
     heroUrl !== brand.heroMediaUrl;
   const validName =
     trimmed.length >= 2 && trimmed.length <= 40 && trimmedRu.length >= 2 && trimmedRu.length <= 40;
+  const validPhone = digits.length >= 9 && digits.length <= 15;
 
   function applyLink() {
     try {
@@ -144,6 +153,7 @@ function BrandCard({ brand }: { brand: Brand }) {
 
   async function save() {
     if (!validName) return setError(tr("Ikkala tilda ham yozing"));
+    if (!validPhone) return setError(tr("Telefon raqami noto'g'ri"));
     setBusy(true);
     setError(undefined);
     setSaved(false);
@@ -154,6 +164,7 @@ function BrandCard({ brand }: { brand: Brand }) {
         body: JSON.stringify({
           brandName: trimmed,
           brandNameRu: trimmedRu,
+          contactPhone: trimmedPhone,
           logoUrl,
           heroMediaUrl: heroUrl,
           heroMediaKind: heroKind(heroUrl),
@@ -209,6 +220,21 @@ function BrandCard({ brand }: { brand: Brand }) {
           <p className={cn("mt-1 text-xs", validName ? "text-muted-foreground" : "text-destructive")}>
             {trimmed.length}/40 · {trimmedRu.length}/40
           </p>
+
+          <div>
+            <Label htmlFor="contactPhone">{tr("Aloqa telefoni")}</Label>
+            <Input
+              id="contactPhone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={30}
+              inputMode="tel"
+              placeholder="+998 90 000 00 00"
+            />
+            <p className={cn("mt-1 text-xs", validPhone ? "text-muted-foreground" : "text-destructive")}>
+              {tr("Mijozga taqdimot sahifasida ko'rinadi (header va pastki tugma)")}
+            </p>
+          </div>
 
           <div>
             <p className="mb-1.5 text-sm font-medium">{tr("Logo")}</p>
@@ -292,7 +318,7 @@ function BrandCard({ brand }: { brand: Brand }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
-            <Button type="button" onClick={save} disabled={busy || !dirty || !validName}>
+            <Button type="button" onClick={save} disabled={busy || !dirty || !validName || !validPhone}>
               {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
             </Button>
             {dirty && (
@@ -301,6 +327,7 @@ function BrandCard({ brand }: { brand: Brand }) {
                 variant="ghost"
                 onClick={() => {
                   setName(brand.brandName);
+                  setPhone(brand.contactPhone);
                   setNameRu(brand.brandNameRu ?? "");
                   setFieldKey((k) => k + 1);
                   setLogoUrl(brand.logoUrl);
