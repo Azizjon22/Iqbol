@@ -65,7 +65,7 @@ export function WorkerEditModal({ worker, onClose }: { worker: WorkerSummary; on
         </>
       }
     >
-      <form id="worker-edit-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[180px_1fr]">
+      <form id="worker-edit-form" onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
         <div className="sm:row-span-4">
           <UploadField name="photoUrl" label={tr("Rasm")} folder="workers" aspect="square" defaultValue={worker.photoUrl} />
         </div>
@@ -81,7 +81,8 @@ export function WorkerEditModal({ worker, onClose }: { worker: WorkerSummary; on
           <div>
             <Label htmlFor="w-position">{tr("Lavozim")}</Label>
             <Select id="w-position" name="position" defaultValue={worker.position}>
-              {WORKER_POSITIONS.map((p) => (
+              {/* Only the super admin makes someone a chef, on the Xodimlar page. */}
+              {WORKER_POSITIONS.filter((p) => p !== "CHEF" || worker.position === "CHEF").map((p) => (
                 <option key={p} value={p}>
                   {tr(WORKER_POSITION_LABELS_UZ[p])}
                 </option>

@@ -22,8 +22,8 @@ export function EventCard({ event, locale }: { event: EventDetail; locale: Local
       <Card className="h-full transition-shadow hover:shadow-md">
         <CardContent className="space-y-3 p-5">
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-medium">{event.clientName}</p>
+            <div className="min-w-0">
+              <p className="font-medium [overflow-wrap:anywhere]">{event.clientName}</p>
               <p className="text-sm text-muted-foreground">{formatDateTime(event.eventDate, locale)}</p>
             </div>
             <Badge variant={STATUS_VARIANT[event.status] ?? "default"}>{t(`eventStatus.${event.status}`)}</Badge>

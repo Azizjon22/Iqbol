@@ -1,7 +1,8 @@
 import "server-only";
+import { redirect } from "next/navigation";
 import { clearSession, getSession, setSession, SessionData } from "./session";
 
-const API_URL = process.env.API_URL ?? "http://localhost:3001/api";
+const API_URL = process.env.API_URL ?? "http://localhost:3101/api";
 
 export class ApiError extends Error {
   constructor(
@@ -45,7 +46,13 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
   if (res.status === 401) {
     const refreshed = await refreshSession(session);
     if (!refreshed) {
-      await clearSession().catch(() => undefined);
+      // A Server Component can't clear the cookie while rendering — without
+      // this the page would fail on every visit until the cookie expired.
+      const cleared = await clearSession().then(
+        () => true,
+        () => false,
+      );
+      if (!cleared) redirect("/api/session/expired");
       throw new ApiError(401, { message: "Session expired" });
     }
     await setSession(refreshed).catch(() => undefined);

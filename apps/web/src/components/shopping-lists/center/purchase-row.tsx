@@ -167,7 +167,7 @@ export function PurchaseRow({
             </div>
             <span className="text-xs text-muted-foreground">{tr("Faqat shu to'y uchun — omborga tushmaydi")}</span>
           </div>
-          <div className="mt-2.5 grid gap-2 min-[420px]:grid-cols-[1fr_auto]">
+          <div className="mt-2.5 grid gap-2 min-[420px]:grid-cols-[minmax(0,1fr)_auto]">
             <div className="relative">
               <Input
                 value={price}

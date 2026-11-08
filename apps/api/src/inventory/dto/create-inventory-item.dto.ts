@@ -41,4 +41,11 @@ export class CreateInventoryItemDto {
   @IsNumber()
   @Min(0)
   minThreshold?: number;
+
+  /** Price per unit of the opening stock. Honoured for the super admin only. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  unitPrice?: number;
 }

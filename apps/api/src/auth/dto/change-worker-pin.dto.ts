@@ -5,6 +5,8 @@ export class ChangeWorkerPinDto {
   currentPin!: string;
 
   @IsString()
-  @Matches(/^[0-9]{4}$/, { message: "Yangi PIN 4 ta raqamdan iborat bo'lishi kerak" })
+  @Matches(/^[0-9]{4}$/, {
+    message: "Yangi PIN 4 ta raqamdan iborat bo'lishi kerak",
+  })
   newPin!: string;
 }

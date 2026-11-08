@@ -43,8 +43,23 @@ export function translate(
   let text = typeof value === "string" ? value : key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      text = text.replace(`{${k}}`, String(v));
+      text = text.replaceAll(`{${k}}`, String(v));
     }
   }
   return text;
+}
+
+/**
+ * Russian noun forms after a count differ by the last digit/teens (1 день,
+ * 2 дня, 5 дней) — Uzbek has no such inflection, so only `ru` locale needs
+ * this. Pass the three grammatical forms: [one, few, many], e.g.
+ * pluralRu(n, "день", "дня", "дней").
+ */
+export function pluralRu(count: number, one: string, few: string, many: string): string {
+  const n = Math.abs(count) % 100;
+  const last = n % 10;
+  if (n >= 11 && n <= 14) return many;
+  if (last === 1) return one;
+  if (last >= 2 && last <= 4) return few;
+  return many;
 }

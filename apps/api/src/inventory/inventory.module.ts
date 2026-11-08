@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { TelegramModule } from '../telegram/telegram.module';
 
 @Module({
-  imports: [AuditLogModule],
+  imports: [AuditLogModule, TelegramModule],
   controllers: [InventoryController],
   providers: [InventoryService],
   exports: [InventoryService],

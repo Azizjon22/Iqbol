@@ -30,11 +30,12 @@ export function StatCard({
         href && "transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md",
       )}
     >
-      <CardContent className="relative flex items-center justify-between gap-4 p-4 sm:p-5">
+      <CardContent className="@container relative flex items-center justify-between gap-4 p-4 sm:p-5">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--surface-glow),transparent_55%)]" />
         <div className="relative min-w-0">
           <p className="truncate text-sm text-muted-foreground">{label}</p>
-          <p className="mt-1 break-words text-2xl font-semibold tracking-tight">{value}</p>
+          {/* Scales with the card (not the viewport, which ignores the sidebar) so large sums stay on one line in 3-up rows. */}
+          <p className="mt-1 break-words text-[clamp(1.125rem,9cqi,1.5rem)] font-semibold leading-tight tracking-tight">{value}</p>
         </div>
         {icon && (
           <div

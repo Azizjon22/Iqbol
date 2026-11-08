@@ -1,20 +1,20 @@
-import { getTr } from "@/i18n/server-tr";
+import { redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { getSession } from "@/lib/session";
 import type { AuditLogEntry } from "@/lib/types";
 import { AuditLogFeed } from "@/components/audit-log/audit-log-feed";
 
 export default async function AuditLogPage() {
-  const tr = await getTr();
-
+  const session = await getSession();
+  if (session?.user.kind !== "STAFF" || session.user.role !== "SUPER_ADMIN") redirect("/dashboard");
   const entries = await apiFetch<AuditLogEntry[]>("/audit-logs?limit=300");
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{tr("Faoliyat tarixi")}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Faoliyat tarixi</h1>
         <p className="text-sm text-muted-foreground">
-          
-          {tr("Barcha xodimlar tizimda nimani o'zgartirgani — sana va vaqti bilan")}
+          Barcha xodimlar tizimda nimani o&apos;zgartirgani — sana va vaqti bilan
         </p>
       </div>
 

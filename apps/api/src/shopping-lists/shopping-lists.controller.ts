@@ -14,7 +14,7 @@ import {
 import { ShoppingListStatus } from '@prisma/client';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { WorkerGuard } from '../common/guards/worker.guard';
+import { ChefGuard } from '../common/guards/chef.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthPayload } from '../common/types/auth-payload';
 import { ShoppingListsService } from './shopping-lists.service';
@@ -27,19 +27,19 @@ import { UpdateShoppingListItemsDto } from './dto/update-items.dto';
 export class ShoppingListsController {
   constructor(private lists: ShoppingListsService) {}
 
-  @UseGuards(WorkerGuard)
+  @UseGuards(ChefGuard)
   @Post()
   create(@Body() dto: CreateShoppingListDto, @CurrentUser() user: AuthPayload) {
     return this.lists.create(dto, user.sub);
   }
 
-  @UseGuards(WorkerGuard)
+  @UseGuards(ChefGuard)
   @Delete(':id')
   cancel(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
     return this.lists.cancelByWorker(id, user.sub, user.fullName);
   }
 
-  @UseGuards(WorkerGuard)
+  @UseGuards(ChefGuard)
   @Get('mine')
   findMine(@CurrentUser() user: AuthPayload) {
     return this.lists.findMineForWorker(user.sub);
@@ -75,6 +75,9 @@ export class ShoppingListsController {
   @Get(':id')
   async findOne(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
     if (user.kind === 'WORKER') {
+      if (user.position !== 'CHEF') {
+        throw new ForbiddenException('Faqat oshpazlar uchun');
+      }
       return this.lists.ensureWorkerOwnsOrThrow(id, user.sub);
     }
     if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {

@@ -35,7 +35,7 @@ export class WorkersController {
   @Roles('SUPER_ADMIN', 'ADMIN', 'ZAVZAL')
   @Post()
   create(@Body() dto: RegisterWorkerDto, @CurrentUser() user: AuthPayload) {
-    return this.workers.createByStaff(dto, user.sub, user.fullName);
+    return this.workers.createByStaff(dto, user.sub, user.fullName, user.role);
   }
 
   @UseGuards(RolesGuard)
@@ -74,7 +74,7 @@ export class WorkersController {
     @Body() dto: UpdateWorkerDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.workers.update(id, dto, user.sub, user.fullName);
+    return this.workers.update(id, dto, user.sub, user.fullName, user.role);
   }
 
   @UseGuards(RolesGuard)

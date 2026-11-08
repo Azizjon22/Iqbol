@@ -89,6 +89,12 @@ body {
   }
 }
 
+/* `to` deliberately omits `transform` (rather than `translateY(0)`) — with
+   `animation-fill-mode: both` below, the end-state style sticks around
+   forever, and even an identity transform like `translateY(0)` makes the
+   element a containing block for any `position: fixed` descendant, trapping
+   it inside this box instead of the real viewport. Ending on the property's
+   own un-animated value (`none` for a plain element) avoids that. */
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -96,7 +102,6 @@ body {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -107,16 +112,22 @@ body {
   }
   to {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
 .animate-fade-up {
-  animation: fade-up 0.5s ease-out both;
+  /* No `both`/`forwards`: the end keyframe already matches this element's
+     normal resting style (opacity: 1, no transform), so holding it via
+     fill-mode buys nothing but keeps `transform` animation-owned — and any
+     animation-owned transform, even a settled identity one, still traps
+     descendant `position: fixed` elements inside this box (see comment
+     above the keyframes). Letting the animation end and hand control back
+     to the normal cascade lands on the exact same pixels with no flicker. */
+  animation: fade-up 0.5s ease-out;
 }
 
 .animate-soft-scale {
-  animation: soft-scale 0.45s ease-out both;
+  animation: soft-scale 0.45s ease-out;
 }
 
 @keyframes dissolve-fade {
@@ -316,6 +327,20 @@ body {
   transform: none;
 }
 
+/*
+ * iOS/iPadOS Safari zooms the whole page into any focused field whose text is
+ * under 16px, and the layout stays zoomed after blur. On touch screens lift
+ * the small form fields to 16px; larger ones (price inputs etc.) are untouched.
+ * Unlayered on purpose so it wins over the text-* utilities.
+ */
+@media (pointer: coarse) {
+  :is(input, select, textarea):is(.text-xs, .text-sm, [class*="text-[1"]),
+  input[type="date"],
+  input[type="time"] {
+    font-size: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal {
     opacity: 1;
@@ -389,6 +414,16 @@ body {
 
 .gold-range:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Swipeable panes (e.g. the showcase lightbox) scroll by drag/arrow buttons —
+   the native scrollbar track is just visual noise on top of a photo. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /*

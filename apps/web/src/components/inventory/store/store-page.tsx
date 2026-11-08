@@ -1,6 +1,4 @@
 "use client";
-import { useTr } from "@/components/i18n/locale-provider";
-
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -80,8 +78,6 @@ export function StorePage({
   events: UpcomingEvent[];
   role: StaffRole;
 }) {
-  const tr = useTr();
-
   const router = useRouter();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [tab, setTab] = useState<Tab>(items.some((item) => item.category === "PRODUCT") ? "PRODUCT" : "DISHWARE");
@@ -131,13 +127,13 @@ export function StorePage({
 
   const stats = [
     {
-      label: tr("Mahsulot turlari"),
+      label: "Mahsulot turlari",
       value: products.length,
-      hint: tr(`${sectionCounts.length} bo'limda`),
+      hint: `${sectionCounts.length} bo'limda`,
       icon: <Package className="h-5 w-5" />,
     },
     {
-      label: tr("Idish-tovoq"),
+      label: "Idish-tovoq",
       value: dishware.length,
       hint: `jami ${dishwarePieces.toLocaleString("ru-RU")} dona`,
       icon: <UtensilsCrossed className="h-5 w-5" />,
@@ -171,16 +167,15 @@ export function StorePage({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">
-            
-            {tr("Ombor")}
+            Ombor
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            
-            {tr("Mahsulotlar va idish-tovoqlar qoldig'i, kirim-chiqim va\r\n            inventarizatsiya.")}
+            Mahsulotlar va idish-tovoqlar qoldig&apos;i, kirim-chiqim va
+            inventarizatsiya.
           </p>
         </div>
         <Button type="button" onClick={() => setDialog({ kind: "item" })}>
-          <Plus className="h-4 w-4" />  {tr("Yangi qo'shish")}
+          <Plus className="h-4 w-4" /> Yangi qo&apos;shish
         </Button>
       </div>
 
@@ -204,11 +199,11 @@ export function StorePage({
               !s.tone && "cursor-default border-border",
             )}
           >
-            <div>
-              <p className="text-xs text-muted-foreground">{tr(s.label)}</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">{s.label}</p>
               <p
                 className={cn(
-                  "font-display mt-0.5 text-3xl font-semibold leading-none lining-nums tabular-nums",
+                  "font-display mt-0.5 text-[clamp(1.5rem,4vw,1.875rem)] font-semibold leading-none lining-nums tabular-nums",
                   s.tone === "warn" && "text-accent",
                   s.tone === "danger" && "text-destructive",
                 )}
@@ -219,7 +214,7 @@ export function StorePage({
             </div>
             <span
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                "hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex",
                 s.tone === "warn"
                   ? "bg-accent/15 text-accent"
                   : s.tone === "danger"
@@ -237,7 +232,7 @@ export function StorePage({
         <section className="rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/10 via-card to-card p-4">
           <div className="mb-3 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-accent" />
-            <h2 className="text-sm font-semibold">{tr("To'ldirish kerak")}</h2>
+            <h2 className="text-sm font-semibold">To&apos;ldirish kerak</h2>
             <span className="rounded-full bg-accent px-2 text-xs font-semibold text-accent-foreground tabular-nums">
               {attention.length}
             </span>
@@ -275,7 +270,7 @@ export function StorePage({
                   }
                   className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-success/15 px-2.5 text-xs font-semibold text-success transition hover:bg-success hover:text-success-foreground"
                 >
-                  <Plus className="h-3.5 w-3.5" />  {tr("Kirim")}
+                  <Plus className="h-3.5 w-3.5" /> Kirim
                 </button>
               </div>
             ))}
@@ -283,49 +278,64 @@ export function StorePage({
         </section>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      {/* ---------- The two halves of the store ---------- */}
+      <div className="grid grid-cols-2 gap-3">
+        {(
+          [
+            ["PRODUCT", "Oziq-ovqatlar", `${products.length} xil mahsulot`, "To'yga olinadi, narxi bilan yuritiladi"],
+            ["DISHWARE", "Idish-tovoqlar", `${dishware.length} xil idish`, "Sanab yuritiladi: sinsa kamayadi, yangisi qo'shiladi"],
+          ] as const
+        ).map(([key, title, count, hint]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => {
+              setTab(key);
+              setSection("ALL");
+            }}
+            aria-pressed={tab === key}
+            className={cn(
+              "group flex items-center gap-3 rounded-2xl border p-3 text-left transition duration-300 sm:p-4",
+              tab === key
+                ? "border-primary bg-primary/10 shadow-md shadow-primary/10 ring-1 ring-primary"
+                : "border-border bg-card hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-md",
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition",
+                tab === key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:text-foreground",
+              )}
+            >
+              {key === "PRODUCT" ? <ProductCategoryIcon category="FRUIT" className="h-5 w-5" /> : <UtensilsCrossed className="h-5 w-5" />}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold sm:text-base">{title}</span>
+              <span className="block text-xs text-muted-foreground">{count}</span>
+              <span className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{hint}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-4">
           {/* ---------- Toolbar ---------- */}
           <div className="space-y-3 rounded-2xl border border-border bg-card p-3 sm:p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-xl bg-muted p-1">
-                {(
-                  [
-                    ["PRODUCT", tr(`Mahsulotlar (${products.length})`)],
-                    ["DISHWARE", tr(`Idish-tovoq (${dishware.length})`)],
-                  ] as const
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setTab(key);
-                      setSection("ALL");
-                    }}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-sm font-medium transition",
-                      tab === key
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
               <div className="relative min-w-0 flex-1 basis-48">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={tr("Qidirish...")}
+                  placeholder="Qidirish..."
                   className="pl-9 pr-9"
                 />
                 {q && (
                   <button
                     type="button"
                     onClick={() => setQuery("")}
-                    aria-label={tr("Tozalash")}
+                    aria-label="Tozalash"
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
@@ -337,8 +347,8 @@ export function StorePage({
                 onChange={(e) => setSort(e.target.value as "name" | "stock")}
                 className="w-auto"
               >
-                <option value="name">{tr("Bo'lim / nom bo'yicha")}</option>
-                <option value="stock">{tr("Qoldiq kamidan")}</option>
+                <option value="name">Bo&apos;lim / nom bo&apos;yicha</option>
+                <option value="stock">Qoldiq kamidan</option>
               </Select>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -349,8 +359,7 @@ export function StorePage({
                     onClick={() => setSection("ALL")}
                     className={chip(section === "ALL")}
                   >
-                    
-                    {tr("Barchasi")}
+                    Barchasi
                   </button>
                   {sectionCounts.map(({ c, n }) => (
                     <button
@@ -363,7 +372,7 @@ export function StorePage({
                         category={c}
                         className="h-3.5 w-3.5"
                       />{" "}
-                      {tr(PRODUCT_CATEGORY_LABELS_UZ[c])} {n}
+                      {PRODUCT_CATEGORY_LABELS_UZ[c]} {n}
                     </button>
                   ))}
                   <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
@@ -385,7 +394,7 @@ export function StorePage({
               <Package className="mx-auto h-8 w-8 text-muted-foreground/60" />
               <p className="mt-3 text-sm text-muted-foreground">
                 {pool.length === 0
-                  ? tr("Hali hech narsa qo'shilmagan.")
+                  ? "Hali hech narsa qo'shilmagan."
                   : "Filtrga mos mahsulot topilmadi."}
               </p>
             </div>
@@ -401,7 +410,7 @@ export function StorePage({
                       category={g.key as ProductCategory}
                       className="h-4 w-4 text-muted-foreground"
                     />
-                    {tr(PRODUCT_CATEGORY_LABELS_UZ[g.key as ProductCategory])}
+                    {PRODUCT_CATEGORY_LABELS_UZ[g.key as ProductCategory]}
                     <span className="rounded-full bg-muted px-2 text-xs font-normal text-muted-foreground tabular-nums">
                       {g.items.length}
                     </span>
@@ -420,7 +429,7 @@ export function StorePage({
                           type="button"
                           onClick={() => setDialog({ kind: "history", item })}
                           className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                          title={tr("Tarixni ko'rish")}
+                          title="Tarixni ko'rish"
                         >
                           <ItemThumb item={item} />
                           <span className="min-w-0 flex-1">
@@ -482,8 +491,8 @@ export function StorePage({
                               setDialog({ kind: "stock", item, mode: "OUT" })
                             }
                             disabled={level === "out"}
-                            title={tr("Chiqim")}
-                            aria-label={tr("Chiqim")}
+                            aria-label="Chiqim"
+                            title="Chiqim"
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-destructive transition hover:bg-destructive/10 disabled:opacity-30"
                           >
                             <Minus className="h-4 w-4" />
@@ -493,8 +502,8 @@ export function StorePage({
                             onClick={() =>
                               setDialog({ kind: "stock", item, mode: "IN" })
                             }
-                            title={tr("Kirim")}
-                            aria-label={tr("Kirim")}
+                            aria-label="Kirim"
+                            title="Kirim"
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-success transition hover:bg-success/10"
                           >
                             <Plus className="h-4 w-4" />
@@ -502,7 +511,7 @@ export function StorePage({
                           <DropdownMenu
                             items={[
                               {
-                                label: tr("Sanash (inventarizatsiya)"),
+                                label: "Sanash (inventarizatsiya)",
                                 icon: <ClipboardCheck className="h-4 w-4" />,
                                 onSelect: () =>
                                   setDialog({
@@ -518,13 +527,13 @@ export function StorePage({
                                   setDialog({ kind: "history", item }),
                               },
                               {
-                                label: tr("Tahrirlash"),
+                                label: "Tahrirlash",
                                 icon: <Pencil className="h-4 w-4" />,
                                 onSelect: () =>
                                   setDialog({ kind: "item", item }),
                               },
                               {
-                                label: tr("O'chirish"),
+                                label: "O'chirish",
                                 icon: <Trash2 className="h-4 w-4" />,
                                 tone: "danger",
                                 hidden: role !== "SUPER_ADMIN",
@@ -547,12 +556,12 @@ export function StorePage({
         <aside className="xl:sticky xl:top-20 xl:self-start">
           <section className="rounded-2xl border border-border bg-card p-4">
             <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <History className="h-4 w-4 text-muted-foreground" />  {tr("So'nggi\r\n              harakatlar")}
+              <History className="h-4 w-4 text-muted-foreground" /> So&apos;nggi
+              harakatlar
             </h2>
             {recent.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                
-                {tr("Hali kirim-chiqim bo'lmagan.")}
+                Hali kirim-chiqim bo&apos;lmagan.
               </p>
             ) : (
               <ul className="mt-1 divide-y divide-border">
@@ -576,6 +585,7 @@ export function StorePage({
           item={dialog.item}
           initialMode={dialog.mode}
           events={events}
+          canSeePrices={role === "SUPER_ADMIN"}
           onClose={() => setDialog(null)}
         />
       )}
@@ -593,8 +603,8 @@ export function StorePage({
         <ConfirmDialog
           open
           onClose={() => setDialog(null)}
-          title={tr("O'chirish")}
-          message={tr(`"${dialog.item.name}" ombordan o'chiriladi. Kirim-chiqim tarixi ham o'chadi.`)}
+          title="O'chirish"
+          message={`"${dialog.item.name}" ombordan o'chiriladi. Kirim-chiqim tarixi ham o'chadi.`}
           onConfirm={async () => {
             await inventoryApi(`/${dialog.item.id}`, "DELETE");
             router.refresh();

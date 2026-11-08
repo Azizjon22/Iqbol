@@ -40,7 +40,7 @@ export default async function AccountingPage() {
         <p className="text-sm text-muted-foreground">{t("accounting.subtitle")}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           label={t("accounting.totalPaid")}
           value={formatSom(report.totalPaid, locale)}
@@ -61,11 +61,11 @@ export default async function AccountingPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <div className="min-w-0 xl:col-span-3">
           <ProfitTrendChart days={report.days} />
         </div>
-        <div className="lg:col-span-2">
+        <div className="min-w-0 xl:col-span-2">
           <ExpensesCategoryChart expensesByCategory={report.expensesByCategory} />
         </div>
       </div>

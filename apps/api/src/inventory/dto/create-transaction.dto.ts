@@ -20,4 +20,11 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  /** Price per unit of a kirim. Honoured for the super admin only. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  unitPrice?: number;
 }

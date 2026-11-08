@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+# local upload fallback (used while S3_* env vars are blank — see
+# src/app/api/local-uploads/[...key]/route.ts)
+/public/uploads/
+
 # production
 /build
 
@@ -32,6 +36,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

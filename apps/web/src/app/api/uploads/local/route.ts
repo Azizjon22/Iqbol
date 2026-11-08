@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.API_URL ?? "http://localhost:3001/api";
+const API_URL = process.env.API_URL ?? "http://localhost:3101/api";
 
 /** Forwards the raw file bytes. The JSON API proxy would decode them as text. */
 export async function PUT(req: NextRequest) {
@@ -11,11 +11,16 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.arrayBuffer();
   const contentType = req.headers.get("content-type") ?? "application/octet-stream";
-  const res = await fetch(`${API_URL}/uploads/local?token=${encodeURIComponent(token)}`, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/uploads/local?token=${encodeURIComponent(token)}`, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body,
+    });
+  } catch {
+    return NextResponse.json({ message: "Yuklashda xatolik yuz berdi" }, { status: 502 });
+  }
 
   const text = await res.text();
   return new NextResponse(text || null, {

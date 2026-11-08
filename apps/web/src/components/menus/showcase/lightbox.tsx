@@ -31,7 +31,9 @@ export function Lightbox({
   const fromSwipe = useRef(false);
   const programmatic = useRef(false);
   const settle = useRef<number | undefined>(undefined);
-  indexRef.current = index;
+  useLayoutEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
   function slideWidth(scroller: HTMLDivElement) {
     const slide = scroller.firstElementChild as HTMLElement | null;
@@ -152,13 +154,7 @@ export function Lightbox({
           {items.map((slide, i) => (
             <div key={slide.id ?? `${slide.url}-${i}`} className="flex min-w-full max-w-full shrink-0 grow-0 basis-full snap-start snap-always items-center justify-center px-3 sm:px-8">
               {slide.kind === "VIDEO" ? (
-                <video
-                  key={slide.url}
-                  src={slide.url}
-                  controls
-                  autoPlay={i === index}
-                  className="max-h-[62vh] max-w-full rounded-lg"
-                />
+                <SlideVideo key={slide.url} src={slide.url} active={i === index} />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -195,5 +191,35 @@ export function Lightbox({
         )}
       </div>
     </Portal>
+  );
+}
+
+/**
+ * Only the slide in view plays and buffers; swiping away pauses it, and the
+ * others fetch just their first frame instead of the whole file.
+ */
+function SlideVideo({ src, active }: { src: string; active: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    if (active) {
+      // Autoplay can be refused (e.g. low-power mode); controls stay usable.
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [active]);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      controls
+      playsInline
+      preload={active ? "auto" : "metadata"}
+      className="max-h-[62vh] max-w-full rounded-lg"
+    />
   );
 }

@@ -73,10 +73,10 @@ export function ExpensesByDay({ days }: { days: DailyReportDay[] }) {
               {day.expensesByCategory.map((item) => (
                 <div
                   key={item.category}
-                  className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm"
                 >
-                  <span>{t(`expenseCategories.${item.category}`)}</span>
-                  <span className="font-medium text-destructive">{formatSom(item.amount, locale)}</span>
+                  <span className="min-w-0">{t(`expenseCategories.${item.category}`)}</span>
+                  <span className="shrink-0 text-right font-medium tabular-nums text-destructive">{formatSom(item.amount, locale)}</span>
                 </div>
               ))}
             </div>

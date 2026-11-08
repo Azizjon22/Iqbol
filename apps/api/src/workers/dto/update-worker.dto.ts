@@ -3,10 +3,10 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsUrl,
   Matches,
   MinLength,
 } from 'class-validator';
+import { IsMediaUrl } from '../../common/validators/is-media-url';
 
 export class UpdateWorkerDto {
   @IsOptional()
@@ -28,7 +28,7 @@ export class UpdateWorkerDto {
   gender?: WorkerGender;
 
   @IsOptional()
-  @IsUrl()
+  @IsMediaUrl()
   photoUrl?: string;
 
   @IsOptional()

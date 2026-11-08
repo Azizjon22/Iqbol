@@ -38,10 +38,15 @@ export const MENU_DISH_CATEGORIES = [
 ] as const;
 export type MenuDishCategory = (typeof MENU_DISH_CATEGORIES)[number];
 
+
+export const MENU_GUEST_COUNTS = [100, 150, 200] as const;
+
 export const MENU_MEDIA_SECTIONS = [
   "HALL",
   "TABLE_SETUP",
+  "FOOD",
   "KORTEJ",
+  "ARTIST",
   "PHOTOGRAPHER",
   "OTHER",
 ] as const;
@@ -49,6 +54,9 @@ export type MenuMediaSection = (typeof MENU_MEDIA_SECTIONS)[number];
 
 export const MEDIA_TYPES = ["PHOTO", "VIDEO"] as const;
 export type MediaType = (typeof MEDIA_TYPES)[number];
+
+export const MEDIA_PROCESSING_STATUSES = ["READY", "PROCESSING", "FAILED"] as const;
+export type MediaProcessingStatus = (typeof MEDIA_PROCESSING_STATUSES)[number];
 
 export const UNITS = ["KG", "LITER", "DONA"] as const;
 export type Unit = (typeof UNITS)[number];
@@ -87,6 +95,7 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const EVENT_EXPENSE_CATEGORIES = [
   "SHOPPING",
+  "STOCK",
   "CAMERAMAN",
   "ARTIST",
   "KORTEJ",
@@ -136,7 +145,9 @@ export const MENU_DISH_CATEGORY_LABELS_UZ: Record<MenuDishCategory, string> = {
 export const MENU_MEDIA_SECTION_LABELS_UZ: Record<MenuMediaSection, string> = {
   HALL: "Umumiy zal",
   TABLE_SETUP: "Stol bezatilishi",
+  FOOD: "To'yxona taomlari",
   KORTEJ: "Kortej",
+  ARTIST: "San'atkor",
   PHOTOGRAPHER: "Fotosuratchi",
   OTHER: "Boshqa",
 };
@@ -167,6 +178,7 @@ export const PRODUCT_CATEGORY_LABELS_UZ: Record<ProductCategory, string> = {
 
 export const EVENT_EXPENSE_CATEGORY_LABELS_UZ: Record<EventExpenseCategory, string> = {
   SHOPPING: "Bozorlik",
+  STOCK: "Ombor mahsulotlari",
   CAMERAMAN: "Kamerachi",
   ARTIST: "San'atkor",
   KORTEJ: "Kortej",
@@ -207,13 +219,16 @@ export const MENU_DISH_CATEGORY_LABELS_RU: Record<MenuDishCategory, string> = {
 export const MENU_MEDIA_SECTION_LABELS_RU: Record<MenuMediaSection, string> = {
   HALL: "Общий зал",
   TABLE_SETUP: "Сервировка стола",
+  FOOD: "Блюда тойханы",
   KORTEJ: "Кортеж",
+  ARTIST: "Артист",
   PHOTOGRAPHER: "Фотограф",
   OTHER: "Другое",
 };
 
 export const EVENT_EXPENSE_CATEGORY_LABELS_RU: Record<EventExpenseCategory, string> = {
   SHOPPING: "Закупки",
+  STOCK: "Продукты со склада",
   CAMERAMAN: "Оператор",
   ARTIST: "Артист",
   KORTEJ: "Кортеж",

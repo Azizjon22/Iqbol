@@ -1,10 +1,11 @@
 import {
+  ForbiddenException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { Prisma } from '@prisma/client';
+import { Prisma, StaffRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { RegisterWorkerDto } from './dto/register-worker.dto';
@@ -19,6 +20,10 @@ export class WorkersService {
   ) {}
 
   async register(dto: RegisterWorkerDto) {
+    // Chefs are permanent staff: only the super admin adds them.
+    if (dto.position === 'CHEF') {
+      throw new ForbiddenException("Oshpazni faqat super admin qo'shadi");
+    }
     const existing = await this.prisma.worker.findUnique({
       where: { phone: dto.phone },
     });
@@ -36,7 +41,7 @@ export class WorkersService {
         phone: dto.phone,
         position: dto.position,
         gender: dto.gender,
-        photoUrl: dto.photoUrl,
+        // No photo from the public form: uploading is for logged-in staff.
         pinHash,
       },
     });
@@ -48,7 +53,11 @@ export class WorkersService {
     dto: RegisterWorkerDto,
     actorId: string,
     actorName: string,
+    actorRole?: StaffRole,
   ) {
+    if (dto.position === 'CHEF' && actorRole !== 'SUPER_ADMIN') {
+      throw new ForbiddenException("Oshpazni faqat super admin qo'shadi");
+    }
     const existing = await this.prisma.worker.findUnique({
       where: { phone: dto.phone },
     });
@@ -127,7 +136,13 @@ export class WorkersService {
     const existing = await this.ensureExists(id);
     const worker = await this.prisma.worker.update({
       where: { id },
-      data: { status: 'REJECTED', approvedById: actorId },
+      // tokenVersion bump kills any session this worker is already holding —
+      // checked on every request by JwtStrategy, no need to wait for expiry.
+      data: {
+        status: 'REJECTED',
+        approvedById: actorId,
+        tokenVersion: { increment: 1 },
+      },
     });
 
     await this.auditLog.record({
@@ -147,8 +162,18 @@ export class WorkersService {
     dto: UpdateWorkerDto,
     actorId: string,
     actorName: string,
+    actorRole?: StaffRole,
   ) {
     const existing = await this.ensureExists(id);
+    // A chef's account (and turning anyone into a chef) is the super admin's alone.
+    if (
+      actorRole !== 'SUPER_ADMIN' &&
+      (existing.position === 'CHEF' || dto.position === 'CHEF')
+    ) {
+      throw new ForbiddenException(
+        'Oshpaz hisobini faqat super admin boshqaradi',
+      );
+    }
     if (dto.phone && dto.phone !== existing.phone) {
       const taken = await this.prisma.worker.findUnique({
         where: { phone: dto.phone },
@@ -170,6 +195,8 @@ export class WorkersService {
         photoUrl: dto.photoUrl,
         pinHash,
         mustChangePin: dto.pin ? true : undefined,
+        // An admin-forced PIN reset should kill this worker's existing sessions.
+        tokenVersion: dto.pin ? { increment: 1 } : undefined,
       },
     });
 
@@ -228,8 +255,28 @@ export class WorkersService {
     return worker;
   }
 
-  private toSafe<T extends { pinHash: string | null }>(worker: T) {
-    const { pinHash, ...safe } = worker;
-    return { ...safe, hasPin: Boolean(pinHash) };
+  /** Drops credentials and session internals before a worker leaves the API. */
+  private toSafe<
+    T extends {
+      pinHash: string | null;
+      tokenVersion: number;
+      failedLoginCount: number;
+      lockedUntil: Date | null;
+      telegramChatId: string | null;
+    },
+  >(worker: T) {
+    const {
+      pinHash,
+      tokenVersion: _tokenVersion,
+      failedLoginCount: _failedLoginCount,
+      lockedUntil: _lockedUntil,
+      telegramChatId,
+      ...safe
+    } = worker;
+    return {
+      ...safe,
+      hasPin: Boolean(pinHash),
+      telegramLinked: Boolean(telegramChatId),
+    };
   }
 }

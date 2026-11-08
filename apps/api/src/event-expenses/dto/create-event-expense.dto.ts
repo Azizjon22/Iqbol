@@ -1,6 +1,12 @@
 import { EventExpenseCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
 export class CreateEventExpenseDto {
   @IsEnum(EventExpenseCategory)

@@ -71,12 +71,12 @@ export function DailyBreakdown({
       <div className="space-y-1.5">
         {filtered.length === 0 && <p className="text-sm text-muted-foreground">{t("common.noData")}</p>}
         {filtered.map((d) => (
-          <div key={d.date} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
-            <span className="text-muted-foreground">
+          <div key={d.date} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm">
+            <span className="min-w-0 text-muted-foreground">
               {formatDate(parseDayLocal(d.date), locale)}
               {d.eventCount > 1 && ` · ${t("accounting.eventsCount", { count: d.eventCount })}`}
             </span>
-            <span className={cn("font-medium", toneClass)}>{formatSom(d[valueKey], locale)}</span>
+            <span className={cn("shrink-0 text-right font-medium tabular-nums", toneClass)}>{formatSom(d[valueKey], locale)}</span>
           </div>
         ))}
       </div>

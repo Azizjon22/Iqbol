@@ -2,6 +2,7 @@ import type {
   EventExpenseCategory,
   EventStatus,
   InventoryCategory,
+  MediaProcessingStatus,
   MediaType,
   MenuDishCategory,
   MenuMediaSection,
@@ -44,6 +45,7 @@ export interface MenuMedia {
   url: string;
   caption: string | null;
   order: number;
+  processingStatus: MediaProcessingStatus;
 }
 
 export interface WorkerSummary {
@@ -108,6 +110,7 @@ export interface EventDetail {
   payments?: Payment[];
   expenses?: EventExpense[];
   shoppingLists?: ShoppingList[];
+  stockUsages?: EventStockUsage[];
   totalPrice?: string;
   paidAmount?: string;
   balance?: string;
@@ -131,6 +134,42 @@ export interface InventoryItem {
   quantity: string;
   minThreshold: string | null;
   updatedAt: string;
+  /** Price lots, oldest first. Sent to the super admin only. */
+  lots?: InventoryLot[];
+}
+
+/** Stock bought at one price; the oldest lot is used up first. */
+export interface InventoryLot {
+  id: string;
+  quantity: string;
+  /** null until the super admin prices it. */
+  unitPrice: string | null;
+  createdAt: string;
+}
+
+/** The store as a chef sees it: quantities, never prices. */
+export interface ChefStockItem {
+  id: string;
+  name: string;
+  productCategory: ProductCategory | null;
+  unit: Unit;
+  quantity: string;
+  photoUrl: string | null;
+}
+
+export interface ChefStockUsage {
+  id: string;
+  createdAt: string;
+  event: { id: string; clientName: string; eventDate: string };
+  items: { id: string; name: string; unit: Unit; quantity: string }[];
+}
+
+/** What a chef took from the store for a wedding, with its cost (super admin only). */
+export interface EventStockUsage {
+  id: string;
+  createdAt: string;
+  worker: { id: string; fullName: string };
+  items: { id: string; name: string; unit: Unit; quantity: string; totalCost: string | null }[];
 }
 
 export interface InventoryTxn {
@@ -140,7 +179,8 @@ export interface InventoryTxn {
   quantity: string;
   note: string | null;
   createdAt: string;
-  createdBy: { id: string; fullName: string };
+  /** null when a chef moved the stock; the note names them. */
+  createdBy: { id: string; fullName: string } | null;
   sourceShoppingListItem: {
     shoppingList: { id: string; event: { id: string; clientName: string } | null };
   } | null;

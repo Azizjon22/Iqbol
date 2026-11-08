@@ -12,6 +12,7 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { AssignWorkerDto } from './dto/assign-worker.dto';
 import { FindEventsQuery } from './dto/find-events.query';
 import { netPaid } from '../common/money/net-paid';
+import { localMidnight } from '../common/time/tashkent';
 
 const eventInclude = {
   menu: true,
@@ -44,6 +45,14 @@ const eventDetailInclude = {
     },
     orderBy: { createdAt: 'desc' as const },
   },
+  // What chefs took from the store for this wedding, with what it cost.
+  stockUsages: {
+    include: {
+      items: { orderBy: { name: 'asc' as const } },
+      worker: { select: { id: true, fullName: true } },
+    },
+    orderBy: { createdAt: 'desc' as const },
+  },
 };
 
 const STATUS_LABEL_UZ: Record<string, string> = {
@@ -67,12 +76,17 @@ export class EventsService {
     if (!menu) throw new BadRequestException('Menyu topilmadi');
 
     const totalPrice = menu.pricePerPerson.mul(dto.guestCount);
+    const eventDate = new Date(dto.eventDate);
+    if (eventDate < localMidnight(new Date())) {
+      throw new BadRequestException("O'tib ketgan sanaga to'y yozib bo'lmaydi");
+    }
+    await this.assertSlotFree(eventDate);
 
     const event = await this.prisma.event.create({
       data: {
         clientName: dto.clientName,
         clientPhone: dto.clientPhone,
-        eventDate: new Date(dto.eventDate),
+        eventDate,
         tableCapacity: dto.tableCapacity,
         guestCount: dto.guestCount,
         menuId: dto.menuId,
@@ -98,8 +112,7 @@ export class EventsService {
   }
 
   upcomingForPicker() {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const startOfToday = localMidnight(new Date());
     return this.prisma.event.findMany({
       where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
       select: { id: true, clientName: true, eventDate: true },
@@ -115,8 +128,7 @@ export class EventsService {
    * and the menu's dishes, plus their own shopping lists per wedding. No money.
    */
   chefAgenda(workerId: string) {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const startOfToday = localMidnight(new Date());
     return this.prisma.event.findMany({
       where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
       select: {
@@ -199,6 +211,24 @@ export class EventsService {
         perGuest = menu.pricePerPerson;
       }
       totalPrice = perGuest.mul(guestCount).toDecimalPlaces(2);
+      // Money already taken must still fit under the new total.
+      const payments = await this.prisma.payment.findMany({
+        where: { eventId: id },
+        select: { amount: true, type: true },
+      });
+      const paid = netPaid(payments);
+      if (paid.greaterThan(totalPrice)) {
+        throw new BadRequestException(
+          `Yangi summa (${totalPrice.toNumber().toLocaleString('ru-RU')} so'm) allaqachon to'langan summadan (${paid.toNumber().toLocaleString('ru-RU')} so'm) kam — avval ortiqcha pulni qaytaring`,
+        );
+      }
+    }
+
+    if (
+      dto.eventDate &&
+      new Date(dto.eventDate).getTime() !== existing.eventDate.getTime()
+    ) {
+      await this.assertSlotFree(new Date(dto.eventDate), id);
     }
 
     const event = await this.prisma.event.update({
@@ -266,6 +296,15 @@ export class EventsService {
     actorName: string,
   ) {
     const existing = await this.ensureExists(id);
+    // A wedding is "completed" once its day has come, never ahead of time.
+    if (
+      status === 'COMPLETED' &&
+      existing.eventDate >= localMidnight(new Date(), 1)
+    ) {
+      throw new BadRequestException(
+        "Kelajakdagi to'yni yakunlangan deb belgilab bo'lmaydi",
+      );
+    }
     const event = await this.prisma.event.update({
       where: { id },
       data: { status: status as never },
@@ -285,7 +324,33 @@ export class EventsService {
   }
 
   async remove(id: string, actorId: string, actorName: string) {
-    const existing = await this.ensureExists(id);
+    const existing = await this.prisma.event.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { payments: true, expenses: true, stockUsages: true },
+        },
+      },
+    });
+    if (!existing) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    // Deleting would take the wedding's payments and expenses with it. Once
+    // a wedding is confirmed or has any money on it, it stays in the books —
+    // cancel it instead.
+    if (existing.status === 'CONFIRMED' || existing.status === 'COMPLETED') {
+      throw new BadRequestException(
+        "Tasdiqlangan yoki yakunlangan to'yni o'chirib bo'lmaydi — kerak bo'lsa bekor qiling",
+      );
+    }
+    if (existing._count.payments > 0 || existing._count.expenses > 0) {
+      throw new BadRequestException(
+        "Bu to'yga to'lov yoki xarajat yozilgan — uni o'chirib bo'lmaydi, kerak bo'lsa bekor qiling",
+      );
+    }
+    if (existing._count.stockUsages > 0) {
+      throw new BadRequestException(
+        "Bu to'y uchun ombordan mahsulot olingan — uni o'chirib bo'lmaydi, kerak bo'lsa bekor qiling",
+      );
+    }
     await this.prisma.event.delete({ where: { id } });
 
     await this.auditLog.record({
@@ -354,6 +419,12 @@ export class EventsService {
     const worker = await this.prisma.worker.findUnique({
       where: { id: workerId },
     });
+    const assignment = await this.prisma.eventWorkerAssignment.findUnique({
+      where: { eventId_workerId: { eventId, workerId } },
+    });
+    if (!assignment) {
+      throw new NotFoundException("Bu ishchi shu to'yga belgilanmagan");
+    }
     await this.prisma.eventWorkerAssignment.delete({
       where: { eventId_workerId: { eventId, workerId } },
     });
@@ -368,6 +439,23 @@ export class EventsService {
     });
 
     return this.findOne(eventId);
+  }
+
+  /** One wedding per date and time: two bookings on the same slot is a mistake. */
+  private async assertSlotFree(eventDate: Date, exceptId?: string) {
+    const clash = await this.prisma.event.findFirst({
+      where: {
+        eventDate,
+        status: { not: 'CANCELLED' },
+        id: exceptId ? { not: exceptId } : undefined,
+      },
+      select: { clientName: true },
+    });
+    if (clash) {
+      throw new ConflictException(
+        `Bu sana va vaqtga "${clash.clientName}" to'yi allaqachon yozilgan`,
+      );
+    }
   }
 
   private async ensureExists(id: string) {

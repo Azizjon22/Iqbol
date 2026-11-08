@@ -82,7 +82,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
     "rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground";
 
   return (
-    <div className="presentation-root min-h-screen bg-background text-foreground">
+    <div className="presentation-root min-h-svh bg-background text-foreground">
       <PresentationHeader />
 
       {/* ---------- Hero ---------- */}

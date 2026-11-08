@@ -102,13 +102,19 @@ export async function updateEventAction(
   redirect(`/dashboard/events/${eventId}`);
 }
 
-export async function updateEventStatusAction(eventId: string, status: string) {
-  await apiFetch(`/events/${eventId}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ status }),
-  });
+/** Returns the API's refusal (e.g. a future wedding can't be "completed") instead of throwing. */
+export async function updateEventStatusAction(eventId: string, status: string): Promise<FormActionState> {
+  try {
+    await apiFetch(`/events/${eventId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+  } catch (err) {
+    return { error: extractErrorMessage(err, "Holatni o'zgartirib bo'lmadi") };
+  }
   revalidatePath(`/dashboard/events/${eventId}`);
   revalidatePath("/dashboard/events");
+  return undefined;
 }
 
 export async function unassignWorkerAction(eventId: string, workerId: string) {
@@ -189,8 +195,13 @@ export async function addRefundAction(
   return undefined;
 }
 
-export async function deleteEventAction(eventId: string) {
-  await apiFetch(`/events/${eventId}`, { method: "DELETE" });
+/** A confirmed wedding, or one with money on it, is refused by the API — report that, don't crash. */
+export async function deleteEventAction(eventId: string): Promise<FormActionState> {
+  try {
+    await apiFetch(`/events/${eventId}`, { method: "DELETE" });
+  } catch (err) {
+    return { error: extractErrorMessage(err, "To'yni o'chirib bo'lmadi") };
+  }
   revalidatePath("/dashboard/events");
   redirect("/dashboard/events");
 }

@@ -8,7 +8,7 @@ export default function LoginPage() {
   const t = useT();
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-10">
+    <main className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-x-hidden overflow-y-auto bg-background px-4 py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,var(--surface-glow),transparent)]" />
       <div className="relative mb-8 flex flex-col items-center text-center animate-fade-up">
         <BrandMark className="mb-3 h-12 w-12 text-xl shadow-lg shadow-primary/25" />

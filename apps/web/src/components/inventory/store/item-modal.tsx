@@ -106,7 +106,7 @@ export function ItemModal({
         ))}
       </div>
 
-      <form id="item-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-[180px_1fr]">
+      <form id="item-form" onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
         <div className="sm:row-span-4">
           <UploadField name="photoUrl" label={tr("Rasm")} folder="inventory" aspect="square" defaultValue={item?.photoUrl} />
           {category === "PRODUCT" && <p className="mt-1.5 text-xs text-muted-foreground">{tr("Oshpaz bozorlik yozishda shu rasmni ko'radi")}</p>}

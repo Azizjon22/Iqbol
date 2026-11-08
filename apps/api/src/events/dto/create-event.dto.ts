@@ -5,6 +5,7 @@ import {
   IsISO8601,
   IsOptional,
   IsPositive,
+  Max,
   IsString,
   Matches,
   MinLength,
@@ -29,6 +30,7 @@ export class CreateEventDto {
   @Type(() => Number)
   @IsInt()
   @IsPositive()
+  @Max(400, { message: 'Mehmonlar soni 400 tadan oshmasligi kerak' })
   guestCount!: number;
 
   @IsString()

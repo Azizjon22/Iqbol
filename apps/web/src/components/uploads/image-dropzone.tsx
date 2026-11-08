@@ -1,6 +1,4 @@
 "use client";
-import { useTr } from "@/components/i18n/locale-provider";
-
 
 import { useRef, useState, DragEvent } from "react";
 import { FolderOpen, ImageOff, ImagePlus, Loader2, Video, X } from "lucide-react";
@@ -13,6 +11,7 @@ interface Props {
   previewUrl?: string;
   uploading?: boolean;
   error?: string;
+  warning?: string;
   onFileSelected: (file: File) => void;
   onClear?: () => void;
   className?: string;
@@ -30,6 +29,7 @@ export function ImageDropzone({
   previewUrl,
   uploading,
   error,
+  warning,
   onFileSelected,
   onClear,
   className,
@@ -37,8 +37,6 @@ export function ImageDropzone({
   browse,
   formats,
 }: Props) {
-  const tr = useTr();
-
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [brokenUrl, setBrokenUrl] = useState<string | undefined>();
@@ -97,7 +95,7 @@ export function ImageDropzone({
                 <img src={previewUrl} alt="" className="h-full w-full object-cover" onError={() => setBrokenUrl(previewUrl)} />
               )
             ) : (
-              <video src={previewUrl} className="h-full w-full object-cover" muted playsInline />
+              <video src={previewUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
             )}
             {!uploading && (
               <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-opacity group-hover:bg-black/40 group-hover:opacity-100">
@@ -112,7 +110,7 @@ export function ImageDropzone({
                       onClear();
                     }}
                     className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-destructive"
-                    aria-label={tr("O'chirish")}
+                    aria-label="O'chirish"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -125,10 +123,10 @@ export function ImageDropzone({
             {kind === "image" ? <ImagePlus className="h-6 w-6" /> : <Video className="h-6 w-6" />}
             <span className="text-xs">
               {browse ? (
-                tr("Yuklash: faylni shu yerga tashlang")
+                "Yuklash: faylni shu yerga tashlang"
               ) : (
                 <>
-                  {tr("Rasmni shu yerga tashlang yoki")} <span className="font-medium text-primary">{tr("tanlash uchun bosing")}</span>
+                  Rasmni shu yerga tashlang yoki <span className="font-medium text-primary">tanlash uchun bosing</span>
                 </>
               )}
             </span>
@@ -150,13 +148,14 @@ export function ImageDropzone({
               onClick={() => inputRef.current?.click()}
               className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-input px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"
             >
-              <FolderOpen className="h-4 w-4" /> {tr("Papkani tanlash")}
+              <FolderOpen className="h-4 w-4" /> Papkani tanlash
             </button>
           )}
-          {formats && <p className="text-xs text-muted-foreground">{tr("Formatlar:")} {formats}</p>}
+          {formats && <p className="text-xs text-muted-foreground">Formatlar: {formats}</p>}
         </div>
       )}
-      {error && <p className="mt-1 text-xs text-destructive">{tr(error)}</p>}
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+      {!error && warning && <p className="mt-1 text-xs text-accent">{warning}</p>}
     </div>
   );
 }

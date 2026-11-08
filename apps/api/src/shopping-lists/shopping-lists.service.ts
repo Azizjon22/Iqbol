@@ -7,6 +7,7 @@ import {
 import { Prisma, ShoppingListStatus, StaffRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { CreateShoppingListDto } from './dto/create-shopping-list.dto';
 import { MarkPurchasedDto, UpdateItemPriceDto } from './dto/mark-purchased.dto';
 import { UpdateShoppingListItemsDto } from './dto/update-items.dto';
@@ -56,10 +57,18 @@ export class ShoppingListsService {
   constructor(
     private prisma: PrismaService,
     private auditLog: AuditLogService,
+    private telegram: TelegramService,
   ) {}
 
-  create(dto: CreateShoppingListDto, workerId: string) {
-    return this.prisma.shoppingList.create({
+  async create(dto: CreateShoppingListDto, workerId: string) {
+    if (dto.eventId) {
+      const event = await this.prisma.event.findUnique({
+        where: { id: dto.eventId },
+        select: { id: true },
+      });
+      if (!event) throw new BadRequestException("To'y topilmadi");
+    }
+    const list = await this.prisma.shoppingList.create({
       data: {
         eventId: dto.eventId,
         createdByWorkerId: workerId,
@@ -74,6 +83,9 @@ export class ShoppingListsService {
       },
       include,
     });
+    // Tell the super admins on Telegram; not awaited so the chef isn't kept waiting.
+    void this.telegram.notifyListSubmitted(list.id);
+    return list;
   }
 
   findAll(role?: StaffRole, status?: ShoppingListStatus) {
@@ -283,6 +295,7 @@ export class ShoppingListsService {
       entityId: id,
       description: `${list.createdByWorker.fullName}ning bozorlik ro'yxatini tahrirladi: ${changes.join('; ')}`,
     });
+    void this.telegram.notifyListEdited(id);
 
     return this.findOne(id);
   }
@@ -317,6 +330,7 @@ export class ShoppingListsService {
       entityId: id,
       description: `${list.createdByWorker.fullName}ning bozorlik ro'yxatini tasdiqlab, adminga yubordi`,
     });
+    void this.telegram.notifyListApproved(id);
 
     return updated;
   }
@@ -359,7 +373,7 @@ export class ShoppingListsService {
 
     if (role !== 'ADMIN') {
       throw new ForbiddenException(
-        "Mahsulotni faqat admin xarid qilgan deb belgilashi mumkin",
+        'Mahsulotni faqat admin xarid qilgan deb belgilashi mumkin',
       );
     }
     if (list.status !== 'APPROVED') {
@@ -377,6 +391,7 @@ export class ShoppingListsService {
 
     // Wedding purchases stay on the shopping list. They are spent on that
     // event and must not change warehouse stock.
+    let allBought = false;
     await this.prisma.$transaction(async (tx) => {
       await tx.shoppingListItem.update({
         where: { id: itemId },
@@ -399,6 +414,7 @@ export class ShoppingListsService {
         where: { shoppingListId: listId, isPurchased: false },
       });
       if (remaining === 0) {
+        allBought = true;
         await tx.shoppingList.update({
           where: { id: listId },
           data: { status: 'PURCHASED' },
@@ -414,6 +430,7 @@ export class ShoppingListsService {
       entityId: listId,
       description: `"${item.name}" (${bought} ${UNIT_UZ[item.unit]}) xarid qilinganini belgiladi, jami ${totalCost.toNumber().toLocaleString('uz-UZ')} so'm`,
     });
+    if (allBought) void this.telegram.notifyListPurchased(listId);
 
     return this.findOne(listId);
   }
@@ -449,6 +466,7 @@ export class ShoppingListsService {
       entityId: listId,
       description: `"${item.name}" narxini tuzatdi: ${item.unitPrice ?? 0} → ${unitPrice} so'm (1 ${UNIT_UZ[item.unit]})`,
     });
+    void this.telegram.notifyPriceFixed(listId);
     return this.findOne(listId);
   }
 

@@ -1,6 +1,4 @@
 "use client";
-import { useLocale, useTr } from "@/components/i18n/locale-provider";
-
 
 import { useState } from "react";
 import { Check, PenLine, Soup, UtensilsCrossed } from "lucide-react";
@@ -8,6 +6,7 @@ import type { MenuDishCategory } from "@iqbol/shared";
 import type { Menu } from "@/lib/types";
 import { Input, Label, Select } from "@/components/ui/input";
 import { formatSom, cn } from "@/lib/utils";
+import { useT, useTr } from "@/components/i18n/locale-provider";
 
 function DishChoice({
   name,
@@ -24,8 +23,7 @@ function DishChoice({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const tr = useTr();
-
+  const t = useT();
   const custom = value !== "" && !options.includes(value);
   const [typing, setTyping] = useState(custom || options.length === 0);
 
@@ -33,7 +31,7 @@ function DishChoice({
     <div className="rounded-xl border border-border bg-muted/30 p-3">
       <input type="hidden" name={name} value={value} />
       <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-        {icon} {tr(label)} <span className="text-destructive">*</span>
+        {icon} {label} <span className="text-destructive">*</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
         {options.map((o) => {
@@ -67,14 +65,14 @@ function DishChoice({
             typing ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground",
           )}
         >
-          <PenLine className="h-3.5 w-3.5" /> Boshqa
+          <PenLine className="h-3.5 w-3.5" /> {t("events.customOption")}
         </button>
       </div>
       {typing && (
         <Input
           value={custom ? value : ""}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={tr("Taom nomini yozing")}
+          placeholder={t("events.dishNamePlaceholder")}
           className="mt-2"
           autoFocus={options.length > 0}
         />
@@ -100,9 +98,8 @@ export function MenuAndDishes({
   defaultSecond?: string | null;
   canSetDishes: boolean;
 }) {
+  const t = useT();
   const tr = useTr();
-  const locale = useLocale().locale;
-
   const [menuId, setMenuId] = useState(defaultMenuId);
   const [first, setFirst] = useState(defaultFirst ?? "");
   const [second, setSecond] = useState(defaultSecond ?? "");
@@ -112,12 +109,12 @@ export function MenuAndDishes({
   return (
     <div className="space-y-3">
       <div>
-        <Label htmlFor="menuId">{tr("Menyu")}</Label>
+        <Label htmlFor="menuId">{t("events.menuLabel")}</Label>
         <Select id="menuId" name="menuId" value={menuId} onChange={(e) => setMenuId(e.target.value)} required>
-          <option value="">{tr("Tanlang")}</option>
+          <option value="">{t("events.selectPlaceholder")}</option>
           {menus.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.name} — {formatSom(m.pricePerPerson, locale)} {tr("/ kishi")}
+              {m.name} — {formatSom(m.pricePerPerson)} {tr("/ kishi")}
             </option>
           ))}
         </Select>
@@ -127,11 +124,11 @@ export function MenuAndDishes({
         <>
           <input type="hidden" name="canSetDishes" value="1" />
           {menu ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DishChoice
                 key={`first-${menuId}`}
                 name="firstDish"
-                label="1-ovqat"
+                label={t("events.firstDish")}
                 icon={<Soup className="h-4 w-4 text-accent" />}
                 options={optionsFor("FIRST_DISH")}
                 value={first}
@@ -140,7 +137,7 @@ export function MenuAndDishes({
               <DishChoice
                 key={`second-${menuId}`}
                 name="secondDish"
-                label="2-ovqat"
+                label={t("events.secondDish")}
                 icon={<UtensilsCrossed className="h-4 w-4 text-accent" />}
                 options={optionsFor("SECOND_DISH")}
                 value={second}
@@ -149,11 +146,10 @@ export function MenuAndDishes({
             </div>
           ) : (
             <p className="rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
-              
-              {tr("Menyuni tanlang — keyin 1-ovqat va 2-ovqatni belgilaysiz.")}
+              {t("events.selectMenuFirst")}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">{tr("Oshpaz bozorlikni shu taomlar va mehmonlar soniga qarab yozadi.")}</p>
+          <p className="text-xs text-muted-foreground">{t("events.chefShopsHint")}</p>
         </>
       )}
     </div>

@@ -14,7 +14,44 @@ function daysAgo(days: number, hour = 18) {
   return daysFromNow(-days, hour);
 }
 
+/**
+ * Production seed: one super admin and nothing else — no demo accounts with
+ * known passwords, no demo weddings. The password comes from the environment
+ * and must be replaced at first login.
+ */
+async function seedProduction() {
+  const phone = process.env.SEED_SUPER_ADMIN_PHONE;
+  const password = process.env.SEED_SUPER_ADMIN_PASSWORD;
+  if (!phone || !password || password.length < 8) {
+    throw new Error(
+      'Productionda SEED_SUPER_ADMIN_PHONE va kamida 8 belgili SEED_SUPER_ADMIN_PASSWORD berilishi shart',
+    );
+  }
+  const existing = await prisma.staffUser.findUnique({ where: { phone } });
+  if (existing) {
+    console.log(`Super admin allaqachon mavjud: ${phone}`);
+    return;
+  }
+  await prisma.staffUser.create({
+    data: {
+      fullName: 'Bosh Administrator',
+      phone,
+      passwordHash: await bcrypt.hash(password, 10),
+      role: 'SUPER_ADMIN',
+      mustChangePassword: true,
+    },
+  });
+  console.log(
+    `Super admin yaratildi: ${phone}. Birinchi kirishda parolni almashtirish so'raladi.`,
+  );
+}
+
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    await seedProduction();
+    return;
+  }
+
   const superAdminPhone = process.env.SEED_SUPER_ADMIN_PHONE ?? '+998900000000';
   const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD ?? 'Iqbol2024!';
 
@@ -61,7 +98,7 @@ async function main() {
 
   const coverImages = [
     'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200&q=80',
-    'https://images.unsplash.com/photo-1464366400600-7168b8af9bc8?w=1200&q=80',
+    '/menu-photos/cover-200.jpg',
     'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=1200&q=80',
     'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80',
   ];
@@ -69,10 +106,10 @@ async function main() {
   const dishPhoto = (id: string) => `https://images.unsplash.com/photo-${id}?w=600&q=80`;
   const hallPhotos = [
     'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1000&q=80',
-    'https://images.unsplash.com/photo-1464366400600-7168b8af9bc8?w=1000&q=80',
+    '/menu-photos/cover.jpg',
   ];
   const tablePhotos = [
-    'https://images.unsplash.com/photo-1478144592103-25e218a04893?w=1000&q=80',
+    '/menu-photos/cover-370.jpg',
     'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1000&q=80',
   ];
 

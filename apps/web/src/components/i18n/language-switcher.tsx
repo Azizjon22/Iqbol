@@ -12,10 +12,25 @@ const OPTIONS: { value: Locale; label: string }[] = [
 export function LanguageSwitcher({ className }: { className?: string }) {
   const { locale, setLocale, t } = useLocale();
 
+  const next = OPTIONS.find((opt) => opt.value !== locale) ?? OPTIONS[0];
+
   return (
+    <>
+    {/* Narrow phones: one tap-sized toggle so the header title keeps its room. */}
+    <button
+      type="button"
+      onClick={() => setLocale(next.value)}
+      aria-label={`${t("common.language")}: ${next.label}`}
+      className={cn(
+        "flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted/60 text-xs font-semibold text-primary min-[400px]:hidden",
+        className,
+      )}
+    >
+      {OPTIONS.find((opt) => opt.value === locale)?.label}
+    </button>
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full border border-border bg-muted/60 p-0.5 text-xs font-semibold",
+        "hidden items-center gap-0.5 rounded-full border border-border bg-muted/60 p-0.5 text-xs font-semibold min-[400px]:inline-flex",
         className,
       )}
       role="group"
@@ -27,7 +42,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           type="button"
           onClick={() => setLocale(opt.value)}
           className={cn(
-            "rounded-full px-2.5 py-1 transition-colors",
+            "rounded-full px-2.5 py-1 transition-colors pointer-coarse:py-2",
             locale === opt.value
               ? "bg-card text-primary shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -37,5 +52,6 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         </button>
       ))}
     </div>
+    </>
   );
 }

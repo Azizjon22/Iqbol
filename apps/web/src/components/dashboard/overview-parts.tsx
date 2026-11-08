@@ -82,7 +82,7 @@ export function StatTile({
     >
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[radial-gradient(circle,var(--surface-glow),transparent_70%)]" />
       <div className="relative flex items-start justify-between gap-3">
-        <p className="text-xs leading-snug text-muted-foreground sm:text-sm">{label}</p>
+        <p className="line-clamp-2 text-xs leading-snug text-muted-foreground sm:text-sm">{label}</p>
         <span
           className={cn(
             "hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex",
@@ -92,9 +92,9 @@ export function StatTile({
           {icon}
         </span>
       </div>
-      <p className="font-display relative mt-2 text-4xl font-semibold leading-none tracking-tight lining-nums tabular-nums sm:text-5xl">{value}</p>
-      <div className="relative mt-3 flex items-center justify-between gap-2">
-        {hint && <p className="text-[11px] leading-snug text-muted-foreground sm:text-xs">{hint}</p>}
+      <p className="font-display relative mt-2 text-[clamp(1.75rem,5vw,3rem)] font-semibold leading-none tracking-tight lining-nums tabular-nums">{value}</p>
+      <div className="relative mt-3 flex items-end justify-between gap-2">
+        {hint && <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground sm:text-xs">{hint}</p>}
         <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
       </div>
     </Link>
@@ -103,7 +103,10 @@ export function StatTile({
 
 export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekdays: string[] }) {
   return (
-    <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-7 md:overflow-visible md:px-0 md:pb-0">
+    // Laid out by the card's own width, not the viewport: beside the sidebar a
+    // tablet has far less room than its screen width suggests.
+    <div className="@container">
+    <div className="-mx-4 flex snap-x gap-2 overflow-x-auto scroll-px-4 px-4 pb-1 sm:-mx-5 sm:scroll-px-5 sm:px-5 @[640px]:mx-0 @[640px]:grid @[640px]:grid-cols-7 @[640px]:overflow-visible @[640px]:px-0 @[640px]:pb-0">
       {week.map((day, i) => {
         const date = parseDayKey(day.date);
         const tag = i === 0 ? t("dashboard.today") : i === 1 ? t("dashboard.tomorrow") : null;
@@ -111,16 +114,16 @@ export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekday
           <div
             key={day.date}
             className={cn(
-              "flex min-h-40 w-[132px] shrink-0 snap-start flex-col rounded-xl border p-2.5 md:w-auto",
+              "flex min-h-40 w-[132px] min-w-0 shrink-0 snap-start flex-col rounded-xl border p-2.5 @[640px]:w-auto",
               i === 0 ? "border-primary/50 bg-primary/5" : "border-border bg-background/40",
             )}
           >
-            <div className="flex items-baseline justify-between gap-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{weekdays[weekdayIndex(date)]}</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-1">
+              <span className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">{weekdays[weekdayIndex(date)]}</span>
               {tag && (
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                    "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
                     i === 0 ? "bg-primary text-primary-foreground" : "bg-accent/15 text-accent",
                   )}
                 >
@@ -128,7 +131,7 @@ export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekday
                 </span>
               )}
             </div>
-            <p className="font-display text-3xl font-semibold leading-tight lining-nums">{date.getDate()}</p>
+            <p className="font-display text-[clamp(1.5rem,4vw,1.875rem)] font-semibold leading-tight lining-nums">{date.getDate()}</p>
             <div className="mt-2 flex flex-1 flex-col gap-1.5">
               {day.events.length === 0 && <p className="mt-auto text-xs text-muted-foreground/70">{t("dashboard.noEvents")}</p>}
               {day.events.map((e) => (
@@ -141,14 +144,15 @@ export function WeekPlan({ week, t, weekdays }: { week: WeekDay[]; t: T; weekday
                   )}
                   title={e.clientName}
                 >
-                  <span className="block font-semibold tabular-nums">{formatTime(e.eventDate)}</span>
-                  <span className="line-clamp-2 leading-snug text-muted-foreground">{e.clientName}</span>
+                  <span className="block whitespace-nowrap font-semibold tabular-nums">{formatTime(e.eventDate)}</span>
+                  <span className="line-clamp-2 break-words leading-snug text-muted-foreground">{e.clientName}</span>
                 </Link>
               ))}
             </div>
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
@@ -197,8 +201,8 @@ export function EventPrepCard({ event, t, locale, weekdays }: { event: PrepEvent
       className="group block rounded-2xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-md sm:p-5"
     >
       <div className="flex gap-4">
-        <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 py-2 text-primary">
-          <span className="font-display text-2xl font-semibold leading-none lining-nums tabular-nums">{formatTime(date)}</span>
+        <div className="flex w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 px-1 py-2 text-primary">
+          <span className="font-display text-xl font-semibold leading-none lining-nums tabular-nums sm:text-2xl">{formatTime(date)}</span>
           <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide">{weekdays[weekdayIndex(date)]}</span>
         </div>
         <div className="min-w-0 flex-1">

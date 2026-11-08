@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { ChefGuard, StaffOrChefGuard } from '../common/guards/chef.guard';
+import { SetLotPriceDto, TakeStockDto } from './dto/take-stock.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthPayload } from '../common/types/auth-payload';
 import { InventoryService } from './inventory.service';
@@ -23,18 +25,61 @@ import { StockCountDto } from './dto/stock-count.dto';
 export class InventoryController {
   constructor(private inventory: InventoryService) {}
 
-  // Open to any authenticated user (staff or worker) — chefs browse this
-  // to build shopping lists from photo cards with the right unit per item.
+  // Staff and chefs only — chefs browse this to build shopping lists from
+  // photo cards with the right unit per item. Waiters have no use for it.
+  @UseGuards(StaffOrChefGuard)
   @Get('catalog')
   catalog() {
     return this.inventory.productCatalog();
   }
 
+  // ---- The chef's side of the store: see what there is (no prices), take
+  // it for a wedding, undo it the same day.
+  @UseGuards(ChefGuard)
+  @Get('stock')
+  stock() {
+    return this.inventory.stockForChef();
+  }
+
+  @UseGuards(ChefGuard)
+  @Get('usages/mine')
+  myUsages(@CurrentUser() user: AuthPayload) {
+    return this.inventory.myUsages(user.sub);
+  }
+
+  @UseGuards(ChefGuard)
+  @Post('usages')
+  take(@Body() dto: TakeStockDto, @CurrentUser() user: AuthPayload) {
+    return this.inventory.takeForEvent(dto, user);
+  }
+
+  // Chef (own, same day) or super admin — checked in the service.
+  @Delete('usages/:id')
+  returnUsage(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
+    return this.inventory.returnUsage(id, user);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Patch('lots/:lotId')
+  setLotPrice(
+    @Param('lotId') lotId: string,
+    @Body() dto: SetLotPriceDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    return this.inventory.setLotPrice(
+      lotId,
+      dto.unitPrice,
+      user.sub,
+      user.fullName,
+    );
+  }
+
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @Get()
-  findAll() {
-    return this.inventory.findAll();
+  findAll(@CurrentUser() user: AuthPayload) {
+    return this.inventory.findAll(user.role);
   }
 
   @UseGuards(RolesGuard)
@@ -66,7 +111,7 @@ export class InventoryController {
     @Body() dto: CreateInventoryItemDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.inventory.create(dto, user.sub, user.fullName);
+    return this.inventory.create(dto, user.sub, user.fullName, user.role);
   }
 
   @UseGuards(RolesGuard)
@@ -95,7 +140,13 @@ export class InventoryController {
     @Body() dto: CreateTransactionDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.inventory.addTransaction(id, dto, user.sub, user.fullName);
+    return this.inventory.addTransaction(
+      id,
+      dto,
+      user.sub,
+      user.fullName,
+      user.role,
+    );
   }
 
   @UseGuards(RolesGuard)

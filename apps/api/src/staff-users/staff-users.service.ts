@@ -118,6 +118,13 @@ export class StaffUsersService {
     const passwordHash = dto.password
       ? await bcrypt.hash(dto.password, 10)
       : undefined;
+    // Bump tokenVersion (checked on every request by JwtStrategy) whenever
+    // this change should kill the account's existing sessions immediately:
+    // deactivating it, forcing a new password, or changing its role.
+    const revokesSessions =
+      dto.isActive === false ||
+      Boolean(dto.password) ||
+      (dto.role !== undefined && dto.role !== existing.role);
     const staff = await this.prisma.staffUser.update({
       where: { id },
       data: {
@@ -127,6 +134,7 @@ export class StaffUsersService {
         isActive: dto.isActive,
         passwordHash,
         mustChangePassword: dto.password ? true : undefined,
+        tokenVersion: revokesSessions ? { increment: 1 } : undefined,
       },
     });
 

@@ -14,7 +14,7 @@ Monorepo: `apps/api` (NestJS + Prisma + PostgreSQL), `apps/web` (Next.js 16),
 ```bash
 pnpm install
 
-# Postgres'ni ko'tarish (5436-portda)
+# Postgres'ni ko'tarish (5437-portda)
 docker compose up -d
 
 # .env fayllarni sozlash
@@ -40,15 +40,15 @@ telefon `+998900000000`, parol `Iqbol2024!` (`.env`dagi
 ## Ishga tushirish (development)
 
 ```bash
-pnpm dev:api   # http://localhost:3001/api
-pnpm dev:web   # http://localhost:3000
+pnpm dev:api   # http://localhost:3101/api
+pnpm dev:web   # http://localhost:3100
 ```
 
 ## Fayl (rasm/video) yuklash — Cloudflare R2
 
 `apps/api/.env` ichida `S3_*` o'zgaruvchilarni to'ldiring (R2 bucket,
 access key, `S3_PUBLIC_BASE_URL` — bucket'ning ommaviy domeni). R2 bucket'da
-CORS sozlamasida `apps/web` domenidan (dev'da `http://localhost:3000`)
+CORS sozlamasida `apps/web` domenidan (dev'da `http://localhost:3100`)
 to'g'ridan-to'g'ri `PUT` so'rovlariga ruxsat berilishi kerak, chunki rasm/video
 brauzerdan bevosita R2'ga (presigned URL orqali) yuklanadi.
 
@@ -69,4 +69,14 @@ brauzerdan bevosita R2'ga (presigned URL orqali) yuklanadi.
 ```bash
 pnpm --filter @iqbol/api prisma:studio   # ma'lumotlar bazasini ko'rish
 pnpm build                                    # barcha paketlarni build qilish
+```
+
+## Production
+
+Serverga qo'yish, zaxira nusxa va yangilash tartibi: [DEPLOY.md](DEPLOY.md).
+
+## Testlar
+
+```bash
+pnpm --filter @iqbol/api test
 ```

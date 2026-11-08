@@ -6,61 +6,18 @@ import { useRouter } from "next/navigation";
 import { WORKER_GENDERS, WORKER_POSITIONS, workerRegisterSchema } from "@iqbol/shared";
 import { Input, Label, Select, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ImageDropzone } from "@/components/uploads/image-dropzone";
-import { useT, useTr } from "@/components/i18n/locale-provider";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+import { useT } from "@/components/i18n/locale-provider";
 
 export function RegisterForm() {
-  const tr = useTr();
-
   const t = useT();
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [position, setPosition] = useState<(typeof WORKER_POSITIONS)[number]>("WAITER_MALE");
   const [gender, setGender] = useState<(typeof WORKER_GENDERS)[number]>("MALE");
-  const [pin, setPin] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [localPreview, setLocalPreview] = useState<string | undefined>();
-  const [photoUploading, setPhotoUploading] = useState(false);
-  const [photoError, setPhotoError] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-
-  const needsPin = position === "CHEF";
-
-  async function handlePhotoSelected(file: File) {
-    setPhotoError(undefined);
-    setLocalPreview(URL.createObjectURL(file));
-    setPhotoUploading(true);
-    try {
-      const presignRes = await fetch(`${API_URL}/uploads/worker-photo-presign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: file.type }),
-      });
-      if (!presignRes.ok) throw new Error(tr("Rasm yuklash uchun ruxsat olinmadi"));
-      const { uploadUrl, publicUrl } = (await presignRes.json()) as {
-        uploadUrl: string;
-        publicUrl: string;
-      };
-
-      const putRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!putRes.ok) throw new Error(tr("Rasm yuklashda xatolik yuz berdi"));
-      setPhotoUrl(publicUrl);
-    } catch (err) {
-      setPhotoError(err instanceof Error ? err.message : tr("Rasm yuklashda xatolik yuz berdi"));
-      setLocalPreview(undefined);
-    } finally {
-      setPhotoUploading(false);
-    }
-  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,28 +28,22 @@ export function RegisterForm() {
       phone,
       position,
       gender,
-      pin: needsPin ? pin : undefined,
     });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? tr("Ma'lumotlar noto'g'ri"));
-      return;
-    }
-
-    if (photoUploading) {
-      setError(tr("Rasm hali yuklanmoqda, biroz kuting"));
+      setError(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri");
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/workers/register`, {
+      const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...parsed.data, photoUrl }),
+        body: JSON.stringify(parsed.data),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? tr("Ro'yxatdan o'tishda xatolik yuz berdi"));
+        throw new Error(body?.message ?? "Ro'yxatdan o'tishda xatolik yuz berdi");
       }
       setDone(true);
       setTimeout(() => router.push("/login"), 2500);
@@ -106,10 +57,9 @@ export function RegisterForm() {
   if (done) {
     return (
       <div className="w-full max-w-sm rounded-lg border border-success/30 bg-success/10 p-6 text-center">
-        <p className="font-medium text-success">{tr("Muvaffaqiyatli ro'yxatdan o'tdingiz!")}</p>
+        <p className="font-medium text-success">Muvaffaqiyatli ro&apos;yxatdan o&apos;tdingiz!</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          
-          {tr("Administrator tasdiqlashini kuting. Hozir kirish sahifasiga yo'naltirilasiz.")}
+          Administrator tasdiqlashini kuting. Hozir kirish sahifasiga yo&apos;naltirilasiz.
         </p>
       </div>
     );
@@ -138,7 +88,8 @@ export function RegisterForm() {
           value={position}
           onChange={(e) => setPosition(e.target.value as typeof position)}
         >
-          {WORKER_POSITIONS.map((p) => (
+          {/* Chefs are added by the super admin, never through this public form. */}
+          {WORKER_POSITIONS.filter((p) => p !== "CHEF").map((p) => (
             <option key={p} value={p}>
               {t(`workerPositions.${p}`)}
             </option>
@@ -159,33 +110,6 @@ export function RegisterForm() {
           ))}
         </Select>
       </div>
-      {needsPin && (
-        <div>
-          <Label htmlFor="pin">{t("auth.pin")}</Label>
-          <Input
-            id="pin"
-            inputMode="numeric"
-            maxLength={4}
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="****"
-            required={needsPin}
-          />
-        </div>
-      )}
-      <ImageDropzone
-        label={t("workers.photo")}
-        accept="image/jpeg,image/png,image/webp"
-        previewUrl={photoUrl || localPreview}
-        uploading={photoUploading}
-        error={photoError}
-        onFileSelected={handlePhotoSelected}
-        onClear={() => {
-          setPhotoUrl("");
-          setLocalPreview(undefined);
-        }}
-        aspect="square"
-      />
       <FieldError>{error}</FieldError>
       <Button type="submit" className="w-full" disabled={submitting}>
         {submitting ? t("common.loading") : t("auth.register")}

@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { netPaid } from '../common/money/net-paid';
+import { localDateKey, localMidnight } from '../common/time/tashkent';
 
 @Injectable()
 export class PaymentsService {
@@ -22,33 +23,51 @@ export class PaymentsService {
     actorId: string,
     actorName: string,
   ) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      include: { payments: { select: { amount: true, type: true } } },
-    });
-    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    const { payment, event, confirmed } = await this.prisma.$transaction(
+      async (tx) => {
+        const event = await this.lockEvent(tx, eventId);
+        if (event.status === 'CANCELLED') {
+          throw new BadRequestException(
+            "Bekor qilingan to'yga to'lov qabul qilinmaydi",
+          );
+        }
 
-    // A payment may settle the balance but never push it below zero —
-    // over-collection is almost always a typo or a duplicate entry.
-    const paid = netPaid(event.payments);
-    const remaining = event.totalPrice.sub(paid);
-    if (new Prisma.Decimal(dto.amount).greaterThan(remaining)) {
-      throw new BadRequestException(
-        remaining.lessThanOrEqualTo(0)
-          ? "Bu to'y to'liq to'langan — yangi to'lov qabul qilinmaydi"
-          : `To'lov qolgan qarzdan oshib ketadi: qolgan qarz ${remaining.toNumber().toLocaleString('ru-RU')} so'm`,
-      );
-    }
+        // A payment may settle the balance but never push it below zero —
+        // over-collection is almost always a typo or a duplicate entry.
+        const amount = new Prisma.Decimal(dto.amount);
+        const paid = netPaid(event.payments);
+        const remaining = event.totalPrice.sub(paid);
+        if (amount.greaterThan(remaining)) {
+          throw new BadRequestException(
+            remaining.lessThanOrEqualTo(0)
+              ? "Bu to'y to'liq to'langan — yangi to'lov qabul qilinmaydi"
+              : `To'lov qolgan qarzdan oshib ketadi: qolgan qarz ${remaining.toNumber().toLocaleString('ru-RU')} so'm`,
+          );
+        }
 
-    const payment = await this.prisma.payment.create({
-      data: {
-        eventId,
-        amount: new Prisma.Decimal(dto.amount),
-        method: dto.method,
-        note: dto.note,
-        createdById: actorId,
+        const payment = await tx.payment.create({
+          data: {
+            eventId,
+            amount,
+            method: dto.method,
+            note: dto.note,
+            createdById: actorId,
+          },
+        });
+
+        // Paid in full: the booking is settled, so it confirms itself — and
+        // a confirmed wedding can no longer be deleted.
+        const confirmed =
+          event.status === 'PENDING' && amount.equals(remaining);
+        if (confirmed) {
+          await tx.event.update({
+            where: { id: eventId },
+            data: { status: 'CONFIRMED' },
+          });
+        }
+        return { payment, event, confirmed };
       },
-    });
+    );
 
     await this.auditLog.record({
       actorId,
@@ -58,6 +77,16 @@ export class PaymentsService {
       entityId: payment.id,
       description: `"${event.clientName}" to'yiga ${dto.amount.toLocaleString('uz-UZ')} so'm to'lov qo'shdi`,
     });
+    if (confirmed) {
+      await this.auditLog.record({
+        actorId,
+        actorName,
+        action: 'STATUS_CHANGE',
+        entityType: 'EVENT',
+        entityId: eventId,
+        description: `"${event.clientName}" to'yi to'liq to'landi va avtomatik tasdiqlandi`,
+      });
+    }
 
     return payment;
   }
@@ -72,28 +101,27 @@ export class PaymentsService {
     actorId: string,
     actorName: string,
   ) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      include: { payments: { select: { amount: true, type: true } } },
-    });
-    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
-    const kept = netPaid(event.payments);
-    if (new Prisma.Decimal(dto.amount).greaterThan(kept)) {
-      throw new BadRequestException(
-        kept.lessThanOrEqualTo(0)
-          ? "Bu to'y uchun qaytariladigan pul yo'q"
-          : `Olingan puldan ko'p qaytarib bo'lmaydi: qaytarish mumkin ${kept.toNumber().toLocaleString('ru-RU')} so'm`,
-      );
-    }
-    const refund = await this.prisma.payment.create({
-      data: {
-        eventId,
-        type: 'REFUND',
-        amount: new Prisma.Decimal(dto.amount),
-        method: dto.method,
-        note: dto.note,
-        createdById: actorId,
-      },
+    const { refund, event } = await this.prisma.$transaction(async (tx) => {
+      const event = await this.lockEvent(tx, eventId);
+      const kept = netPaid(event.payments);
+      if (new Prisma.Decimal(dto.amount).greaterThan(kept)) {
+        throw new BadRequestException(
+          kept.lessThanOrEqualTo(0)
+            ? "Bu to'y uchun qaytariladigan pul yo'q"
+            : `Olingan puldan ko'p qaytarib bo'lmaydi: qaytarish mumkin ${kept.toNumber().toLocaleString('ru-RU')} so'm`,
+        );
+      }
+      const refund = await tx.payment.create({
+        data: {
+          eventId,
+          type: 'REFUND',
+          amount: new Prisma.Decimal(dto.amount),
+          method: dto.method,
+          note: dto.note,
+          createdById: actorId,
+        },
+      });
+      return { refund, event };
     });
     await this.auditLog.record({
       actorId,
@@ -104,6 +132,21 @@ export class PaymentsService {
       description: `"${event.clientName}" mijoziga ${dto.amount.toLocaleString('uz-UZ')} so'm qaytarib berdi${dto.note ? ` (${dto.note})` : ''}`,
     });
     return refund;
+  }
+
+  /**
+   * Reads the wedding with its payments under a row lock, so two payments
+   * entered at the same moment are checked one after the other instead of
+   * both passing against the same balance.
+   */
+  private async lockEvent(tx: Prisma.TransactionClient, eventId: string) {
+    await tx.$queryRaw`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
+    const event = await tx.event.findUnique({
+      where: { id: eventId },
+      include: { payments: { select: { amount: true, type: true } } },
+    });
+    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    return event;
   }
 
   findAllForEvent(eventId: string) {
@@ -190,19 +233,11 @@ export class PaymentsService {
    * once 18:00 has actually passed.
    */
   async dailyReport() {
-    const now = new Date();
-    const endOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      23,
-      59,
-      59,
-      999,
-    );
+    // Tashkent's calendar day, whatever time zone the server runs in.
+    const startOfTomorrow = localMidnight(new Date(), 1);
     const events = await this.prisma.event.findMany({
       // Cancelled weddings included: their kept deposit and paid costs are real money.
-      where: { eventDate: { lte: endOfToday } },
+      where: { eventDate: { lt: startOfTomorrow } },
       include: { payments: true, expenses: true },
       orderBy: { eventDate: 'asc' },
     });
@@ -219,7 +254,7 @@ export class PaymentsService {
     const categoryMap = new Map<string, Prisma.Decimal>();
 
     for (const event of events) {
-      const day = dayKey(event.eventDate);
+      const day = localDateKey(event.eventDate);
       const paid = netPaid(event.payments);
       const expenses = event.expenses.reduce(
         (s, x) => s.add(x.amount),
@@ -285,11 +320,4 @@ export class PaymentsService {
       expensesByCategory,
     };
   }
-}
-
-function dayKey(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }

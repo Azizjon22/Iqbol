@@ -84,7 +84,7 @@ export function MenusStudioList({ menus, usage }: { menus: Menu[]; usage: Record
 
       {error && <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {sorted.map((menu, i) => {
           const r = readiness[i];
           const issues = r.checks.filter((c) => c.hint).slice(0, 2);

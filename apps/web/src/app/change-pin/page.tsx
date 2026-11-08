@@ -12,7 +12,7 @@ export default async function ChangePinPage() {
   if (!session.user.mustChangePin) redirect("/worker");
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
+    <main className="flex min-h-svh flex-col items-center justify-center bg-background px-4 py-10">
       <div className="mb-8 flex flex-col items-center text-center">
         <BrandMark className="mb-3 h-11 w-11 text-lg" />
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{tr("PIN kodni yangilash")}</h1>

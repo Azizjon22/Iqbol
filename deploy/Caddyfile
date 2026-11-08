@@ -1,0 +1,9 @@
+# Caddy obtains and renews the HTTPS certificate for DOMAIN by itself.
+{$DOMAIN} {
+	encode gzip
+	# Photos and videos go through the site; allow the app's 150 MB upload limit.
+	request_body {
+		max_size 160MB
+	}
+	reverse_proxy web:3000
+}

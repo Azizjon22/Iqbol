@@ -31,9 +31,23 @@ export interface SessionData {
   user: SessionUser;
 }
 
+// .env.example ships an obvious placeholder so a fresh checkout runs at all —
+// it must never reach a real deployment, since anyone who's seen this repo
+// could forge session cookies signed with it.
+const PLACEHOLDER_SESSION_SECRET = "change-me-session-secret-change-me";
+
 function secretKey() {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error("SESSION_SECRET environment variable is not set");
+  if (
+    process.env.NODE_ENV === "production" &&
+    (secret === PLACEHOLDER_SESSION_SECRET || secret.length < 20)
+  ) {
+    throw new Error(
+      "SESSION_SECRET productionda haqiqiy, tasodifiy qiymatga ega bo'lishi kerak " +
+        "(hozir bo'sh yoki standart placeholder). Masalan: openssl rand -base64 32",
+    );
+  }
   return new TextEncoder().encode(secret);
 }
 

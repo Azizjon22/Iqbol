@@ -47,7 +47,7 @@ export function MenuShowcaseList({
   const customHero = !!hero?.url;
 
   return (
-    <div className="presentation-root min-h-screen bg-background text-foreground">
+    <div className="presentation-root min-h-svh bg-background text-foreground">
       <PresentationHeader />
 
       {/* ---------- Hero ---------- */}

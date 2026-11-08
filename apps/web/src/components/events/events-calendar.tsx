@@ -1,6 +1,4 @@
 "use client";
-import { useTr } from "@/components/i18n/locale-provider";
-
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -8,9 +6,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn, formatTime, toDateParam } from "@/lib/utils";
-import { UZ_MONTHS } from "@/lib/utils";
-
-const WEEKDAYS_UZ = ["Dush", "Sesh", "Chor", "Pay", "Jum", "Shan", "Yak"];
+import { useLocale } from "@/components/i18n/locale-provider";
 
 interface CalendarEvent {
   id: string;
@@ -45,8 +41,7 @@ function buildMonthGrid(year: number, month: number) {
 type Filter = "all" | "free" | "booked";
 
 export function EventsCalendar({ events, readOnly = false }: { events: CalendarEvent[]; readOnly?: boolean }) {
-  const tr = useTr();
-
+  const { t, dictionary } = useLocale();
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [filter, setFilter] = useState<Filter>("all");
@@ -68,37 +63,37 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
   }, [events]);
 
   return (
-    <Card>
+    <Card className="@container min-w-0">
       <CardHeader className="flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-center gap-2 sm:justify-start">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            aria-label={tr("Oldingi oy")}
+            aria-label={t("events.prevMonth")}
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <p className="min-w-36 text-center font-semibold">
-            {UZ_MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
+            {dictionary.months[cursor.getMonth()]} {cursor.getFullYear()}
           </p>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            aria-label={tr("Keyingi oy")}
+            aria-label={t("events.nextMonth")}
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-muted p-1 text-xs font-medium">
+        <div className="grid grid-cols-3 gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium sm:flex">
           {(
             [
-              ["all", tr("Barchasi")],
-              ["free", tr("Bo'sh kunlar")],
-              ["booked", tr("Band kunlar")],
+              ["all", t("common.all")],
+              ["free", t("events.freeDays")],
+              ["booked", t("events.bookedDays")],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -106,24 +101,28 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
               type="button"
               onClick={() => setFilter(value)}
               className={cn(
-                "shrink-0 rounded-md px-2.5 py-1.5 transition-colors",
+                "min-w-0 truncate rounded-md px-2 py-1.5 transition-colors sm:shrink-0 sm:px-2.5",
                 filter === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
               )}
             >
-              {label}
+              <span className="sm:hidden">{label.split(" ")[0]}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-muted-foreground">
-          {WEEKDAYS_UZ.map((w) => (
-            <div key={w} className="py-1">
-              {w}
+      {/* Cells adapt to the calendar's own width: dots on phones, times on
+          tablets, time + client from 640px. */}
+      <CardContent className="@container">
+        <div className="grid grid-cols-7 gap-1 text-center @[420px]:gap-1.5 text-xs font-medium text-muted-foreground">
+          {dictionary.weekdaysShort.map((w) => (
+            <div key={w} className="truncate py-1">
+              <span className="@min-[640px]:hidden">{w.slice(0, 2)}</span>
+              <span className="hidden @min-[640px]:inline">{w}</span>
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className="grid grid-cols-7 gap-1 @[420px]:gap-1.5">
           {cells.map(({ date, inMonth }) => {
             const key = toDateParam(date);
             const dayEvents = eventsByDay.get(key) ?? [];
@@ -135,7 +134,7 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
               <div
                 key={key}
                 className={cn(
-                  "flex min-h-20 flex-col gap-1 rounded-md border p-1.5 text-left transition",
+                  "flex min-h-14 min-w-0 flex-col gap-1 overflow-hidden rounded-md border p-1 text-left transition @[420px]:min-h-20 @[420px]:p-1.5",
                   !inMonth && "border-transparent opacity-30",
                   inMonth && isBooked && "border-primary/40 bg-primary/5 hover:border-primary/60 hover:bg-primary/10 hover:shadow-sm",
                   inMonth && !isBooked && "border-border bg-card hover:border-primary/30 hover:bg-muted/60 hover:shadow-sm",
@@ -150,31 +149,44 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
                   dayEvents.slice(0, 2).map((event) => {
                     const tagContent = (
                       <>
-                        <span className="shrink-0 font-semibold">{formatTime(event.eventDate)}</span>
-                        <span className="truncate">{event.clientName}</span>
+                        <span className="mx-auto h-1.5 w-1.5 shrink-0 rounded-full bg-primary @[420px]:hidden" />
+                        <span className="hidden shrink-0 font-semibold @[420px]:inline">{formatTime(event.eventDate)}</span>
+                        <span className="hidden min-w-0 truncate @[640px]:inline">{event.clientName}</span>
                       </>
                     );
                     const tagClassName =
-                      "flex items-baseline gap-1 truncate rounded bg-primary/15 px-1 py-0.5 text-[10px] font-medium text-primary";
+                      "flex min-h-4 min-w-0 items-center gap-1 overflow-hidden rounded bg-primary/15 px-1 py-0.5 text-[10px] font-medium text-primary @[420px]:items-baseline pointer-coarse:min-h-6 pointer-coarse:items-center";
                     return readOnly ? (
-                      <span key={event.id} className={tagClassName}>
+                      <span key={event.id} className={tagClassName} title={`${formatTime(event.eventDate)} ${event.clientName}`}>
                         {tagContent}
                       </span>
                     ) : (
-                      <Link key={event.id} href={`/dashboard/events/${event.id}`} className={cn(tagClassName, "hover:bg-primary/25")}>
+                      <Link
+                        key={event.id}
+                        href={`/dashboard/events/${event.id}`}
+                        title={`${formatTime(event.eventDate)} ${event.clientName}`}
+                        className={cn(tagClassName, "hover:bg-primary/25")}
+                      >
                         {tagContent}
                       </Link>
                     );
                   })}
                 {inMonth && dayEvents.length > 2 && (
-                  <span className="text-[10px] text-muted-foreground">+{dayEvents.length - 2} ta</span>
+                  <span className="truncate text-[10px] text-muted-foreground">
+                    <span className="@[420px]:hidden">+{dayEvents.length - 2}</span>
+                    <span className="hidden @[420px]:inline">
+                      {t("events.moreCount", { count: dayEvents.length - 2 })}
+                    </span>
+                  </span>
                 )}
                 {inMonth && !readOnly && (
                   <Link
                     href={`/dashboard/events/new?date=${key}`}
-                    className="mt-auto flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary"
+                    aria-label="Yangi to'y"
+                    className="mt-auto flex min-w-0 items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary pointer-coarse:min-h-6"
                   >
-                    <Plus className="h-3 w-3" />  {tr("to'y")}
+                    <Plus className="h-3 w-3 shrink-0" />
+                    <span className="hidden truncate @[420px]:inline">{t("events.addEventWord")}</span>
                   </Link>
                 )}
               </div>

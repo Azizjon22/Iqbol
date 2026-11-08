@@ -2,28 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, StaffRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { netPaid } from '../common/money/net-paid';
-
-// Weddings happen in Tashkent (UTC+5, no DST). Day boundaries are computed
-// in that zone explicitly so "tomorrow" stays right even when the server
-// itself runs in UTC.
-const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** UTC instant of local midnight `dayOffset` days from today, Tashkent time. */
-function localMidnight(now: Date, dayOffset = 0) {
-  const local = new Date(now.getTime() + TZ_OFFSET_MS);
-  const midnightLocal = Date.UTC(
-    local.getUTCFullYear(),
-    local.getUTCMonth(),
-    local.getUTCDate() + dayOffset,
-  );
-  return new Date(midnightLocal - TZ_OFFSET_MS);
-}
-
-/** "YYYY-MM-DD" of an instant in Tashkent time. */
-function localDateKey(date: Date) {
-  return new Date(date.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
-}
+import {
+  TZ_OFFSET_MS,
+  localDateKey,
+  localMidnight,
+} from '../common/time/tashkent';
 
 const WEEK_DAYS = 7;
 
