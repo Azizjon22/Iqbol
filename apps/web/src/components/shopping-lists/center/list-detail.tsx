@@ -11,8 +11,9 @@ import type { ProductCatalogItem, ShoppingList } from "@/lib/types";
 import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";
 import { ProductCategoryIcon } from "@/components/inventory/product-category-icon";
 import { formatDate, formatDateTime, formatSom, cn } from "@/lib/utils";
-import { catalogIndex, groupBySection, itemCost, listApi, listProgress } from "./helpers";
-import { PurchaseRow } from "./purchase-row";
+import { catalogIndex, groupBySection, listApi, listProgress, parseNumber } from "./helpers";
+import { Input } from "@/components/ui/input";
+import { ItemQuantity } from "@/components/shopping-lists/item-quantity";
 
 const STEPS = [
   { key: "SUBMITTED", label: "Yozildi" },
@@ -49,12 +50,16 @@ export function ListDetail({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const lookup = catalogIndex(catalog);
-  const { total, bought, spent, complete } = listProgress(list);
+  const { total, spent } = listProgress(list);
   const current = stepIndex(list.status);
   const draft = current === 0;
+  const done = current === 2;
   const chef = viewer === "CHEF";
-  const canBuy = chef && list.status === "APPROVED";
-  const canFixPrice = !chef && (list.status === "APPROVED" || list.status === "PURCHASED");
+  const canFinish = chef && list.status === "APPROVED";
+  const canFixTotal = !chef && done;
+  const [sum, setSum] = useState("");
+  const [fixing, setFixing] = useState(false);
+  const sumValue = parseNumber(sum);
   const groups = groupBySection(list.items, lookup);
   const stepTime: Partial<Record<(typeof STEPS)[number]["key"], string | null>> = {
     SUBMITTED: list.createdAt,
@@ -67,6 +72,24 @@ export function ListDetail({
     setError(undefined);
     try {
       await listApi(`/${list.id}`, "DELETE");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Chef: the whole bazaar's sum. Super admin: a corrected sum. */
+  async function saveTotal() {
+    if (!(sumValue > 0)) return setError(tr("Umumiy summani kiriting"));
+    setBusy(true);
+    setError(undefined);
+    try {
+      if (canFinish) await listApi(`/${list.id}/finish`, "POST", { total: sumValue });
+      else await listApi(`/${list.id}/total`, "PATCH", { total: sumValue });
+      setSum("");
+      setFixing(false);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
@@ -135,23 +158,16 @@ export function ListDetail({
         {/* Progress + money */}
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-xl bg-muted/60 px-3 py-2.5">
-            <p className="text-xs text-muted-foreground">{tr("Olindi")}</p>
-            <p className="font-semibold tabular-nums">
-              {bought} / {total}
-            </p>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-background">
-              <div className="h-full rounded-full bg-success transition-all" style={{ width: `${total ? (bought / total) * 100 : 0}%` }} />
-            </div>
+            <p className="text-xs text-muted-foreground">{tr("Mahsulotlar")}</p>
+            <p className="font-semibold tabular-nums">{total}</p>
           </div>
           <div className="rounded-xl bg-muted/60 px-3 py-2.5">
-            <p className="text-xs text-muted-foreground">{tr("Sarflandi")}</p>
-            <p className="font-semibold tabular-nums">{formatSom(spent, locale)}</p>
+            <p className="text-xs text-muted-foreground">{tr("Umumiy summa")}</p>
+            <p className="font-semibold tabular-nums">{done ? formatSom(spent, locale) : "—"}</p>
           </div>
           <div className="col-span-2 rounded-xl bg-muted/60 px-3 py-2.5 sm:col-span-1">
             <p className="text-xs text-muted-foreground">{tr("Holat")}</p>
-            <p className="font-semibold">
-              {draft ? tr("Tasdiqlanmagan") : list.status === "APPROVED" ? (complete ? tr("Hammasi olindi") : tr(`${total - bought} ta qoldi`)) : tr("Xarid qilindi")}
-            </p>
+            <p className="font-semibold">{draft ? tr("Tasdiqlanmagan") : done ? tr("Xarid qilindi") : tr("Xarid qilinmoqda")}</p>
           </div>
         </div>
 
@@ -182,43 +198,79 @@ export function ListDetail({
             </div>
           )}
           {draft && !chef && <p className="text-sm text-muted-foreground">{tr("Oshpaz hali tasdiqlamagan.")}</p>}
-          {canBuy && !complete && (
-            <p className="text-sm text-muted-foreground">{tr("Har bir mahsulotni olganingizda «Olindi» ni bosib, to'lagan summangizni yozing.")}</p>
+          {(canFinish || (canFixTotal && fixing)) && (
+            <div className="rounded-xl border border-primary/40 bg-primary/5 p-3">
+              <p className="text-sm font-semibold">{canFinish ? tr("Bozorlik tugadimi?") : tr("Summani tuzatish")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {canFinish
+                  ? tr("Hammasi uchun to'lagan umumiy summangizni yozing — u to'yning xarajatlariga o'zi tushadi.")
+                  : tr("To'g'ri umumiy summani yozing — to'y xarajati ham o'zgaradi.")}
+              </p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <div className="relative w-full max-w-xs">
+                  <Input
+                    value={sum}
+                    onChange={(e) => setSum(e.target.value)}
+                    inputMode="numeric"
+                    placeholder={tr("masalan: 2 500 000")}
+                    aria-label={tr("Umumiy summa")}
+                    className="pr-12 tabular-nums"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{tr("so'm")}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={saveTotal}
+                  disabled={busy || !(sumValue > 0)}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:brightness-95 disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" /> {canFinish ? tr("Xaridni yakunlash") : tr("Saqlash")}
+                </button>
+              </div>
+            </div>
           )}
-          {(list.status === "PURCHASED" || list.status === "CLOSED") && (
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Lock className="h-4 w-4" />{" "}
-              {list.event ? tr("Xarid yakunlandi — summa to'yning xarajatlariga o'zi yozildi.") : tr("Xarid yakunlandi.")}
-            </p>
+          {done && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Lock className="h-4 w-4" />{" "}
+                {list.event ? tr("Xarid yakunlandi — summa to'yning xarajatlariga o'zi yozildi.") : tr("Xarid yakunlandi.")}
+              </p>
+              {canFixTotal && !fixing && (
+                <button type="button" onClick={() => setFixing(true)} className="text-sm font-medium text-primary hover:underline">
+                  {tr("Summani tuzatish")}
+                </button>
+              )}
+            </div>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </div>
 
       {/* ---------- Items by bazaar section ---------- */}
-      {groups.map((g) => {
-        const sectionSpent = g.items.reduce((s, i) => s + itemCost(i), 0);
-        const sectionDone = g.items.every((i) => i.isPurchased);
-        return (
-          <section key={g.section}>
-            <header className="flex items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <span className="flex items-center gap-2">
-                <ProductCategoryIcon category={g.section} className="h-3.5 w-3.5" />
-                {tr(PRODUCT_CATEGORY_LABELS_UZ[g.section])}
-                {sectionDone && <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />}
-              </span>
-              {sectionSpent > 0 && <span className="normal-case tracking-normal tabular-nums">{formatSom(sectionSpent, locale)}</span>}
-            </header>
-            <ul className="divide-y divide-border border-b border-border last:border-b-0">
-              {g.items.map((item) => (
-                <PurchaseRow key={item.id} listId={list.id} item={item} catalog={lookup(item.name)} canBuy={canBuy} canFixPrice={canFixPrice} />
-              ))}
-            </ul>
-          </section>
-        );
-      })}
+      {groups.map((g) => (
+        <section key={g.section}>
+          <header className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <ProductCategoryIcon category={g.section} className="h-3.5 w-3.5" />
+            {tr(PRODUCT_CATEGORY_LABELS_UZ[g.section])}
+            {done && <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />}
+          </header>
+          <ul className="divide-y divide-border border-b border-border last:border-b-0">
+            {g.items.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{pick(item.name, item.nameRu)}</span>
+                  {item.note && <span className="block truncate text-xs text-muted-foreground">{pick(item.note, item.noteRu)}</span>}
+                </span>
+                <span className="shrink-0 text-muted-foreground tabular-nums">
+                  <ItemQuantity item={item} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
 
-      {spent > 0 && (
+      {done && (
         <div className="flex items-center justify-between bg-muted/40 px-4 py-3">
           <span className="text-sm font-medium">{tr("Jami bozorlik")}</span>
           <span className="font-display text-xl font-semibold lining-nums tabular-nums">{formatSom(spent, locale)}</span>

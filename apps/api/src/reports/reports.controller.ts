@@ -108,4 +108,14 @@ export class ReportsController {
     }
     return { success: true };
   }
+
+  /** The list the chef took to the bazaar, as it was sent to Telegram. */
+  @Get('shopping-list/:id/pdf')
+  async shoppingListPdf(@Param('id') id: string) {
+    const file = await this.reports.shoppingList(id);
+    return new StreamableFile(file.buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${file.filename}"`,
+    });
+  }
 }

@@ -415,8 +415,10 @@ model ShoppingList {
   approvedById      String?
   approvedBy        StaffUser?         @relation("ShoppingListApprovedBy", fields: [approvedById], references: [id])
   approvedAt        DateTime?
-  // Clears ADMIN's notification badge once they open the lists page.
+  // Clears the super admin's notification badge once they open the lists page.
   adminSeenAt       DateTime?
+  // What the whole bazaar cost, typed by the chef as one sum when done.
+  totalCost         Decimal?           @db.Decimal(14, 2)
   // Telegram messages announcing this list, so the bot can edit them later.
   telegramMessages  Json?
   createdAt         DateTime           @default(now())

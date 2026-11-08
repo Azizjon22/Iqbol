@@ -19,7 +19,8 @@ export function itemCost(item: Pick<ShoppingListItem, "isPurchased" | "unitPrice
 export function listProgress(list: ShoppingList) {
   const total = list.items.length;
   const bought = list.items.filter((i) => i.isPurchased).length;
-  const spent = list.items.reduce((s, i) => s + itemCost(i), 0);
+  // One sum for the whole bazaar; old lists priced per item still add up.
+  const spent = list.totalCost != null ? Number(list.totalCost) : list.items.reduce((s, i) => s + itemCost(i), 0);
   return { total, bought, spent, complete: total > 0 && bought === total };
 }
 

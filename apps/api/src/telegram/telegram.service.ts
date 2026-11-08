@@ -52,13 +52,12 @@ interface MessageRef {
 
 /** Stored on the list: the super admins' copies of each announcement. */
 interface ListMessages {
-  submitted?: MessageRef[];
   purchased?: MessageRef[];
 }
 
 const LIST_INCLUDE = {
   items: { orderBy: { name: 'asc' as const } },
-  createdByWorker: { select: { fullName: true } },
+  createdByWorker: { select: { fullName: true, telegramChatId: true } },
   event: {
     select: { id: true, clientName: true, eventDate: true, guestCount: true },
   },
@@ -100,7 +99,8 @@ function normalizePhone(raw: string): string | null {
  * - At TELEGRAM_REMINDER_TIMES every linked chef is reminded about tomorrow's
  *   weddings that still have no shopping list, and every linked super admin
  *   about lists they have not opened yet.
- * - A freshly submitted list is announced to the super admins at once.
+ * - A list the chef confirms is sent as a PDF to the chef and the super
+ *   admins; the finished bazaar's sum is reported to the super admins.
  * - Super admins get the accounting summary and the wedding archive as PDF
  *   files (/hisobot, /arxiv, or the keyboard buttons).
  * - With an https TELEGRAM_WEB_URL every site link opens as a Telegram mini
@@ -966,27 +966,12 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     return rows.join('\n');
   }
 
-  private submittedText(
-    list: NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>,
-  ) {
-    return `🛒 Oshpaz bozorlik ro'yxatini tasdiqladi va xaridga chiqdi\n\n${this.listHead(list)}\n\n${this.itemRows(list)}`;
-  }
-
   private purchasedText(
     list: NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>,
   ) {
-    const rows = list.items.slice(0, 40).map((i) => {
-      const unit = UNIT_UZ[i.unit] ?? i.unit;
-      const price = i.unitPrice ? ` × ${fmtSom(i.unitPrice)}` : '';
-      return `• ${i.name} — ${fmtQty(i.quantity)} ${unit}${price} = ${fmtSom(i.totalCost)}`;
-    });
-    const total = list.items.reduce(
-      (sum, i) => sum + Number(i.totalCost ?? 0),
-      0,
-    );
     return (
-      `💰 Bozorlik xarid qilindi\n\n${this.listHead(list)}\n\n${rows.join('\n')}` +
-      `\n\nJami: ${fmtSom(total)}` +
+      `💰 Bozorlik xarid qilindi\n\n${this.listHead(list)}\n\n${this.itemRows(list)}` +
+      `\n\nJami: ${fmtSom(list.totalCost)}` +
       (list.event ? "\nBu summa to'yning xarajatlariga o'zi yozildi." : '')
     );
   }
@@ -1025,21 +1010,33 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** A chef confirmed a list and went to buy it: tell the super admins. */
+  /**
+   * A chef confirmed a list: the list goes out as a PDF — to the chef, to
+   * take to the bazaar, and to the super admins.
+   */
   notifyListSubmitted(id: string) {
-    return this.safely("Yangi ro'yxat xabari yuborilmadi", async () => {
+    return this.safely("Ro'yxat PDF'i yuborilmadi", async () => {
       const list = await this.loadList(id);
       if (!list) return;
-      const refs = await this.toStaff(
-        'SUPER_ADMIN',
-        this.submittedText(list),
-        this.listsButton(),
-      );
-      await this.saveRefs(id, { submitted: refs });
+      const admins = await this.prisma.staffUser.findMany({
+        where: {
+          role: 'SUPER_ADMIN',
+          isActive: true,
+          telegramChatId: { not: null },
+        },
+        select: { telegramChatId: true },
+      });
+      const chats = new Set(admins.map((a) => a.telegramChatId!));
+      if (list.createdByWorker.telegramChatId) {
+        chats.add(list.createdByWorker.telegramChatId);
+      }
+      for (const chat of chats) {
+        await this.sendFile(chat, () => this.reports.shoppingList(id));
+      }
     });
   }
 
-  /** Everything is bought and priced: report quantities and prices to the super admins. */
+  /** The bazaar is done: report the list and its one sum to the super admins. */
   notifyListPurchased(id: string) {
     return this.safely('Xarid hisoboti yuborilmadi', async () => {
       const list = await this.loadList(id);
@@ -1053,11 +1050,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** A price was corrected after purchase: keep the report in Telegram right. */
+  /** The sum was corrected: keep the report in Telegram right. */
   notifyPriceFixed(id: string) {
     return this.safely('Xarid hisoboti tahrirlanmadi', async () => {
       const list = await this.loadList(id);
-      if (!list || list.status !== 'PURCHASED') return;
+      if (!list || (list.status !== 'PURCHASED' && list.status !== 'CLOSED')) {
+        return;
+      }
       const refs =
         ((list.telegramMessages ?? {}) as ListMessages).purchased ?? [];
       await this.edit(

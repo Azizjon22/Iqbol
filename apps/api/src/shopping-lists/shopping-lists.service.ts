@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { CreateShoppingListDto } from './dto/create-shopping-list.dto';
-import { MarkPurchasedDto, UpdateItemPriceDto } from './dto/mark-purchased.dto';
+import { ShoppingTotalDto } from './dto/shopping-total.dto';
 
 const include = {
   items: true,
@@ -22,14 +22,12 @@ const include = {
 };
 
 /**
- * The chef runs a list alone: writes it (SUBMITTED), confirms it and goes
- * to the bazaar (APPROVED), marks each item bought with what it cost; once
- * everything is bought it is PURCHASED and its total becomes the wedding's
- * shopping expense by itself. The super admin watches and can fix a price.
+ * The chef runs a list alone: writes it (SUBMITTED), confirms it (APPROVED —
+ * the list arrives in Telegram as a PDF to take to the bazaar), and when
+ * done types what the whole bazaar cost as one sum (PURCHASED). That sum
+ * becomes the wedding's shopping expense by itself. The super admin
+ * watches and can correct the sum.
  */
-
-/** Largest amount the totalCost column (Decimal 14,2) is trusted with. */
-const MAX_TOTAL_COST = 99_999_999_999;
 
 /**
  * Once a wedding's shopping is bought (and later priced and closed), the
@@ -42,12 +40,6 @@ export const SHOPPING_DONE_STATUSES: ShoppingListStatus[] = [
 
 /** Written but not yet confirmed by the chef: still theirs to cancel. */
 const DRAFT_STATUSES: ShoppingListStatus[] = ['SUBMITTED', 'REVIEWED'];
-
-const UNIT_UZ: Record<string, string> = {
-  KG: 'kg',
-  LITER: 'litr',
-  DONA: 'dona',
-};
 
 /**
  * The buyer wants one line per product: tomatoes for the salad and for the
@@ -269,13 +261,8 @@ export class ShoppingListsService {
       where: { id: listId },
       include: { items: true, createdByWorker: { select: { fullName: true } } },
     });
-    if (!list?.eventId || list.status === 'SUBMITTED') return;
-    if (list.items.some((i) => !i.isPurchased)) return;
-    const amount = list.items.reduce(
-      (sum, i) =>
-        sum.add(i.totalCost ?? (i.unitPrice ? i.unitPrice.mul(i.quantity) : 0)),
-      new Prisma.Decimal(0),
-    );
+    if (!list?.eventId || list.totalCost === null) return;
+    const amount = list.totalCost;
     await tx.eventExpense.upsert({
       where: { shoppingListId: listId },
       create: {
@@ -290,179 +277,90 @@ export class ShoppingListsService {
     });
   }
 
-  /** The chef marks an item bought at the bazaar, with what it cost. */
-  async markItemPurchased(
-    listId: string,
-    itemId: string,
-    dto: MarkPurchasedDto,
+  /** Back from the bazaar: the chef types what everything cost, as one sum. */
+  async finish(
+    id: string,
+    dto: ShoppingTotalDto,
     workerId: string,
     workerName: string,
   ) {
-    const list = await this.ensureWorkerOwnsOrThrow(listId, workerId);
-    const item = list.items.find((i) => i.id === itemId);
-    if (!item) throw new NotFoundException("Ro'yxat elementi topilmadi");
-    if (item.isPurchased) {
-      throw new BadRequestException(
-        'Bu mahsulot allaqachon sotib olingan deb belgilangan',
-      );
-    }
-
+    const list = await this.ensureWorkerOwnsOrThrow(id, workerId);
     if (list.status !== 'APPROVED') {
       throw new BadRequestException(
         DRAFT_STATUSES.includes(list.status)
-          ? "Avval ro'yxatni tasdiqlang, keyin xarid qiling"
-          : "Bu ro'yxatning xaridi yakunlangan",
+          ? "Avval ro'yxatni tasdiqlang, keyin xaridni yakunlang"
+          : "Bu ro'yxatning xaridi allaqachon yakunlangan",
       );
     }
-
-    const bought =
-      dto.quantity !== undefined
-        ? new Prisma.Decimal(dto.quantity)
-        : item.quantity;
-    const { unitPrice, totalCost } = this.resolvePrice(dto, bought);
-    const quantityChanged = !bought.equals(item.quantity);
-
-    // Wedding purchases stay on the shopping list. They are spent on that
-    // event and must not change warehouse stock.
-    let allBought = false;
+    const total = new Prisma.Decimal(dto.total).toDecimalPlaces(2);
     await this.prisma.$transaction(async (tx) => {
-      await tx.shoppingListItem.update({
-        where: { id: itemId },
-        data: {
-          isPurchased: true,
-          unitPrice,
-          totalCost,
-          // Bought a different amount than listed: keep the planned figure
-          // visible as "8 → 7 kg" (unless SUPER_ADMIN already set one).
-          ...(quantityChanged
-            ? {
-                quantity: bought,
-                originalQuantity: item.originalQuantity ?? item.quantity,
-              }
-            : {}),
-        },
+      await tx.shoppingListItem.updateMany({
+        where: { shoppingListId: id },
+        data: { isPurchased: true },
       });
-
-      const remaining = await tx.shoppingListItem.count({
-        where: { shoppingListId: listId, isPurchased: false },
+      await tx.shoppingList.update({
+        where: { id },
+        data: { status: 'PURCHASED', totalCost: total, adminSeenAt: null },
       });
-      if (remaining === 0) {
-        allBought = true;
-        await tx.shoppingList.update({
-          where: { id: listId },
-          data: { status: 'PURCHASED', adminSeenAt: null },
-        });
-        await this.syncExpense(tx, listId);
-      }
+      await this.syncExpense(tx, id);
     });
-
     await this.auditLog.record({
       actorId: null,
       actorName: workerName,
       action: 'UPDATE',
       entityType: 'SHOPPING_LIST',
-      entityId: listId,
-      description: `"${item.name}" (${bought} ${UNIT_UZ[item.unit]}) xarid qilinganini belgiladi, jami ${totalCost.toNumber().toLocaleString('uz-UZ')} so'm`,
+      entityId: id,
+      description: `Bozorlikni yakunladi${list.event ? ` (${list.event.clientName})` : ''}: jami ${total.toNumber().toLocaleString('uz-UZ')} so'm`,
     });
-    if (allBought) void this.telegram.notifyListPurchased(listId);
-
-    return this.findOne(listId);
+    void this.telegram.notifyListPurchased(id);
+    return this.findOne(id);
   }
 
-  /** Fix a mistyped price on an already-bought wedding item. */
-  async updateItemPrice(
-    listId: string,
-    itemId: string,
-    dto: UpdateItemPriceDto,
+  /** The super admin corrects a mistyped bazaar sum; the expense follows. */
+  async setTotal(
+    id: string,
+    dto: ShoppingTotalDto,
     actorId: string,
     actorName: string,
   ) {
-    const list = await this.findOne(listId);
-    const item = list.items.find((i) => i.id === itemId);
-    if (!item) throw new NotFoundException("Ro'yxat elementi topilmadi");
-    if (!item.isPurchased) {
+    const list = await this.findOne(id);
+    if (list.status !== 'PURCHASED' && list.status !== 'CLOSED') {
       throw new BadRequestException(
-        'Narxni faqat sotib olingan mahsulot uchun tuzatish mumkin',
+        "Summani faqat xaridi yakunlangan ro'yxatda tuzatish mumkin",
       );
     }
-    if (list.status === 'CLOSED') {
-      throw new BadRequestException(
-        "Ro'yxat tasdiqlab yopilgan — narxlarni endi o'zgartirib bo'lmaydi",
-      );
-    }
-    const { unitPrice, totalCost } = this.resolvePrice(dto, item.quantity);
+    const total = new Prisma.Decimal(dto.total).toDecimalPlaces(2);
     await this.prisma.$transaction(async (tx) => {
-      await tx.shoppingListItem.update({
-        where: { id: itemId },
-        data: { unitPrice, totalCost },
+      await tx.shoppingList.update({
+        where: { id },
+        data: { totalCost: total },
       });
-      await this.syncExpense(tx, listId);
+      await this.syncExpense(tx, id);
     });
-
     await this.auditLog.record({
       actorId,
       actorName,
       action: 'UPDATE',
       entityType: 'SHOPPING_LIST',
-      entityId: listId,
-      description: `"${item.name}" narxini tuzatdi: ${item.unitPrice ?? 0} → ${unitPrice} so'm (1 ${UNIT_UZ[item.unit]})`,
+      entityId: id,
+      description: `Bozorlik summasini tuzatdi: ${Number(list.totalCost ?? 0).toLocaleString('uz-UZ')} → ${total.toNumber().toLocaleString('uz-UZ')} so'm`,
     });
-    void this.telegram.notifyPriceFixed(listId);
-    return this.findOne(listId);
-  }
-
-  /**
-   * A typed total is kept exactly (the unit price is only for display);
-   * a typed unit price gives total = price × quantity.
-   */
-  private resolvePrice(
-    dto: { unitPrice?: number; totalPrice?: number },
-    quantity: Prisma.Decimal,
-  ) {
-    if (dto.totalPrice !== undefined) {
-      const totalCost = new Prisma.Decimal(dto.totalPrice).toDecimalPlaces(2);
-      return {
-        totalCost,
-        unitPrice: totalCost.div(quantity).toDecimalPlaces(2),
-      };
-    }
-    if (dto.unitPrice !== undefined) {
-      const unitPrice = new Prisma.Decimal(dto.unitPrice).toDecimalPlaces(2);
-      const totalCost = unitPrice.mul(quantity).toDecimalPlaces(2);
-      if (totalCost.greaterThan(MAX_TOTAL_COST)) {
-        throw new BadRequestException(
-          'Jami summa juda katta — narxni tekshiring',
-        );
-      }
-      return { unitPrice, totalCost };
-    }
-    throw new BadRequestException(
-      'Narxni kiriting (jami summa yoki 1 birlik narxi)',
-    );
+    void this.telegram.notifyPriceFixed(id);
+    return this.findOne(id);
   }
 
   async expenseReport(from?: Date, to?: Date) {
-    const items = await this.prisma.shoppingListItem.findMany({
+    const lists = await this.prisma.shoppingList.findMany({
       where: {
-        isPurchased: true,
-        shoppingList: {
-          createdAt: { gte: from, lte: to },
-        },
+        totalCost: { not: null },
+        createdAt: { gte: from, lte: to },
       },
-      include: {
-        shoppingList: { select: { id: true, eventId: true, createdAt: true } },
-      },
+      select: { id: true, eventId: true, createdAt: true, totalCost: true },
     });
-
-    const total = items.reduce(
-      (sum, item) =>
-        sum.add(
-          item.totalCost ??
-            (item.unitPrice ? item.unitPrice.mul(item.quantity) : 0),
-        ),
+    const total = lists.reduce(
+      (sum, l) => sum.add(l.totalCost ?? 0),
       new Prisma.Decimal(0),
     );
-
-    return { total, items };
+    return { total, lists };
   }
 }

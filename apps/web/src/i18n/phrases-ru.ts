@@ -1,5 +1,13 @@
 /** Uzbek source text → Russian. Keys with "{x}" are full-string patterns, not shown as-is. */
 export const PHRASES_RU: Record<string, string> = {
+  "Mahsulotlar": "Товары",
+  "Umumiy summa": "Общая сумма",
+  "Bozorlik tugadimi?": "Закупка закончена?",
+  "Hammasi uchun to'lagan umumiy summangizni yozing — u to'yning xarajatlariga o'zi tushadi.": "Укажите общую сумму, которую вы заплатили за всё, — она сама попадёт в расходы свадьбы.",
+  "To'g'ri umumiy summani yozing — to'y xarajati ham o'zgaradi.": "Укажите правильную общую сумму — расход свадьбы тоже изменится.",
+  "Summani tuzatish": "Исправить сумму",
+  "Umumiy summani kiriting": "Укажите общую сумму",
+  "masalan: 2 500 000": "например: 2 500 000",
   "To'y xarajatlariga yozildi": "Записано в расходы свадьбы",
   "Mijoz uchun PDF": "PDF для клиента",
   "Bozordan va ombordan olingan mahsulotlar (narxlarsiz) hamda boshqa xarajatlar.": "Продукты с рынка и со склада (без цен) и прочие расходы.",
@@ -753,6 +761,7 @@ export const PHRASES_RU: Record<string, string> = {
 };
 
 export const PHRASE_PATTERNS: { uz: string; ru: string }[] = [
+  { uz: "{x} ta ro'yxat xaridi hali yakunlanmagan — jamiga qo'shilmagan.", ru: "Закупка по $1 спискам ещё не завершена — не вошла в итог." },
   { uz: "1 {x} narxi, so'm", ru: "Цена за 1 $1, сум" },
   { uz: "1 {x} narxi", ru: "Цена за 1 $1" },
   { uz: "Narx o'zgargan (oldin {x} so'm): bu kirim alohida partiya bo'lib turadi, avval eski narxdagisi sarflanadi.", ru: "Цена изменилась (было $1 сум): этот приход станет отдельной партией, сначала расходуется товар по старой цене." },

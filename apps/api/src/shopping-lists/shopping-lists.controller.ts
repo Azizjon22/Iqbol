@@ -18,11 +18,11 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthPayload } from '../common/types/auth-payload';
 import { ShoppingListsService } from './shopping-lists.service';
 import { CreateShoppingListDto } from './dto/create-shopping-list.dto';
-import { MarkPurchasedDto, UpdateItemPriceDto } from './dto/mark-purchased.dto';
+import { ShoppingTotalDto } from './dto/shopping-total.dto';
 
 /**
- * The chef writes, confirms and buys a list on their own; the super admin
- * only watches it and can fix a mistyped price.
+ * The chef writes, confirms and buys a list on their own and records one
+ * sum for it; the super admin only watches and can correct that sum.
  */
 @Controller('shopping-lists')
 export class ShoppingListsController {
@@ -52,21 +52,15 @@ export class ShoppingListsController {
     return this.lists.confirm(id, user.sub, user.fullName);
   }
 
+  /** Back from the bazaar: one sum for the whole list. */
   @UseGuards(ChefGuard)
-  @Patch(':id/items/:itemId/purchase')
-  markPurchased(
+  @Post(':id/finish')
+  finish(
     @Param('id') id: string,
-    @Param('itemId') itemId: string,
-    @Body() dto: MarkPurchasedDto,
+    @Body() dto: ShoppingTotalDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.lists.markItemPurchased(
-      id,
-      itemId,
-      dto,
-      user.sub,
-      user.fullName,
-    );
+    return this.lists.finish(id, dto, user.sub, user.fullName);
   }
 
   @UseGuards(RolesGuard)
@@ -116,13 +110,12 @@ export class ShoppingListsController {
 
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN')
-  @Patch(':id/items/:itemId/price')
-  updateItemPrice(
+  @Patch(':id/total')
+  setTotal(
     @Param('id') id: string,
-    @Param('itemId') itemId: string,
-    @Body() dto: UpdateItemPriceDto,
+    @Body() dto: ShoppingTotalDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.lists.updateItemPrice(id, itemId, dto, user.sub, user.fullName);
+    return this.lists.setTotal(id, dto, user.sub, user.fullName);
   }
 }

@@ -256,6 +256,8 @@ export interface ShoppingList {
   reviewedBy: { id: string; fullName: string } | null;
   approvedAt: string | null;
   approvedBy: { id: string; fullName: string } | null;
+  /** What the whole bazaar cost — one sum typed by the chef when done. */
+  totalCost: string | null;
   items: ShoppingListItem[];
 }
 

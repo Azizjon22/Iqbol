@@ -37,18 +37,10 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
   const canEdit = role === "SUPER_ADMIN" || role === "ADMIN";
   const canDelete = role === "SUPER_ADMIN";
 
-  // Exact paid total when recorded, else unit price × quantity — same as the API's expense report.
-  const itemCost = (item: { unitPrice: string | null; quantity: string; totalCost?: string | null }) =>
-    item.totalCost != null ? Number(item.totalCost) : item.unitPrice === null ? 0 : Number(item.unitPrice) * Number(item.quantity);
+  // The chef records one sum per finished list.
   const shoppingLists = event.shoppingLists ?? [];
-  const shoppingTotal = shoppingLists.reduce(
-    (sum, list) => sum + list.items.reduce((s, item) => s + (item.isPurchased ? itemCost(item) : 0), 0),
-    0,
-  );
-  const unpricedItems = shoppingLists.reduce(
-    (n, list) => n + list.items.filter((item) => !item.isPurchased || item.unitPrice === null).length,
-    0,
-  );
+  const shoppingTotal = shoppingLists.reduce((sum, list) => sum + Number(list.totalCost ?? 0), 0);
+  const unfinishedLists = shoppingLists.filter((list) => list.totalCost == null).length;
   const hasShoppingExpense = (event.expenses ?? []).some((x) => x.category === "SHOPPING");
   // What chefs took from the store for this wedding (super admin only).
   const stockUsages = event.stockUsages ?? [];
@@ -210,21 +202,14 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                     <span className="text-right text-muted-foreground">
                       <ItemQuantity item={item} />
                       {item.isPurchased && " · ✓"}
-                      {canSeeFinancials && item.isPurchased && item.unitPrice !== null && (
-                        <span className="ml-2 inline-block min-w-24 font-medium text-foreground">
-                          {formatSom(itemCost(item), locale)}
-                        </span>
-                      )}
                     </span>
                   </li>
                 ))}
               </ul>
-              {canSeeFinancials && shoppingLists.length > 1 && (
+              {canSeeFinancials && shoppingLists.length > 1 && list.totalCost != null && (
                 <p className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
                   <span className="text-muted-foreground">{tr("Ro'yxat jami")}</span>
-                  <span className="font-medium">
-                    {formatSom(list.items.reduce((s, item) => s + (item.isPurchased ? itemCost(item) : 0), 0), locale)}
-                  </span>
+                  <span className="font-medium">{formatSom(list.totalCost, locale)}</span>
                 </p>
               )}
             </div>
@@ -235,9 +220,9 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                 <span className="text-sm font-medium">{tr("Bozorlik jami")}</span>
                 <span className="text-lg font-semibold">{formatSom(shoppingTotal, locale)}</span>
               </div>
-              {unpricedItems > 0 && (
+              {unfinishedLists > 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {unpricedItems}  {tr("ta mahsulot hali sotib olinmagan yoki narxi kiritilmagan — jamiga qo'shilmagan.")}
+                  {tr(`${unfinishedLists} ta ro'yxat xaridi hali yakunlanmagan — jamiga qo'shilmagan.`)}
                 </p>
               )}
             </div>

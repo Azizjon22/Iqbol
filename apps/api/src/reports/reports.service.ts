@@ -67,6 +67,13 @@ function qtyText(value: Prisma.Decimal | number, unit: string) {
   return `${shown} ${UNIT_UZ[unit] ?? unit}`;
 }
 
+const POSITION_UZ: Record<string, string> = {
+  WAITER_MALE: 'Ofitsiant (erkak)',
+  WAITER_FEMALE: 'Ofitsiant (ayol)',
+  CHEF: 'Oshpaz',
+  OTHER: 'Boshqa',
+};
+
 const MONTHS_UZ = [
   'yanvar',
   'fevral',
@@ -476,6 +483,11 @@ export class ReportsService {
           },
           stockUsages: { include: { items: true } },
           expenses: { orderBy: { createdAt: 'asc' } },
+          assignments: {
+            include: {
+              worker: { select: { fullName: true, position: true } },
+            },
+          },
         },
       }),
       this.brandName(),
@@ -551,6 +563,32 @@ export class ReportsService {
     this.heading(pdf, 'Ombordan olingan mahsulotlar');
     products(fromStore, "Ombordan olingan mahsulot yo'q.");
 
+    this.heading(pdf, "To'yda ishlagan xodimlar");
+    const staff = [...event.assignments].sort(
+      (a, b) =>
+        a.worker.position.localeCompare(b.worker.position) ||
+        a.worker.fullName.localeCompare(b.worker.fullName),
+    );
+    if (staff.length === 0) {
+      this.note(pdf, 'Xodimlar biriktirilmagan.');
+    } else {
+      this.table(
+        pdf,
+        [
+          { title: '№', width: 40, align: 'right' },
+          { title: 'Ism-familiya', width: 320 },
+          { title: 'Lavozim', width: 240 },
+        ],
+        staff.map((a, i) => [
+          String(i + 1),
+          a.worker.fullName,
+          a.roleAtEvent ||
+            (POSITION_UZ[a.worker.position] ?? a.worker.position),
+        ]),
+        ['', `Jami: ${staff.length} kishi`, ''],
+      );
+    }
+
     this.heading(pdf, 'Boshqa xarajatlar');
     if (other.length === 0) {
       this.note(pdf, 'Boshqa xarajat yozilmagan.');
@@ -576,6 +614,67 @@ export class ReportsService {
       buffer: await this.finish(pdf),
       filename: `toy-${this.slug(event.clientName) || 'mijoz'}-${t.year}-${pad(t.month + 1)}-${pad(t.day)}.pdf`,
       caption: `🧾 ${event.clientName} — ${dateText(event.eventDate)}: to'y xarajatlari`,
+    };
+  }
+
+  // ------------------------------------------------------- A chef's shopping list
+
+  /** The list to take to the bazaar — products and quantities, no money. */
+  async shoppingList(listId: string): Promise<ReportFile> {
+    const [list, brand] = await Promise.all([
+      this.prisma.shoppingList.findUnique({
+        where: { id: listId },
+        include: {
+          items: { orderBy: { name: 'asc' } },
+          createdByWorker: { select: { fullName: true } },
+          event: {
+            select: { clientName: true, eventDate: true, guestCount: true },
+          },
+        },
+      }),
+      this.brandName(),
+    ]);
+    if (!list) throw new NotFoundException("Bozorlik ro'yxati topilmadi");
+
+    const pdf = this.document();
+    this.title(
+      pdf,
+      `${brand} — Bozorlik ro'yxati`,
+      list.event
+        ? dateTimeText(list.event.eventDate)
+        : dateTimeText(list.createdAt),
+      list.event ? "To'y" : 'Yozilgan',
+    );
+    this.stats(pdf, [
+      ['Mijoz', list.event?.clientName ?? "To'ysiz ro'yxat"],
+      ['Mehmonlar', list.event ? String(list.event.guestCount) : '—'],
+      ['Oshpaz', list.createdByWorker.fullName],
+    ]);
+    this.heading(pdf, `Mahsulotlar (${list.items.length} ta)`);
+    this.table(
+      pdf,
+      [
+        { title: '№', width: 40, align: 'right' },
+        { title: 'Mahsulot', width: 360 },
+        { title: 'Miqdori', width: 130, align: 'right' },
+        { title: 'Izoh', width: 240 },
+      ],
+      list.items.map((item, i) => [
+        String(i + 1),
+        item.name,
+        qtyText(item.quantity, item.unit),
+        item.note ?? '',
+      ]),
+    );
+
+    const when = list.event?.eventDate ?? list.createdAt;
+    const t = local(when);
+    return {
+      buffer: await this.finish(pdf),
+      filename: `bozorlik-${this.slug(list.event?.clientName ?? 'royxat') || 'royxat'}-${t.year}-${pad(t.month + 1)}-${pad(t.day)}.pdf`,
+      caption:
+        `🛒 Bozorlik ro'yxati tasdiqlandi — ${list.event ? `${list.event.clientName}, ${dateText(list.event.eventDate)}` : "to'ysiz ro'yxat"}\n` +
+        `Oshpaz: ${list.createdByWorker.fullName}, ${list.items.length} ta mahsulot`,
     };
   }
 
