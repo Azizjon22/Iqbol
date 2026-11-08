@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Phone and other LAN devices load dev scripts from these hosts.
   // 192.168.*.* covers Wi-Fi (192.168.0.146) and Ethernet (192.168.18.204).
-  allowedDevOrigins: ["192.168.*.*"],
+  // *.trycloudflare.com: a temporary tunnel for testing the Telegram mini app.
+  allowedDevOrigins: ["192.168.*.*", "*.trycloudflare.com"],
   transpilePackages: ["@iqbol/shared"],
   poweredByHeader: false,
   async headers() {

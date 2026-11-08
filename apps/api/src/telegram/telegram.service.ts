@@ -669,11 +669,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   private homeButton(kind: 'WORKER' | 'STAFF'): LinkButton {
     return kind === 'WORKER'
-      ? { text: 'Oshpaz sahifasi', url: `${this.webUrl}/worker` }
-      : {
-          text: "Bozorlik bo'limi",
-          url: `${this.webUrl}/dashboard/shopping-lists`,
-        };
+      ? { text: '📱 Oshpaz sahifasi', url: `${this.webUrl}/worker` }
+      : { text: '📱 Ilovani ochish', url: `${this.webUrl}/dashboard` };
   }
 
   private async linkedAccount(chatId: number) {
