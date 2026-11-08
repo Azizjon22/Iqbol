@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { ShoppingListStatus } from '@prisma/client';
@@ -19,6 +21,8 @@ import { AuthPayload } from '../common/types/auth-payload';
 import { ShoppingListsService } from './shopping-lists.service';
 import { CreateShoppingListDto } from './dto/create-shopping-list.dto';
 import { ShoppingTotalDto } from './dto/shopping-total.dto';
+import { ReportsService } from '../reports/reports.service';
+import { TelegramService } from '../telegram/telegram.service';
 
 /**
  * The chef writes, confirms and buys a list on their own and records one
@@ -26,7 +30,62 @@ import { ShoppingTotalDto } from './dto/shopping-total.dto';
  */
 @Controller('shopping-lists')
 export class ShoppingListsController {
-  constructor(private lists: ShoppingListsService) {}
+  constructor(
+    private lists: ShoppingListsService,
+    private reports: ReportsService,
+    private telegram: TelegramService,
+  ) {}
+
+  /** The chef who wrote it, or the super admin. */
+  private async assertCanSee(id: string, user: AuthPayload) {
+    if (user.kind === 'WORKER') {
+      if (user.position !== 'CHEF') {
+        throw new ForbiddenException('Faqat oshpazlar uchun');
+      }
+      await this.lists.ensureWorkerOwnsOrThrow(id, user.sub);
+    } else if (user.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException("Bu amal uchun ruxsatingiz yo'q");
+    } else {
+      await this.lists.findOne(id);
+    }
+  }
+
+  @Get(':id/pdf')
+  async pdf(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
+    await this.assertCanSee(id, user);
+    const file = await this.reports.shoppingList(id);
+    return new StreamableFile(file.buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${file.filename}"`,
+    });
+  }
+
+  /** The list's PDF to the requester's own Telegram chat. */
+  @Post(':id/pdf/telegram')
+  async pdfToTelegram(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    await this.assertCanSee(id, user);
+    if (!this.telegram.enabled) {
+      throw new BadRequestException("Telegram bot o'chiq");
+    }
+    const sent = await this.telegram.sendFileToAccount(
+      { kind: user.kind, id: user.sub },
+      () => this.reports.shoppingList(id),
+    );
+    if (sent === 'NOT_LINKED') {
+      throw new BadRequestException(
+        'Telegram ulanmagan — botda /start bosib, telefon va parolingiz bilan ulaning',
+      );
+    }
+    if (sent === 'FAILED') {
+      throw new BadRequestException(
+        "Telegramga yuborib bo'lmadi — birozdan keyin qayta urinib ko'ring",
+      );
+    }
+    return { success: true };
+  }
 
   @UseGuards(ChefGuard)
   @Post()

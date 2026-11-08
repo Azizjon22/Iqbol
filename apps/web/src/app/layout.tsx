@@ -9,6 +9,8 @@ import { getLocale } from "@/i18n/locale";
 import { pickLang } from "@/i18n/pick";
 import { getDictionary } from "@/i18n/get-dictionary";
 import type { Locale } from "@/i18n/types";
+import { getSession } from "@/lib/session";
+import { TelegramBridge } from "@/components/telegram/telegram-bridge";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -45,7 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const cookieStore = await cookies();
   const raw = cookieStore.get("locale")?.value;
   const locale: Locale = raw === "ru" ? "ru" : "uz";
-  const brand = await getBrand();
+  const [brand, session] = await Promise.all([getBrand(), getSession()]);
   // The configured brand name replaces the built-in one everywhere t("common.brand") is used.
   const base = getDictionary(locale);
   const dictionary = { ...base, common: { ...base.common, brand: pickLang(locale, brand.brandName, brand.brandNameRu) } };
@@ -69,6 +71,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <BrandProvider brand={brand}>
           <LocaleProvider locale={locale} dictionary={dictionary}>
             {children}
+            {session?.telegram && <TelegramBridge />}
           </LocaleProvider>
         </BrandProvider>
       </body>

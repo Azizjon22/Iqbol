@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, FileText, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTr } from "@/components/i18n/locale-provider";
+import { downloadPdf, inTelegramMiniApp } from "@/lib/pdf-delivery";
 
 /**
  * One wedding's expenses as a PDF to show the client: what was bought and
@@ -15,22 +16,12 @@ export function EventReportActions({ eventId }: { eventId: string }) {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function download() {
+    // Inside the Telegram mini app a file would cover the app: send it to the chat instead.
+    if (inTelegramMiniApp()) return toTelegram();
     setBusy("pdf");
     setMessage(null);
     try {
-      const res = await fetch(`/api/reports/pdf?event=${eventId}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Hisobotni tayyorlab bo'lmadi");
-      }
-      const blob = await res.blob();
-      const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "toy.pdf";
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = name;
-      link.click();
-      URL.revokeObjectURL(url);
+      await downloadPdf(`/api/reports/pdf?event=${eventId}`);
     } catch (err) {
       setMessage({ ok: false, text: tr(err instanceof Error ? err.message : "Xatolik yuz berdi") });
     } finally {

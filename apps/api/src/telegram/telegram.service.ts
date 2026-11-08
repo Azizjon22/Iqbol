@@ -726,6 +726,29 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     return sent ? ('SENT' as const) : ('FAILED' as const);
   }
 
+  /**
+   * A PDF to whoever asked for it (staff or chef), in their own linked
+   * chat — the mini app can't show a file without leaving the app.
+   */
+  async sendFileToAccount(
+    account: { kind: 'STAFF' | 'WORKER'; id: string },
+    build: () => Promise<ReportFile>,
+  ) {
+    const row =
+      account.kind === 'STAFF'
+        ? await this.prisma.staffUser.findUnique({
+            where: { id: account.id },
+            select: { telegramChatId: true },
+          })
+        : await this.prisma.worker.findUnique({
+            where: { id: account.id },
+            select: { telegramChatId: true },
+          });
+    if (!row?.telegramChatId) return 'NOT_LINKED' as const;
+    const sent = await this.sendFile(row.telegramChatId, build);
+    return sent ? ('SENT' as const) : ('FAILED' as const);
+  }
+
   /** One wedding's client PDF to this super admin's linked chat. */
   async sendEventReportToStaff(staffId: string, eventId: string) {
     const staff = await this.prisma.staffUser.findUnique({

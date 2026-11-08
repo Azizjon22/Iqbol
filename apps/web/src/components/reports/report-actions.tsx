@@ -5,6 +5,7 @@ import { Download, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { useTr } from "@/components/i18n/locale-provider";
+import { downloadPdf, inTelegramMiniApp } from "@/lib/pdf-delivery";
 
 type Kind = "ACCOUNTING" | "ARCHIVE";
 const PERIODS = [
@@ -25,22 +26,12 @@ export function ReportActions({ kind }: { kind: Kind }) {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function download() {
+    // Inside the Telegram mini app a file would cover the app: send it to the chat instead.
+    if (inTelegramMiniApp()) return toTelegram();
     setBusy("pdf");
     setMessage(null);
     try {
-      const res = await fetch(`/api/reports/pdf?kind=${kind}&period=${period}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Hisobotni tayyorlab bo'lmadi");
-      }
-      const blob = await res.blob();
-      const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "hisobot.pdf";
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = name;
-      link.click();
-      URL.revokeObjectURL(url);
+      await downloadPdf(`/api/reports/pdf?kind=${kind}&period=${period}`);
     } catch (err) {
       setMessage({ ok: false, text: tr(err instanceof Error ? err.message : "Xatolik yuz berdi") });
     } finally {

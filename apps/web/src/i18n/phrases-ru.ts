@@ -1,5 +1,6 @@
 /** Uzbek source text → Russian. Keys with "{x}" are full-string patterns, not shown as-is. */
 export const PHRASES_RU: Record<string, string> = {
+  "PDF Telegram chatingizga yuborildi": "PDF отправлен в ваш чат Telegram",
   "Mahsulotlar": "Товары",
   "Umumiy summa": "Общая сумма",
   "Bozorlik tugadimi?": "Закупка закончена?",
