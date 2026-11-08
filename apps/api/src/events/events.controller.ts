@@ -20,17 +20,11 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { UpdateEventStatusDto } from './dto/update-event-status.dto';
 import { AssignWorkerDto } from './dto/assign-worker.dto';
 import { FindEventsQuery } from './dto/find-events.query';
-import { ADMIN_VISIBLE_STATUSES } from '../shopping-lists/shopping-lists.service';
 import { ChefGuard, StaffOrChefGuard } from '../common/guards/chef.guard';
 
-// ADMIN still needs to see which shopping lists were written for a wedding
-// (they manage procurement) — but only the ones SUPER_ADMIN has sent on —
-// so only ZAVZAL loses that too. Everyone below SUPER_ADMIN loses the money
-// fields themselves.
-function hideFinancials(
-  event: Record<string, unknown>,
-  keepShoppingLists: boolean,
-) {
+// Everyone below SUPER_ADMIN loses the money fields, and the shopping
+// lists too: those are the chef's and the super admin's alone now.
+function hideFinancials(event: Record<string, unknown>) {
   const {
     totalPrice: _totalPrice,
     paidAmount: _paidAmount,
@@ -41,17 +35,10 @@ function hideFinancials(
     netProfit: _netProfit,
     // Carries costs; the store's prices are the super admin's alone.
     stockUsages: _stockUsages,
-    shoppingLists,
+    shoppingLists: _shoppingLists,
     ...rest
   } = event;
-  if (!keepShoppingLists) return rest;
-  if (!Array.isArray(shoppingLists)) return { ...rest, shoppingLists };
-  return {
-    ...rest,
-    shoppingLists: shoppingLists.filter((list: { status: string }) =>
-      (ADMIN_VISIBLE_STATUSES as string[]).includes(list.status),
-    ),
-  };
+  return rest;
 }
 
 /** The wedding's 1st/2nd dish is agreed with the couple — SUPER_ADMIN's call. */
@@ -83,7 +70,7 @@ export class EventsController {
     assertCanSetDishes(dto, user);
     const event = await this.events.create(dto, user.sub, user.fullName);
     if (user.role === 'SUPER_ADMIN') return event;
-    return hideFinancials(event, true);
+    return hideFinancials(event);
   }
 
   // No @Roles(): reachable by workers too, so chefs can pick which wedding
@@ -108,8 +95,7 @@ export class EventsController {
   ) {
     const events = await this.events.findAll(query);
     if (user.role === 'SUPER_ADMIN') return events;
-    const keepShoppingLists = user.role === 'ADMIN';
-    return events.map((e) => hideFinancials(e, keepShoppingLists));
+    return events.map((e) => hideFinancials(e));
   }
 
   @Roles('SUPER_ADMIN', 'ADMIN', 'ZAVZAL')
@@ -117,7 +103,7 @@ export class EventsController {
   async findOne(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
     const event = await this.events.findOne(id);
     if (user.role === 'SUPER_ADMIN') return event;
-    return hideFinancials(event, user.role === 'ADMIN');
+    return hideFinancials(event);
   }
 
   @Roles('SUPER_ADMIN', 'ADMIN')
@@ -129,7 +115,7 @@ export class EventsController {
   ) {
     assertCanSetDishes(dto, user);
     const event = await this.events.update(id, dto, user.sub, user.fullName);
-    return user.role === 'SUPER_ADMIN' ? event : hideFinancials(event, true);
+    return user.role === 'SUPER_ADMIN' ? event : hideFinancials(event);
   }
 
   @Roles('SUPER_ADMIN', 'ADMIN')
@@ -145,7 +131,7 @@ export class EventsController {
       user.sub,
       user.fullName,
     );
-    return user.role === 'SUPER_ADMIN' ? event : hideFinancials(event, true);
+    return user.role === 'SUPER_ADMIN' ? event : hideFinancials(event);
   }
 
   @Roles('SUPER_ADMIN')
@@ -168,7 +154,7 @@ export class EventsController {
       user.fullName,
     );
     if (user.role === 'SUPER_ADMIN') return event;
-    return hideFinancials(event, user.role === 'ADMIN');
+    return hideFinancials(event);
   }
 
   @Roles('SUPER_ADMIN', 'ADMIN', 'ZAVZAL')
@@ -185,6 +171,6 @@ export class EventsController {
       user.fullName,
     );
     if (user.role === 'SUPER_ADMIN') return event;
-    return hideFinancials(event, user.role === 'ADMIN');
+    return hideFinancials(event);
   }
 }

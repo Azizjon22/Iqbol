@@ -5,35 +5,40 @@ import { usePick } from "@/components/i18n/use-pick";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarHeart, Check, CheckCheck, ChefHat, ClipboardCheck, Lock } from "lucide-react";
+import { ArrowLeft, CalendarHeart, Check, ChefHat, Lock, ShoppingCart } from "lucide-react";
 import { PRODUCT_CATEGORY_LABELS_UZ } from "@iqbol/shared";
 import type { ProductCatalogItem, ShoppingList } from "@/lib/types";
-import { ShoppingListEditor } from "@/components/shopping-lists/shopping-list-editor";
 import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";
 import { ProductCategoryIcon } from "@/components/inventory/product-category-icon";
-import { isShoppingListEditable } from "@/lib/shopping-list-status";
 import { formatDate, formatDateTime, formatSom, cn } from "@/lib/utils";
 import { catalogIndex, groupBySection, itemCost, listApi, listProgress } from "./helpers";
 import { PurchaseRow } from "./purchase-row";
-import { CloseConfirmModal } from "./close-confirm-modal";
 
 const STEPS = [
   { key: "SUBMITTED", label: "Yozildi" },
-  { key: "REVIEWED", label: "Tekshirildi" },
-  { key: "APPROVED", label: "Yuborildi" },
+  { key: "APPROVED", label: "Tasdiqlandi, xaridda" },
   { key: "PURCHASED", label: "Xarid qilindi" },
-  { key: "CLOSED", label: "Yopildi" },
 ] as const;
 
+function stepIndex(status: ShoppingList["status"]) {
+  if (status === "SUBMITTED" || status === "REVIEWED") return 0;
+  if (status === "APPROVED") return 1;
+  return 2;
+}
+
+/**
+ * One list. The chef who wrote it confirms it, then marks each item bought
+ * with what it cost; the super admin only watches and can fix a price.
+ */
 export function ListDetail({
   list,
   catalog,
-  isSuperAdmin,
+  viewer,
   onBack,
 }: {
   list: ShoppingList;
   catalog: ProductCatalogItem[];
-  isSuperAdmin: boolean;
+  viewer: "SUPER_ADMIN" | "CHEF";
   onBack?: () => void;
 }) {
   const tr = useTr();
@@ -43,25 +48,38 @@ export function ListDetail({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [confirming, setConfirming] = useState(false);
   const lookup = catalogIndex(catalog);
   const { total, bought, spent, complete } = listProgress(list);
-  const current = STEPS.findIndex((s) => s.key === list.status);
-  const sent = current >= 2;
-  const canBuy = !isSuperAdmin && list.status === "APPROVED";
-  const canFixPrice = !isSuperAdmin && (list.status === "APPROVED" || list.status === "PURCHASED");
+  const current = stepIndex(list.status);
+  const draft = current === 0;
+  const chef = viewer === "CHEF";
+  const canBuy = chef && list.status === "APPROVED";
+  const canFixPrice = !chef && (list.status === "APPROVED" || list.status === "PURCHASED");
   const groups = groupBySection(list.items, lookup);
   const stepTime: Partial<Record<(typeof STEPS)[number]["key"], string | null>> = {
     SUBMITTED: list.createdAt,
-    REVIEWED: list.reviewedAt,
     APPROVED: list.approvedAt,
   };
 
-  async function setStatus(status: "PURCHASED") {
+  async function cancel() {
+    if (!window.confirm(tr("Bu ro'yxat o'chiriladi. Kerak bo'lsa yangisini yozishingiz mumkin."))) return;
     setBusy(true);
     setError(undefined);
     try {
-      await listApi(`/${list.id}/status`, "PATCH", { status });
+      await listApi(`/${list.id}`, "DELETE");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirm() {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await listApi(`/${list.id}/confirm`, "POST");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Xatolik yuz berdi");
@@ -100,7 +118,7 @@ export function ListDetail({
         </div>
 
         {/* Stepper */}
-        <ol className="mt-5 grid grid-cols-5 gap-1">
+        <ol className="mt-5 grid grid-cols-3 gap-1">
           {STEPS.map((step, i) => {
             const done = i <= current;
             const time = stepTime[step.key];
@@ -132,53 +150,50 @@ export function ListDetail({
           <div className="col-span-2 rounded-xl bg-muted/60 px-3 py-2.5 sm:col-span-1">
             <p className="text-xs text-muted-foreground">{tr("Holat")}</p>
             <p className="font-semibold">
-              {!sent ? tr("Tekshirilmoqda") : list.status === "APPROVED" ? (complete ? tr("Hammasi olindi") : tr(`${total - bought} ta qoldi`)) : tr(STEPS[current]?.label ?? "")}
+              {draft ? tr("Tasdiqlanmagan") : list.status === "APPROVED" ? (complete ? tr("Hammasi olindi") : tr(`${total - bought} ta qoldi`)) : tr("Xarid qilindi")}
             </p>
           </div>
         </div>
 
         {/* Actions */}
         <div className="mt-4 space-y-3">
-          {isSuperAdmin && isShoppingListEditable(list.status) && <ShoppingListEditor list={list} />}
-          {!sent && !isSuperAdmin && <p className="text-sm text-muted-foreground">{tr("Super admin tekshirib yuborgach xarid qilinadi.")}</p>}
-          <div className="flex flex-wrap gap-2">
-            {list.status === "APPROVED" && complete && !isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => setStatus("PURCHASED")}
-                disabled={busy}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-success px-4 text-sm font-semibold text-success-foreground hover:brightness-95 disabled:opacity-50"
-              >
-                <CheckCheck className="h-4 w-4" /> {tr("Xaridni yakunlash")}
-              </button>
-            )}
-          </div>
-          {list.status === "PURCHASED" && (
-            <div className="rounded-xl border border-accent/50 bg-accent/10 p-3">
-              <p className="text-sm font-semibold">{tr("Barcha narxlar kiritildi")}</p>
+          {draft && chef && (
+            <div className="rounded-xl border border-primary/40 bg-primary/5 p-3">
+              <p className="text-sm font-semibold">{tr("Ro'yxatni tekshiring")}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {tr("Adashib ketmaslik uchun har bir narxni tekshirib, tasdiqlang. Xato bo'lsa, avval qalamcha bilan tuzating.")}
+                {tr("Hammasi to'g'ri bo'lsa, tasdiqlang va bozorga chiqing. Tasdiqlangach ro'yxat o'zgarmaydi.")}
               </p>
               <button
                 type="button"
-                onClick={() => setConfirming(true)}
-                className="mt-2.5 inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:brightness-95"
+                onClick={confirm}
+                disabled={busy || total === 0}
+                className="mt-2.5 inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:brightness-95 disabled:opacity-50"
               >
-                <ClipboardCheck className="h-4 w-4" /> {tr("Tekshirib tasdiqlash")}
+                <ShoppingCart className="h-4 w-4" /> {tr("Tasdiqlash va xaridga chiqish")}
+              </button>
+              <button
+                type="button"
+                onClick={cancel}
+                disabled={busy}
+                className="ml-2 mt-2.5 inline-flex h-10 items-center rounded-lg px-3 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+              >
+                {tr("Bekor qilish")}
               </button>
             </div>
           )}
-          {list.status === "CLOSED" && (
+          {draft && !chef && <p className="text-sm text-muted-foreground">{tr("Oshpaz hali tasdiqlamagan.")}</p>}
+          {canBuy && !complete && (
+            <p className="text-sm text-muted-foreground">{tr("Har bir mahsulotni olganingizda «Olindi» ni bosib, to'lagan summangizni yozing.")}</p>
+          )}
+          {(list.status === "PURCHASED" || list.status === "CLOSED") && (
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Lock className="h-4 w-4" /> {tr("Narxlar tasdiqlangan va yopilgan.")}
+              <Lock className="h-4 w-4" />{" "}
+              {list.event ? tr("Xarid yakunlandi — summa to'yning xarajatlariga o'zi yozildi.") : tr("Xarid yakunlandi.")}
             </p>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </div>
-      {list.status === "PURCHASED" && (
-        <CloseConfirmModal key={confirming ? "open" : "closed"} list={list} open={confirming} onClose={() => setConfirming(false)} />
-      )}
 
       {/* ---------- Items by bazaar section ---------- */}
       {groups.map((g) => {

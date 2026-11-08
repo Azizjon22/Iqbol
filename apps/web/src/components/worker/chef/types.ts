@@ -44,13 +44,13 @@ export const WEEKDAYS = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Pay
 export const WEEKDAYS_SHORT = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
 
 export const LIST_STEPS: { key: ShoppingListStatus; label: string }[] = [
-  { key: "SUBMITTED", label: "Yuborildi" },
-  { key: "REVIEWED", label: "Ko'rildi" },
+  { key: "SUBMITTED", label: "Yozildi" },
   { key: "APPROVED", label: "Tasdiqlandi" },
   { key: "PURCHASED", label: "Olindi" },
 ];
 
 export function listStepIndex(status: ShoppingListStatus) {
-  if (status === "CLOSED") return LIST_STEPS.length - 1;
-  return LIST_STEPS.findIndex((s) => s.key === status);
+  if (status === "SUBMITTED" || status === "REVIEWED") return 0;
+  if (status === "APPROVED") return 1;
+  return 2;
 }

@@ -77,7 +77,8 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/dashboard/shopping-lists",
     labelKey: "nav.shoppingLists",
-    roles: ["SUPER_ADMIN", "ADMIN"],
+    // Chefs buy on their own now; the super admin only watches.
+    roles: ["SUPER_ADMIN"],
     icon: ShoppingCart,
     group: "ops",
   },

@@ -9,6 +9,7 @@ import type { ProductCatalogItem, ShoppingList } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ListBuilder } from "./list-builder";
 import { ChefListCard } from "./chef-list-card";
+import { ListDetail } from "@/components/shopping-lists/center/list-detail";
 import type { ChefEvent } from "./types";
 
 export function ChefShopping({
@@ -71,8 +72,8 @@ export function ChefShopping({
             <div className="flex items-center gap-3 rounded-2xl border border-success/40 bg-success/10 p-4 animate-soft-scale">
               <CheckCircle2 className="h-6 w-6 shrink-0 text-success" />
               <div>
-                <p className="font-semibold">{tr("Ro'yxat yuborildi")}</p>
-                <p className="text-sm text-muted-foreground">{tr("Super admin tekshirib, xaridga yuboradi. Holatini shu yerda kuzatasiz.")}</p>
+                <p className="font-semibold">{tr("Ro'yxat saqlandi")}</p>
+                <p className="text-sm text-muted-foreground">{tr("Tekshirib, «Tasdiqlash» ni bosing. Bozorda har bir mahsulotni olganingizda narxini kiriting — hammasi olingach summa to'yning xarajatlariga o'zi yoziladi.")}</p>
               </div>
             </div>
           )}
@@ -82,7 +83,13 @@ export function ChefShopping({
               <p className="mt-3 text-sm text-muted-foreground">{tr("Hali ro'yxat yozmagansiz.")}</p>
             </div>
           ) : (
-            lists.map((l) => <ChefListCard key={l.id} list={l} />)
+            lists.map((l) =>
+              l.status === "SUBMITTED" || l.status === "REVIEWED" || l.status === "APPROVED" ? (
+                <ListDetail key={l.id} list={l} catalog={catalog} viewer="CHEF" />
+              ) : (
+                <ChefListCard key={l.id} list={l} />
+              ),
+            )
           )}
         </div>
       )}

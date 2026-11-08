@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { existsSync } from 'fs';
 import * as path from 'path';
 import * as PDFDocument from 'pdfkit';
@@ -50,6 +54,18 @@ const METHOD_UZ: Record<string, string> = {
   CARD: 'Karta',
   TRANSFER: "O'tkazma",
 };
+
+const UNIT_UZ: Record<string, string> = {
+  KG: 'kg',
+  LITER: 'litr',
+  DONA: 'dona',
+};
+
+function qtyText(value: Prisma.Decimal | number, unit: string) {
+  const n = Number(value);
+  const shown = Number.isInteger(n) ? String(n) : String(+n.toFixed(3));
+  return `${shown} ${UNIT_UZ[unit] ?? unit}`;
+}
 
 const MONTHS_UZ = [
   'yanvar',
@@ -441,6 +457,128 @@ export class ReportsService {
     };
   }
 
+  // ------------------------------------------------------ One wedding, for the client
+
+  /**
+   * What went into one wedding, to show the client: the products bought at
+   * the bazaar and taken from the store (quantities only — product prices
+   * stay internal), and every other expense with its amount.
+   */
+  async eventForClient(eventId: string): Promise<ReportFile> {
+    const [event, brand] = await Promise.all([
+      this.prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+          menu: { select: { name: true } },
+          shoppingLists: {
+            where: { status: { in: ['APPROVED', 'PURCHASED', 'CLOSED'] } },
+            include: { items: { where: { isPurchased: true } } },
+          },
+          stockUsages: { include: { items: true } },
+          expenses: { orderBy: { createdAt: 'asc' } },
+        },
+      }),
+      this.brandName(),
+    ]);
+    if (!event) throw new NotFoundException("To'y topilmadi");
+
+    /** The same product (name + unit) from several lists counts once. */
+    const merge = (
+      lines: { name: string; unit: string; quantity: Prisma.Decimal }[],
+    ) => {
+      const map = new Map<
+        string,
+        { name: string; unit: string; quantity: Prisma.Decimal }
+      >();
+      for (const line of lines) {
+        const key = `${line.name.trim().toLowerCase()}|${line.unit}`;
+        const prev = map.get(key);
+        map.set(
+          key,
+          prev
+            ? { ...prev, quantity: prev.quantity.add(line.quantity) }
+            : {
+                name: line.name.trim(),
+                unit: line.unit,
+                quantity: line.quantity,
+              },
+        );
+      }
+      return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    };
+    const bought = merge(event.shoppingLists.flatMap((l) => l.items));
+    const fromStore = merge(event.stockUsages.flatMap((u) => u.items));
+    const other = event.expenses.filter(
+      (x) => x.category !== 'SHOPPING' && x.category !== 'STOCK',
+    );
+    const otherTotal = other.reduce((s, x) => s.add(x.amount), zero());
+
+    const pdf = this.document();
+    this.title(
+      pdf,
+      `${brand} — To'y xarajatlari`,
+      dateTimeText(event.eventDate),
+      'Sana',
+    );
+    this.stats(pdf, [
+      ['Mijoz', event.clientName],
+      ['Mehmonlar', String(event.guestCount)],
+      ['Menyu', event.menu.name],
+    ]);
+    const dishes = [event.firstDish, event.secondDish]
+      .filter(Boolean)
+      .join(', ');
+    if (dishes) this.note(pdf, `Taomlar: ${dishes}`);
+
+    const products = (rows: typeof bought, empty: string) => {
+      if (rows.length === 0) return this.note(pdf, empty);
+      this.table(
+        pdf,
+        [
+          { title: '№', width: 40, align: 'right' },
+          { title: 'Mahsulot', width: 420 },
+          { title: 'Miqdori', width: 140, align: 'right' },
+        ],
+        rows.map((r, i) => [
+          String(i + 1),
+          r.name,
+          qtyText(r.quantity, r.unit),
+        ]),
+      );
+    };
+    this.heading(pdf, 'Bozordan olingan mahsulotlar');
+    products(bought, "Bozordan olingan mahsulot yo'q.");
+    this.heading(pdf, 'Ombordan olingan mahsulotlar');
+    products(fromStore, "Ombordan olingan mahsulot yo'q.");
+
+    this.heading(pdf, 'Boshqa xarajatlar');
+    if (other.length === 0) {
+      this.note(pdf, 'Boshqa xarajat yozilmagan.');
+    } else {
+      this.table(
+        pdf,
+        [
+          { title: 'Xarajat', width: 220 },
+          { title: 'Izoh', width: 300 },
+          { title: 'Summa', width: 140, align: 'right' },
+        ],
+        other.map((x) => [
+          EXPENSE_UZ[x.category] ?? x.category,
+          x.note ?? '',
+          som(x.amount),
+        ]),
+        ['Jami', '', som(otherTotal)],
+      );
+    }
+
+    const t = local(event.eventDate);
+    return {
+      buffer: await this.finish(pdf),
+      filename: `toy-${this.slug(event.clientName) || 'mijoz'}-${t.year}-${pad(t.month + 1)}-${pad(t.day)}.pdf`,
+      caption: `🧾 ${event.clientName} — ${dateText(event.eventDate)}: to'y xarajatlari`,
+    };
+  }
+
   // ------------------------------------------------------------ PDF helpers
 
   private async brandName() {
@@ -508,9 +646,18 @@ export class ReportsService {
     return done;
   }
 
-  private title(pdf: PDFKit.PDFDocument, title: string, label: string) {
+  private title(
+    pdf: PDFKit.PDFDocument,
+    title: string,
+    label: string,
+    prefix = 'Davr',
+  ) {
     pdf.font('Bold').fontSize(18).fillColor('#1f2a24').text(title);
-    pdf.font('Body').fontSize(11).fillColor('#555555').text(`Davr: ${label}`);
+    pdf
+      .font('Body')
+      .fontSize(11)
+      .fillColor('#555555')
+      .text(`${prefix}: ${label}`);
     pdf.moveDown(0.8);
   }
 

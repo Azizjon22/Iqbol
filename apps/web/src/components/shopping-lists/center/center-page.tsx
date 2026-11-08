@@ -12,8 +12,8 @@ import { listProgress, stageOf, type Stage } from "./helpers";
 import { ListDetail } from "./list-detail";
 
 const STAGES: { key: Stage; label: string; hint: string; icon: React.ReactNode }[] = [
-  { key: "review", label: "Tekshirish kerak", hint: "oshpazdan kelgan", icon: <SearchCheck className="h-5 w-5" /> },
-  { key: "buying", label: "Xarid qilinmoqda", hint: "bozorga yuborilgan", icon: <ShoppingCart className="h-5 w-5" /> },
+  { key: "review", label: "Tasdiqlanmagan", hint: "oshpaz hali yozmoqda", icon: <SearchCheck className="h-5 w-5" /> },
+  { key: "buying", label: "Xarid qilinmoqda", hint: "oshpaz bozorda", icon: <ShoppingCart className="h-5 w-5" /> },
   { key: "done", label: "Yakunlangan", hint: "hammasi olingan", icon: <CheckCheck className="h-5 w-5" /> },
 ];
 
@@ -66,11 +66,12 @@ function ListCard({ list, selected, onSelect }: { list: ShoppingList; selected: 
   );
 }
 
-export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingList[]; catalog: ProductCatalogItem[]; isSuperAdmin: boolean }) {
+/** The super admin's view of the chefs' lists: watch them, fix a price if needed. */
+export function CenterPage({ lists, catalog }: { lists: ShoppingList[]; catalog: ProductCatalogItem[] }) {
   const tr = useTr();
   const locale = useLocale().locale;
 
-  const stages = isSuperAdmin ? STAGES : STAGES.filter((s) => s.key !== "review");
+  const stages = STAGES;
   const byStage = (s: Stage) => lists.filter((l) => stageOf(l.status) === s);
   const firstBusy = stages.find((s) => byStage(s.key).length > 0 && s.key !== "done")?.key ?? stages[0].key;
 
@@ -94,14 +95,12 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
       <div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">{tr("Bozorlik ro'yxatlari")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isSuperAdmin
-            ? tr("Oshpaz yozgan ro'yxatni tekshiring, adminga yuboring va xaridni kuzating.")
-            : tr("Super admin yuborgan ro'yxatlar bo'yicha bozorlik qiling — har bir mahsulot uchun to'langan summani kiriting.")}
+          {tr("Oshpazlar ro'yxatni o'zi yozadi, tasdiqlaydi va xarid qiladi; xarid summasi to'y xarajatlariga o'zi yoziladi. Bu yerda kuzatasiz va kerak bo'lsa narxni tuzatasiz.")}
         </p>
       </div>
 
       {/* ---------- Pipeline ---------- */}
-      <div className={cn("grid gap-3", isSuperAdmin ? "grid-cols-3 lg:grid-cols-4" : "grid-cols-2")}>
+      <div className="grid grid-cols-3 gap-3 lg:grid-cols-4">
         {stages.map((s) => {
           const count = byStage(s.key).length;
           const active = stage === s.key;
@@ -133,18 +132,16 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
             </button>
           );
         })}
-        {isSuperAdmin && (
-          <div className="col-span-3 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 lg:col-span-1">
-            <div>
-              <p className="text-xs text-muted-foreground">{tr("Shu oy bozorlik")}</p>
-              <p className="font-display mt-0.5 text-2xl font-semibold leading-none lining-nums tabular-nums">{formatSom(monthSpent, locale)}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">{tr("sotib olingan mahsulotlar")}</p>
-            </div>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
-              <Wallet className="h-5 w-5" />
-            </span>
+        <div className="col-span-3 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 lg:col-span-1">
+          <div>
+            <p className="text-xs text-muted-foreground">{tr("Shu oy bozorlik")}</p>
+            <p className="font-display mt-0.5 text-2xl font-semibold leading-none lining-nums tabular-nums">{formatSom(monthSpent, locale)}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{tr("sotib olingan mahsulotlar")}</p>
           </div>
-        )}
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
+            <Wallet className="h-5 w-5" />
+          </span>
+        </div>
       </div>
 
       {/* ---------- Master / detail ---------- */}
@@ -152,7 +149,7 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
         <div className="rounded-2xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="mx-auto h-8 w-8 text-muted-foreground/60" />
           <p className="mt-3 text-sm text-muted-foreground">
-            {stage === "review" ? tr("Tekshirishni kutayotgan ro'yxat yo'q.") : stage === "buying" ? tr("Hozir xarid qilinadigan ro'yxat yo'q.") : tr("Yakunlangan ro'yxatlar hali yo'q.")}
+            {stage === "review" ? tr("Tasdiqlanmagan ro'yxat yo'q.") : stage === "buying" ? tr("Hozir xarid qilinadigan ro'yxat yo'q.") : tr("Yakunlangan ro'yxatlar hali yo'q.")}
           </p>
         </div>
       ) : (
@@ -172,7 +169,7 @@ export function CenterPage({ lists, catalog, isSuperAdmin }: { lists: ShoppingLi
           </div>
           {selected && (
             <div className={cn("min-w-0", !mobileDetail && "hidden lg:block")}>
-              <ListDetail key={selected.id} list={selected} catalog={catalog} isSuperAdmin={isSuperAdmin} onBack={() => setMobileDetail(false)} />
+              <ListDetail key={selected.id} list={selected} catalog={catalog} viewer="SUPER_ADMIN" onBack={() => setMobileDetail(false)} />
             </div>
           )}
         </div>

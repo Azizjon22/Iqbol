@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   StreamableFile,
@@ -63,6 +64,38 @@ export class ReportsController {
       dto.kind,
       dto.period,
     );
+    if (sent === 'NOT_LINKED') {
+      throw new BadRequestException(
+        'Telegram ulanmagan — botda /start bosib, telefon va parolingiz bilan ulaning',
+      );
+    }
+    if (sent === 'FAILED') {
+      throw new BadRequestException(
+        "Telegramga yuborib bo'lmadi — birozdan keyin qayta urinib ko'ring",
+      );
+    }
+    return { success: true };
+  }
+
+  /** One wedding's expenses for the client — product prices left out. */
+  @Get('event/:id/pdf')
+  async eventPdf(@Param('id') id: string) {
+    const file = await this.reports.eventForClient(id);
+    return new StreamableFile(file.buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${file.filename}"`,
+    });
+  }
+
+  @Post('event/:id/telegram')
+  async eventToTelegram(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    if (!this.telegram.enabled) {
+      throw new BadRequestException("Telegram bot o'chiq");
+    }
+    const sent = await this.telegram.sendEventReportToStaff(user.sub, id);
     if (sent === 'NOT_LINKED') {
       throw new BadRequestException(
         'Telegram ulanmagan — botda /start bosib, telefon va parolingiz bilan ulaning',

@@ -18,11 +18,11 @@ import { METHOD_LABEL } from "@/lib/payment-methods";
 import { ExpenseForm } from "@/components/events/expense-form";
 import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";
-import { ShoppingListEditor } from "@/components/shopping-lists/shopping-list-editor";
 import { ItemQuantity } from "@/components/shopping-lists/item-quantity";
-import { SHOPPING_LIST_STATUS_UZ, isShoppingListEditable } from "@/lib/shopping-list-status";
+import { SHOPPING_LIST_STATUS_UZ } from "@/lib/shopping-list-status";
 import { removeExpenseAction } from "@/lib/actions/events.actions";
 import { StockReturnButton } from "@/components/events/stock-return-button";
+import { EventReportActions } from "@/components/reports/event-report-actions";
 
 export default async function EventDetailPage({ params }: PageProps<"/dashboard/events/[id]">) {
   const tr = await getTr();
@@ -203,11 +203,6 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                   <ShoppingListPdfButton list={list} />
                 </div>
               </div>
-              {canSeeFinancials && isShoppingListEditable(list.status) && (
-                <div className="mt-2">
-                  <ShoppingListEditor list={list} />
-                </div>
-              )}
               <ul className="mt-2 space-y-1 text-sm">
                 {list.items.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3">
@@ -316,6 +311,8 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
           </CardContent>
         </Card>
       )}
+
+      {canSeeFinancials && <EventReportActions eventId={event.id} />}
 
       {canSeeFinancials && stockUsages.length > 0 && (
         <Card>

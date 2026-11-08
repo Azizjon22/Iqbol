@@ -7,7 +7,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -20,9 +19,11 @@ import { AuthPayload } from '../common/types/auth-payload';
 import { ShoppingListsService } from './shopping-lists.service';
 import { CreateShoppingListDto } from './dto/create-shopping-list.dto';
 import { MarkPurchasedDto, UpdateItemPriceDto } from './dto/mark-purchased.dto';
-import { UpdateShoppingListStatusDto } from './dto/update-status.dto';
-import { UpdateShoppingListItemsDto } from './dto/update-items.dto';
 
+/**
+ * The chef writes, confirms and buys a list on their own; the super admin
+ * only watches it and can fix a mistyped price.
+ */
 @Controller('shopping-lists')
 export class ShoppingListsController {
   constructor(private lists: ShoppingListsService) {}
@@ -45,32 +46,52 @@ export class ShoppingListsController {
     return this.lists.findMineForWorker(user.sub);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
-  @Get()
-  findAll(
+  @UseGuards(ChefGuard)
+  @Post(':id/confirm')
+  confirm(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
+    return this.lists.confirm(id, user.sub, user.fullName);
+  }
+
+  @UseGuards(ChefGuard)
+  @Patch(':id/items/:itemId/purchase')
+  markPurchased(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: MarkPurchasedDto,
     @CurrentUser() user: AuthPayload,
-    @Query('status') status?: ShoppingListStatus,
   ) {
-    return this.lists.findAll(user.role, status);
+    return this.lists.markItemPurchased(
+      id,
+      itemId,
+      dto,
+      user.sub,
+      user.fullName,
+    );
   }
 
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Roles('SUPER_ADMIN')
+  @Get()
+  findAll(@Query('status') status?: ShoppingListStatus) {
+    return this.lists.findAll(status);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
   @Get('pending')
-  pending(@CurrentUser() user: AuthPayload) {
-    return this.lists.pending(user.role);
+  pending() {
+    return this.lists.pending();
   }
 
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Roles('SUPER_ADMIN')
   @Patch('mark-all-seen')
-  markAllSeen(@CurrentUser() user: AuthPayload) {
-    return this.lists.markAllSeen(user.role, user.sub);
+  markAllSeen() {
+    return this.lists.markAllSeen();
   }
 
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @Roles('SUPER_ADMIN')
   @Get('expense-report')
   expenseReport(@Query('from') from?: string, @Query('to') to?: string) {
     return this.lists.expenseReport(
@@ -87,50 +108,14 @@ export class ShoppingListsController {
       }
       return this.lists.ensureWorkerOwnsOrThrow(id, user.sub);
     }
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+    if (user.role !== 'SUPER_ADMIN') {
       throw new ForbiddenException("Bu amal uchun ruxsatingiz yo'q");
     }
-    return this.lists.findOne(id, user.role);
+    return this.lists.findOne(id);
   }
 
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN')
-  @Put(':id/items')
-  updateItems(
-    @Param('id') id: string,
-    @Body() dto: UpdateShoppingListItemsDto,
-    @CurrentUser() user: AuthPayload,
-  ) {
-    return this.lists.updateItems(id, dto, user.sub, user.fullName);
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN')
-  @Post(':id/approve')
-  approve(@Param('id') id: string, @CurrentUser() user: AuthPayload) {
-    return this.lists.approve(id, user.sub, user.fullName);
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
-  @Patch(':id/status')
-  updateStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateShoppingListStatusDto,
-    @CurrentUser() user: AuthPayload,
-  ) {
-    return this.lists.updateStatus(
-      id,
-      dto.status,
-      user.sub,
-      user.fullName,
-      user.role,
-      dto.confirmedItemIds,
-    );
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
   @Patch(':id/items/:itemId/price')
   updateItemPrice(
     @Param('id') id: string,
@@ -138,32 +123,6 @@ export class ShoppingListsController {
     @Body() dto: UpdateItemPriceDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.lists.updateItemPrice(
-      id,
-      itemId,
-      dto,
-      user.sub,
-      user.fullName,
-      user.role,
-    );
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN')
-  @Patch(':id/items/:itemId/purchase')
-  markPurchased(
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-    @Body() dto: MarkPurchasedDto,
-    @CurrentUser() user: AuthPayload,
-  ) {
-    return this.lists.markItemPurchased(
-      id,
-      itemId,
-      dto,
-      user.sub,
-      user.fullName,
-      user.role,
-    );
+    return this.lists.updateItemPrice(id, itemId, dto, user.sub, user.fullName);
   }
 }

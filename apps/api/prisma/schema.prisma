@@ -422,7 +422,8 @@ model ShoppingList {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  items ShoppingListItem[]
+  items   ShoppingListItem[]
+  expense EventExpense?
 
   @@index([eventId])
   @@map("shopping_lists")
@@ -482,16 +483,21 @@ model Payment {
 }
 
 model EventExpense {
-  id          String               @id @default(cuid())
-  eventId     String
-  event       Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  category    EventExpenseCategory
-  amount      Decimal              @db.Decimal(14, 2)
-  note        String?
-  noteRu      String?
-  createdById String
-  createdBy   StaffUser            @relation(fields: [createdById], references: [id])
-  createdAt   DateTime             @default(now())
+  id             String               @id @default(cuid())
+  eventId        String
+  event          Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category       EventExpenseCategory
+  amount         Decimal              @db.Decimal(14, 2)
+  note           String?
+  noteRu         String?
+  // null when it was recorded by itself, e.g. a chef's finished shopping list.
+  createdById    String?
+  createdBy      StaffUser?           @relation(fields: [createdById], references: [id])
+  // Set on the expense a finished shopping list adds to its wedding; kept in
+  // step with the list's total.
+  shoppingListId String?              @unique
+  shoppingList   ShoppingList?        @relation(fields: [shoppingListId], references: [id], onDelete: SetNull)
+  createdAt      DateTime             @default(now())
 
   @@index([eventId])
   @@map("event_expenses")

@@ -135,14 +135,16 @@ export class DashboardService {
       this.prisma.inventoryItem.findMany({
         where: { minThreshold: { not: null } },
       }),
-      // SUPER_ADMIN is alerted to fresh chef lists; ADMIN only to lists
-      // SUPER_ADMIN has approved and sent on to them.
-      this.prisma.shoppingList.count({
-        where:
-          role === 'ADMIN'
-            ? { status: 'APPROVED', adminSeenAt: null }
-            : { status: 'SUBMITTED' },
-      }),
+      // The super admin is told when a chef confirms or finishes a list;
+      // nobody else has a part in the shopping any more.
+      role === 'SUPER_ADMIN'
+        ? this.prisma.shoppingList.count({
+            where: {
+              status: { in: ['APPROVED', 'PURCHASED'] },
+              adminSeenAt: null,
+            },
+          })
+        : Promise.resolve(0),
     ]);
 
     const lowStock = lowStockItems.filter(

@@ -5,7 +5,7 @@ import { usePick } from "@/components/i18n/use-pick";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, PencilLine, X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import type { ShoppingList } from "@/lib/types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ItemQuantity } from "@/components/shopping-lists/item-quantity";
@@ -15,7 +15,7 @@ import { LIST_STEPS, listStepIndex } from "./types";
 
 const PREVIEW = 6;
 
-/** One of the chef's own lists: where it is in the pipeline, what changed, what's bought. No prices. */
+/** One of the chef's own lists in short: where it is and what's bought. */
 export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: boolean }) {
   const tr = useTr();
   const pick = usePick();
@@ -26,7 +26,6 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
   const [confirm, setConfirm] = useState(false);
   const step = listStepIndex(list.status);
   const bought = list.items.filter((i) => i.isPurchased).length;
-  const changed = list.items.filter((i) => i.originalQuantity !== null).length;
   const cancellable = (list.status === "SUBMITTED" || list.status === "REVIEWED") && bought === 0;
   const shown = expanded || compact ? list.items : list.items.slice(0, PREVIEW);
 
@@ -44,7 +43,7 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
           <ShoppingListPdfButton list={list} />
         </div>
 
-        <ol className="mt-4 grid grid-cols-4 gap-1">
+        <ol className="mt-4 grid grid-cols-3 gap-1">
           {LIST_STEPS.map((s, i) => (
             <li key={s.key}>
               <div className={cn("h-1.5 rounded-full", i <= step ? (i === step ? "bg-primary" : "bg-primary/45") : "bg-muted")} />
@@ -54,17 +53,15 @@ export function ChefListCard({ list, compact }: { list: ShoppingList; compact?: 
         </ol>
 
         <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
-          {step >= 2 && (
+          {step >= 1 && (
             <span className="rounded-full bg-success/10 px-2.5 py-1 font-medium text-success tabular-nums">
-              {bought}/{list.items.length} olindi
+              {bought}/{list.items.length} {tr("olindi")}
             </span>
           )}
-          {changed > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 font-medium text-accent">
-              <PencilLine className="h-3 w-3" /> Super admin {changed}  {tr("ta o'zgartirdi")}
-            </span>
+          {step === 0 && <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">{tr("Tasdiqlanmagan")}</span>}
+          {step === 2 && list.event && (
+            <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">{tr("To'y xarajatlariga yozildi")}</span>
           )}
-          {step < 2 && <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">{tr("Super admin tekshirmoqda")}</span>}
         </div>
       </div>
 

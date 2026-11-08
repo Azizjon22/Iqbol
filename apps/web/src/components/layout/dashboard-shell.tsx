@@ -33,7 +33,7 @@ export function DashboardShell({
   const [prevPathname, setPrevPathname] = useState(pathname);
   const { t } = useLocale();
   const tr = useTr();
-  const live = useLivePendingLists(initialPendingCount, role === "SUPER_ADMIN" || role === "ADMIN");
+  const live = useLivePendingLists(initialPendingCount, role === "SUPER_ADMIN");
   const pendingShoppingListsCount = live.count;
 
   useEffect(() => {

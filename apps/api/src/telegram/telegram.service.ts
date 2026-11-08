@@ -12,6 +12,7 @@ import {
   REPORT_KINDS,
   REPORT_PERIODS,
   ReportsService,
+  type ReportFile,
   type ReportKind,
   type ReportPeriod,
 } from '../reports/reports.service';
@@ -40,6 +41,8 @@ const REPORT_TITLES: Record<ReportKind, string> = {
   ACCOUNTING: '📊 Hisob-kitob',
   ARCHIVE: '🗂 Arxiv',
 };
+
+const WEDDING_BUTTON = "🧾 To'y xarajatlari";
 
 /** A sent message, kept so it can be edited when the list changes. */
 interface MessageRef {
@@ -176,6 +179,10 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         { command: 'tekshir', description: 'Eslatmalarni hozir tekshirish' },
         { command: 'hisobot', description: 'Hisob-kitob (PDF, super admin)' },
         { command: 'arxiv', description: "To'ylar arxivi (PDF, super admin)" },
+        {
+          command: 'toy',
+          description: "Bitta to'y xarajatlari — mijoz uchun PDF",
+        },
         { command: 'chiqish', description: 'Botdan uzish' },
       ],
     }).catch((err: Error) => this.logger.warn(`setMyCommands: ${err.message}`));
@@ -357,7 +364,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           chatId,
           `${linked.fullName}, siz allaqachon ulangansiz.\n\n/tekshir — eslatmalarni hozir tekshirish` +
             (linked.role === 'SUPER_ADMIN'
-              ? "\n/hisobot — hisob-kitob (PDF)\n/arxiv — to'ylar arxivi (PDF)"
+              ? "\n/hisobot — hisob-kitob (PDF)\n/arxiv — to'ylar arxivi (PDF)\n/toy — bitta to'y xarajatlari (PDF)"
               : '') +
             '\n/chiqish — botdan uzish',
           this.homeButton(linked.kind),
@@ -385,6 +392,16 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         chatId,
         'Bot hisobingizdan uzildi. Qayta ulash uchun /start bosing.',
       );
+      return;
+    }
+
+    if (text === '/toy' || text === WEDDING_BUTTON) {
+      const linked = await this.linkedAccount(chatId);
+      if (linked?.role !== 'SUPER_ADMIN') {
+        await this.send(chatId, 'Hisobotlar faqat super admin uchun.');
+        return;
+      }
+      await this.weddingPicker(chatId);
       return;
     }
 
@@ -425,19 +442,20 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         await this.send(chatId, 'Avval /start orqali ulaning.');
         return;
       }
-      let sent: number;
-      let nothing: string;
-      if (linked.kind === 'WORKER') {
-        sent = await this.remindChefs(String(chatId));
-        nothing = "Ertangi to'ylar uchun yozilmagan bozorlik yo'q.";
-      } else if (linked.role === 'ADMIN') {
-        sent = await this.remindAdmins(String(chatId));
-        nothing = "Xarid qilinishi kerak bo'lgan ro'yxat yo'q.";
-      } else {
-        sent = await this.remindSuperAdmins(String(chatId));
-        nothing = "Ko'rilmagan bozorlik ro'yxati yo'q.";
+      if (linked.kind !== 'WORKER') {
+        await this.send(
+          chatId,
+          "Bozorlikni oshpazlar o'zi yozib, tasdiqlab, xarid qiladi — tayyor bo'lganda shu yerga xabar keladi.",
+        );
+        return;
       }
-      if (sent === 0) await this.send(chatId, nothing);
+      const sent = await this.remindChefs(String(chatId));
+      if (sent === 0) {
+        await this.send(
+          chatId,
+          "Ertangi to'ylar uchun bozorlik yozilgan va tasdiqlangan.",
+        );
+      }
       return;
     }
 
@@ -571,6 +589,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       reply_markup: {
         keyboard: [
           [{ text: REPORT_TITLES.ACCOUNTING }, { text: REPORT_TITLES.ARCHIVE }],
+          [{ text: WEDDING_BUTTON }],
         ],
         resize_keyboard: true,
         is_persistent: true,
@@ -581,10 +600,12 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   private async onCallback(cb: TgCallback) {
     const [tag, kind, period] = (cb.data ?? '').split(':');
     const chatId = cb.message?.chat.id ?? cb.from.id;
+    const wedding = tag === 'evt' && !!kind;
     if (
-      tag !== 'rep' ||
-      !REPORT_KINDS.includes(kind as ReportKind) ||
-      !REPORT_PERIODS.includes(period as ReportPeriod)
+      !wedding &&
+      (tag !== 'rep' ||
+        !REPORT_KINDS.includes(kind as ReportKind) ||
+        !REPORT_PERIODS.includes(period as ReportPeriod))
     ) {
       await this.call('answerCallbackQuery', { callback_query_id: cb.id });
       return;
@@ -602,25 +623,63 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       callback_query_id: cb.id,
       text: 'Hisobot tayyorlanmoqda…',
     });
-    await this.sendReport(
-      String(chatId),
-      kind as ReportKind,
-      period as ReportPeriod,
-    );
+    if (wedding) {
+      await this.sendFile(String(chatId), () =>
+        this.reports.eventForClient(kind),
+      );
+    } else {
+      await this.sendReport(
+        String(chatId),
+        kind as ReportKind,
+        period as ReportPeriod,
+      );
+    }
+  }
+
+  /** The super admin picks a recent wedding for its client PDF. */
+  private async weddingPicker(chatId: number) {
+    const events = await this.prisma.event.findMany({
+      where: {
+        status: { not: 'CANCELLED' },
+        eventDate: { lt: this.tomorrowRange().end },
+      },
+      orderBy: { eventDate: 'desc' },
+      take: 12,
+      select: { id: true, clientName: true, eventDate: true },
+    });
+    if (events.length === 0) {
+      await this.send(chatId, "Hali o'tgan to'y yo'q.");
+      return;
+    }
+    await this.call('sendMessage', {
+      chat_id: chatId,
+      text: "🧾 Qaysi to'yning xarajatlari kerak? (mijozga ko'rsatish uchun, mahsulot narxlarisiz)",
+      reply_markup: {
+        inline_keyboard: events.map((e) => [
+          {
+            text: `${e.eventDate.toLocaleDateString('uz-UZ', { timeZone: this.timeZone, day: '2-digit', month: '2-digit' })} — ${e.clientName}`.slice(
+              0,
+              60,
+            ),
+            callback_data: `evt:${e.id}`,
+          },
+        ]),
+      },
+    });
   }
 
   /** Builds the PDF and sends it as a file; tells the chat if that failed. */
-  private async sendReport(
-    chatId: string,
-    kind: ReportKind,
-    period: ReportPeriod,
-  ) {
+  private sendReport(chatId: string, kind: ReportKind, period: ReportPeriod) {
+    return this.sendFile(chatId, () => this.reports.build(kind, period));
+  }
+
+  private async sendFile(chatId: string, build: () => Promise<ReportFile>) {
     await this.call('sendChatAction', {
       chat_id: chatId,
       action: 'upload_document',
     }).catch(() => undefined);
     try {
-      const file = await this.reports.build(kind, period);
+      const file = await build();
       const form = new FormData();
       form.append('chat_id', chatId);
       form.append('caption', file.caption);
@@ -664,6 +723,25 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       return 'NOT_LINKED' as const;
     }
     const sent = await this.sendReport(staff.telegramChatId, kind, period);
+    return sent ? ('SENT' as const) : ('FAILED' as const);
+  }
+
+  /** One wedding's client PDF to this super admin's linked chat. */
+  async sendEventReportToStaff(staffId: string, eventId: string) {
+    const staff = await this.prisma.staffUser.findUnique({
+      where: { id: staffId },
+      select: { telegramChatId: true, role: true, isActive: true },
+    });
+    if (
+      !staff?.telegramChatId ||
+      staff.role !== 'SUPER_ADMIN' ||
+      !staff.isActive
+    ) {
+      return 'NOT_LINKED' as const;
+    }
+    const sent = await this.sendFile(staff.telegramChatId, () =>
+      this.reports.eventForClient(eventId),
+    );
     return sent ? ('SENT' as const) : ('FAILED' as const);
   }
 
@@ -775,19 +853,16 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.sentSlots.add(slot);
     try {
       const chefs = await this.remindChefs();
-      const admins = await this.remindSuperAdmins();
-      this.logger.log(
-        `Eslatma ${time}: oshpazlarga ${chefs} ta, super adminlarga ${admins} ta xabar.`,
-      );
+      this.logger.log(`Eslatma ${time}: oshpazlarga ${chefs} ta xabar.`);
     } catch (err) {
       this.logger.error(`Eslatma yuborishda xato: ${(err as Error).message}`);
     }
   }
 
   /**
-   * Tomorrow's weddings that still have no shopping list, to every linked
-   * chef (chefs are permanent staff and are not assigned per wedding).
-   * `onlyChatId` limits it to one chat for the /tekshir command.
+   * Tomorrow's weddings whose shopping list is not written and confirmed
+   * yet, to every linked chef (chefs are permanent staff and are not
+   * assigned per wedding). `onlyChatId` limits it to one chat for /tekshir.
    */
   async remindChefs(onlyChatId?: string) {
     const { start, end } = this.tomorrowRange();
@@ -795,8 +870,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       where: {
         eventDate: { gte: start, lt: end },
         status: { not: 'CANCELLED' },
-        shoppingLists: { none: {} },
+        shoppingLists: {
+          none: { status: { in: ['APPROVED', 'PURCHASED', 'CLOSED'] } },
+        },
       },
+      include: { shoppingLists: { select: { id: true } } },
       orderBy: { eventDate: 'asc' },
     });
     if (events.length === 0) return 0;
@@ -829,7 +907,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         `🛒 Ertaga to'y bor — ${date}, soat ${time}\n\n` +
         `${event.clientName}\n${event.guestCount} mehmon` +
         (dishes ? `\nTaomlar: ${dishes}` : '') +
-        `\n\nShu sana uchun bozorlik yozishingiz kerak.`;
+        (event.shoppingLists.length > 0
+          ? `\n\nBozorlik ro'yxati yozilgan, lekin hali tasdiqlanmagan — tasdiqlab, xaridga chiqing.`
+          : `\n\nShu sana uchun bozorlik yozishingiz kerak.`);
       for (const chef of chefs) {
         await this.send(chef.telegramChatId!, text, {
           text: 'Bozorlik yozish',
@@ -839,67 +919,6 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       }
     }
     return sent;
-  }
-
-  /** Lists the super admin has not opened yet (still SUBMITTED). */
-  async remindSuperAdmins(onlyChatId?: string) {
-    const lists = await this.prisma.shoppingList.findMany({
-      where: { status: 'SUBMITTED' },
-      include: {
-        event: { select: { clientName: true, eventDate: true } },
-        createdByWorker: { select: { fullName: true } },
-        _count: { select: { items: true } },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (lists.length === 0) return 0;
-
-    const rows = lists.slice(0, 10).map((l) => {
-      const what = l.event
-        ? `${l.event.clientName} (${l.event.eventDate.toLocaleDateString('uz-UZ', { timeZone: this.timeZone, day: 'numeric', month: 'long' })})`
-        : "To'ysiz ro'yxat";
-      return `• ${what} — ${l._count.items} ta mahsulot, ${l.createdByWorker.fullName}`;
-    });
-    const text =
-      `📋 ${lists.length} ta bozorlik ro'yxati hali ko'rilmagan:\n\n${rows.join('\n')}` +
-      (lists.length > rows.length
-        ? `\n… va yana ${lists.length - rows.length} ta`
-        : '');
-    const button = {
-      text: 'Bozorlikni ochish',
-      url: `${this.webUrl}/dashboard/shopping-lists`,
-    };
-
-    if (onlyChatId) {
-      await this.send(onlyChatId, text, button);
-      return 1;
-    }
-    return this.toSuperAdmins(text, button);
-  }
-
-  /** Lists the super admin has sent on that are not fully bought yet. */
-  async remindAdmins(onlyChatId: string) {
-    const lists = await this.prisma.shoppingList.findMany({
-      where: { status: 'APPROVED' },
-      include: {
-        event: { select: { clientName: true } },
-        _count: { select: { items: true } },
-      },
-      orderBy: { approvedAt: 'asc' },
-    });
-    if (lists.length === 0) return 0;
-    const rows = lists
-      .slice(0, 10)
-      .map(
-        (l) =>
-          `• ${l.event?.clientName ?? "To'ysiz ro'yxat"} — ${l._count.items} ta mahsulot`,
-      );
-    await this.send(
-      onlyChatId,
-      `🛍 ${lists.length} ta ro'yxat xarid qilinishi kerak:\n\n${rows.join('\n')}`,
-      this.listsButton(),
-    );
-    return 1;
   }
 
   // ------------------------------------------------------ List announcements
@@ -927,7 +946,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     return `${event}\nOshpaz: ${list.createdByWorker.fullName}`;
   }
 
-  /** What is to be bought, with the super admin's corrections marked. */
+  /** What is to be bought. */
   private itemRows(
     list: NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>,
   ) {
@@ -950,12 +969,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   private submittedText(
     list: NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>,
   ) {
-    const sent = !['SUBMITTED', 'REVIEWED'].includes(list.status);
-    const edited = list.items.some((i) => i.originalQuantity !== null);
-    const title = sent
-      ? "✅ Bozorlik ro'yxati adminga yuborildi"
-      : `🛒 Yangi bozorlik ro'yxati${edited ? '\n✏️ Tahrirlangan' : ''}`;
-    return `${title}\n\n${this.listHead(list)}\n\n${this.itemRows(list)}`;
+    return `🛒 Oshpaz bozorlik ro'yxatini tasdiqladi va xaridga chiqdi\n\n${this.listHead(list)}\n\n${this.itemRows(list)}`;
   }
 
   private purchasedText(
@@ -972,16 +986,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     );
     return (
       `💰 Bozorlik xarid qilindi\n\n${this.listHead(list)}\n\n${rows.join('\n')}` +
-      `\n\nJami: ${fmtSom(total)}`
+      `\n\nJami: ${fmtSom(total)}` +
+      (list.event ? "\nBu summa to'yning xarajatlariga o'zi yozildi." : '')
     );
   }
 
-  /** Under the price report: the wedding's card, where the expense is entered. */
+  /** Under the price report: the wedding's card, where the expense now sits. */
   private purchasedButtons(eventId?: string): LinkButton[] {
     const buttons = [this.listsButton()];
     if (eventId) {
       buttons.unshift({
-        text: "To'y kartasi — xarajatni kiritish",
+        text: "To'y kartasi",
         url: `${this.webUrl}/dashboard/events/${eventId}`,
       });
     }
@@ -1010,7 +1025,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** A chef sent a list: announce it to the super admins. */
+  /** A chef confirmed a list and went to buy it: tell the super admins. */
   notifyListSubmitted(id: string) {
     return this.safely("Yangi ro'yxat xabari yuborilmadi", async () => {
       const list = await this.loadList(id);
@@ -1021,33 +1036,6 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         this.listsButton(),
       );
       await this.saveRefs(id, { submitted: refs });
-    });
-  }
-
-  /** The super admin edited the list: rewrite their Telegram copy to match. */
-  notifyListEdited(id: string) {
-    return this.safely('Xabar tahrirlanmadi', async () => {
-      const list = await this.loadList(id);
-      if (!list) return;
-      const refs =
-        ((list.telegramMessages ?? {}) as ListMessages).submitted ?? [];
-      await this.edit(refs, this.submittedText(list), [this.listsButton()]);
-    });
-  }
-
-  /** The super admin approved the list: mark their copy and hand it to the admins. */
-  notifyListApproved(id: string) {
-    return this.safely('Adminga xabar yuborilmadi', async () => {
-      const list = await this.loadList(id);
-      if (!list) return;
-      const refs =
-        ((list.telegramMessages ?? {}) as ListMessages).submitted ?? [];
-      await this.edit(refs, this.submittedText(list), [this.listsButton()]);
-      await this.toStaff(
-        'ADMIN',
-        `🛍 Yangi bozorlik — xarid qilish kerak\n\n${this.listHead(list)}\n\n${this.itemRows(list)}`,
-        this.listsButton(),
-      );
     });
   }
 

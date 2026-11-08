@@ -8,9 +8,14 @@ export async function GET(req: NextRequest) {
   let session = await getSession();
   if (!session) return NextResponse.json({ message: "Avval tizimga kiring" }, { status: 401 });
 
-  const query = req.nextUrl.searchParams.toString();
+  // ?event=<id> is one wedding's client PDF; otherwise ?kind=&period=.
+  const eventId = req.nextUrl.searchParams.get("event");
+  const target =
+    eventId && /^[a-z0-9]+$/i.test(eventId)
+      ? `/reports/event/${eventId}/pdf`
+      : `/reports/pdf?${req.nextUrl.searchParams.toString()}`;
   const load = (token: string) =>
-    fetch(`${API_URL}/reports/pdf?${query}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    fetch(`${API_URL}${target}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
 
   let res = await load(session.accessToken);
   if (res.status === 401) {
