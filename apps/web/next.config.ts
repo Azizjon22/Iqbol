@@ -2,12 +2,26 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Phone and other LAN devices load dev scripts from these hosts.
-  // 192.168.*.* covers Wi-Fi (192.168.0.146) and Ethernet (192.168.18.204);
-  // 172.20.10.* is a phone hotspot.
-  allowedDevOrigins: ["192.168.*.*", "172.20.10.*"],
+  // 192.168.*.* covers Wi-Fi (192.168.0.146) and Ethernet (192.168.18.204).
+  allowedDevOrigins: ["192.168.*.*"],
   transpilePackages: ["@iqbol/shared"],
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // Browsers ignore this over plain http, so local development is unaffected.
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
-    const api = process.env.API_URL ?? "http://localhost:3101/api";
+    const api = process.env.API_URL ?? "http://localhost:3011/api";
     const origin = api.replace(/\/api\/?$/, "");
     return [
       {
@@ -25,6 +39,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "**.r2.cloudflarestorage.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.storageapi.dev",
+      },
+      {
+        protocol: "https",
+        hostname: "t3.storageapi.dev",
       },
     ],
   },

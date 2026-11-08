@@ -3,14 +3,17 @@ import { publicApiFetch } from "@/lib/api";
 import type { Menu } from "@/lib/types";
 import { MenuShowcaseList } from "@/components/menus/templates/menu-showcase-list";
 import { getBrand } from "@/lib/brand";
+import { getLocale } from "@/i18n/locale";
+import { pickLang } from "@/i18n/pick";
 
 export async function generateMetadata() {
   const tr = await getTr();
-
-  const { brandName } = await getBrand();
+  const locale = await getLocale();
+  const { brandName, brandNameRu } = await getBrand();
+  const titleName = pickLang(locale, brandName, brandNameRu);
   return {
-    title: tr(`Menyular | ${brandName}`),
-    description: tr(`${brandName} to'yxonasining to'y menyu paketlari.`),
+    title: tr(`Menyular | ${titleName}`),
+    description: tr(`${titleName} to'yxonasining to'y menyu paketlari.`),
   };
 }
 

@@ -1,3 +1,6 @@
+import { getTr } from "@/i18n/server-tr";
+import { getLocale } from "@/i18n/locale";
+import { pickLang } from "@/i18n/pick";
 import { Pencil } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { getSession } from "@/lib/session";
@@ -7,31 +10,28 @@ import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { DeleteIconButton } from "@/components/ui/delete-icon-button";
 import { formatDateTime, formatSom } from "@/lib/utils";
-import { UNIT_LABELS_UZ } from "@iqbol/shared";
+import { WORKER_POSITION_LABELS_UZ, EVENT_EXPENSE_CATEGORY_LABELS_UZ, UNIT_LABELS_UZ } from "@iqbol/shared";
 import { StatusSelect } from "@/components/events/status-select";
 import { UnassignButton } from "@/components/events/unassign-button";
 import { PaymentForm } from "@/components/events/payment-form";
+import { METHOD_LABEL } from "@/lib/payment-methods";
 import { ExpenseForm } from "@/components/events/expense-form";
 import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list-pdf-button";
 import { ShoppingListEditor } from "@/components/shopping-lists/shopping-list-editor";
 import { ItemQuantity } from "@/components/shopping-lists/item-quantity";
-import { shoppingListStatusMeta, isShoppingListEditable } from "@/lib/shopping-list-status";
+import { SHOPPING_LIST_STATUS_UZ, isShoppingListEditable } from "@/lib/shopping-list-status";
 import { removeExpenseAction } from "@/lib/actions/events.actions";
 import { StockReturnButton } from "@/components/events/stock-return-button";
-import { getLocale } from "@/i18n/locale";
-import { getDictionary, translate } from "@/i18n/get-dictionary";
 
 export default async function EventDetailPage({ params }: PageProps<"/dashboard/events/[id]">) {
-  const { id } = await params;
-  const [event, session, locale] = await Promise.all([
-    apiFetch<EventDetail>(`/events/${id}`),
-    getSession(),
-    getLocale(),
-  ]);
-  const dict = getDictionary(locale);
-  const t = (key: string, params?: Record<string, string | number>) => translate(dict, key, params);
+  const tr = await getTr();
+  const locale = await getLocale();
 
+  const { id } = await params;
+  const [event, session] = await Promise.all([apiFetch<EventDetail>(`/events/${id}`), getSession()]);
+
+  const client = pickLang(locale, event.clientName, event.clientNameRu);
   const role = session?.user.kind === "STAFF" ? session.user.role : undefined;
   const canSeeFinancials = role === "SUPER_ADMIN";
   const canEdit = role === "SUPER_ADMIN" || role === "ADMIN";
@@ -67,98 +67,92 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight [overflow-wrap:anywhere]">{event.clientName}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{client}</h1>
           <p className="text-sm text-muted-foreground">{event.clientPhone}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && (
             <LinkButton href={`/dashboard/events/${event.id}/edit`} variant="outline" size="sm">
-              <Pencil className="h-4 w-4" /> {t("common.edit")}
+              <Pencil className="h-4 w-4" />  {tr("Tahrirlash")}
             </LinkButton>
           )}
-          {/* Once confirmed, or once any money is on it, a wedding stays in the books. */}
-          {canDelete &&
-            event.status !== "CONFIRMED" &&
-            event.status !== "COMPLETED" &&
-            (event.payments ?? []).length === 0 &&
-            (event.expenses ?? []).length === 0 && (
-              <DeleteEventButton eventId={event.id} clientName={event.clientName} />
-            )}
+          {canDelete && <DeleteEventButton eventId={event.id} clientName={client} />}
           <StatusSelect eventId={event.id} status={event.status} />
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("events.detailsTitle")}</CardTitle>
+          <CardTitle>{tr("To'y ma'lumotlari")}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
           <div>
-            <p className="text-muted-foreground">{t("events.dateLabel")}</p>
+            <p className="text-muted-foreground">{tr("Sana")}</p>
             <p className="font-medium">{formatDateTime(event.eventDate, locale)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("events.menuLabel")}</p>
-            <p className="font-medium">{event.menu.name}</p>
+            <p className="text-muted-foreground">{tr("Menyu")}</p>
+            <p className="font-medium">{pickLang(locale, event.menu.name, event.menu.nameRu)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("events.guestCountLabel")}</p>
+            <p className="text-muted-foreground">{tr("Mehmonlar soni")}</p>
             <p className="font-medium">{event.guestCount}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">{t("events.tableType")}</p>
-            <p className="font-medium">{t("events.seatsOption", { count: event.tableCapacity })}</p>
+            <p className="text-muted-foreground">{tr("Stol turi")}</p>
+            <p className="font-medium">{tr(`${event.tableCapacity} kishilik`)}</p>
           </div>
           <div className="sm:col-span-2">
             {event.firstDish || event.secondDish ? (
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
-                    [t("events.firstDish"), event.firstDish],
-                    [t("events.secondDish"), event.secondDish],
+                    [tr("1-ovqat"), event.firstDish ? pickLang(locale, event.firstDish, event.firstDishRu) : null],
+                    [tr("2-ovqat"), event.secondDish ? pickLang(locale, event.secondDish, event.secondDishRu) : null],
                   ] as const
                 ).map(([label, dish]) => (
                   <div key={label} className="rounded-xl border border-accent/30 bg-accent/5 px-3 py-2.5">
                     <p className="text-xs font-semibold uppercase tracking-wide text-accent">{label}</p>
-                    <p className="font-display text-lg font-semibold leading-tight [overflow-wrap:anywhere]">{dish ?? "—"}</p>
+                    <p className="font-display text-lg font-semibold">{dish ?? "—"}</p>
                   </div>
                 ))}
               </div>
             ) : (
               <p className="rounded-xl border border-dashed border-accent/50 bg-accent/5 px-3 py-2.5 text-sm text-accent">
-                {t("events.dishesNotSet")}
-                {canDelete && ` ${t("events.setViaEdit")}`}
+                
+                {tr("1-ovqat va 2-ovqat hali tanlanmagan — oshpaz bozorlikni shunga qarab yozadi.")}
+                {canDelete && tr(" \"Tahrirlash\" orqali belgilang.")}
               </p>
             )}
           </div>
           {canSeeFinancials && event.totalPrice && (
             <>
               <div>
-                <p className="text-muted-foreground">{t("events.totalPrice")}</p>
+                <p className="text-muted-foreground">{tr("Umumiy narx")}</p>
                 <p className="font-medium text-primary">{formatSom(event.totalPrice, locale)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">{t("events.balance")}</p>
+                <p className="text-muted-foreground">{tr("Qoldiq balans")}</p>
                 <p className={`font-medium ${Number(event.balance) > 0 ? "text-destructive" : "text-success"}`}>
                   {formatSom(event.balance ?? "0", locale)}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground">{t("events.totalExpense")}</p>
+                <p className="text-muted-foreground">{tr("Jami xarajat")}</p>
                 <p className="font-medium">{formatSom(event.totalExpenses ?? "0", locale)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">{t("events.netProfit")}</p>
+                <p className="text-muted-foreground">{tr("Sof foyda")}</p>
                 <p className={`font-medium ${Number(event.netProfit) >= 0 ? "text-success" : "text-destructive"}`}>
                   {formatSom(event.netProfit ?? "0", locale)}
                 </p>
               </div>
             </>
           )}
-          {event.notes && (
+          {(event.notes || event.notesRu) && (
             <div className="sm:col-span-2">
-              <p className="text-muted-foreground">{t("events.note")}</p>
-              <p className="font-medium">{event.notes}</p>
+              <p className="text-muted-foreground">{tr("Izoh")}</p>
+              <p className="font-medium">{pickLang(locale, event.notes, event.notesRu)}</p>
             </div>
           )}
         </CardContent>
@@ -166,17 +160,20 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("events.assignedWorkers")}</CardTitle>
+          <CardTitle>{tr("Tayinlangan ishchilar")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p className="text-xs text-muted-foreground">{t("events.assignWorkersHint")}</p>
+          <p className="text-xs text-muted-foreground">
+            
+            {tr("Ishchilarni belgilash uchun \"Ishchilar\" bo'limidagi \"Ertangi kunga\r\n            chiqadiganlar\" jadvalidan foydalaning.")}
+          </p>
           <div className="flex flex-wrap gap-2">
             {event.assignments.length === 0 && (
-              <p className="text-sm text-muted-foreground">{t("events.noWorkersAssigned")}</p>
+              <p className="text-sm text-muted-foreground">{tr("Hali hech kim tayinlanmagan.")}</p>
             )}
             {event.assignments.map((a) => (
               <Badge key={a.id} variant="primary" className="gap-1">
-                {a.worker.fullName} · {t(`workerPositions.${a.worker.position}`)}
+                {a.worker.fullName} · {tr(WORKER_POSITION_LABELS_UZ[a.worker.position])}
                 <UnassignButton eventId={event.id} workerId={a.workerId} />
               </Badge>
             ))}
@@ -186,15 +183,13 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("shoppingLists.title")}</CardTitle>
+          <CardTitle>{tr("Bozorlik ro'yxatlari")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {(event.shoppingLists ?? []).length === 0 && (
-            <p className="text-sm text-muted-foreground">{t("events.noShoppingLists")}</p>
+            <p className="text-sm text-muted-foreground">{tr("Bu to'y uchun hali bozorlik ro'yxati yozilmagan.")}</p>
           )}
-          {(event.shoppingLists ?? []).map((list) => {
-            const statusMeta = shoppingListStatusMeta(t, list.status);
-            return (
+          {(event.shoppingLists ?? []).map((list) => (
             <div key={list.id} className="rounded-md border border-border p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -202,7 +197,9 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                   <p className="text-xs text-muted-foreground">{formatDateTime(list.createdAt, locale)}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                  <Badge variant={SHOPPING_LIST_STATUS_UZ[list.status]?.variant ?? "primary"}>
+                    {tr(SHOPPING_LIST_STATUS_UZ[list.status]?.label) ?? list.status}
+                  </Badge>
                   <ShoppingListPdfButton list={list} />
                 </div>
               </div>
@@ -214,7 +211,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
               <ul className="mt-2 space-y-1 text-sm">
                 {list.items.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3">
-                    <span>{item.name}</span>
+                    <span>{pickLang(locale, item.name, item.nameRu)}</span>
                     <span className="text-right text-muted-foreground">
                       <ItemQuantity item={item} />
                       {item.isPurchased && " · ✓"}
@@ -229,24 +226,23 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
               </ul>
               {canSeeFinancials && shoppingLists.length > 1 && (
                 <p className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
-                  <span className="text-muted-foreground">{t("events.listTotal")}</span>
+                  <span className="text-muted-foreground">{tr("Ro'yxat jami")}</span>
                   <span className="font-medium">
                     {formatSom(list.items.reduce((s, item) => s + (item.isPurchased ? itemCost(item) : 0), 0), locale)}
                   </span>
                 </p>
               )}
             </div>
-            );
-          })}
+          ))}
           {canSeeFinancials && shoppingLists.length > 0 && (
             <div className="rounded-md bg-muted p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{t("events.shoppingTotal")}</span>
+                <span className="text-sm font-medium">{tr("Bozorlik jami")}</span>
                 <span className="text-lg font-semibold">{formatSom(shoppingTotal, locale)}</span>
               </div>
               {unpricedItems > 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {t("events.unpricedItemsNote", { count: unpricedItems })}
+                  {unpricedItems}  {tr("ta mahsulot hali sotib olinmagan yoki narxi kiritilmagan — jamiga qo'shilmagan.")}
                 </p>
               )}
             </div>
@@ -257,17 +253,18 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
       {canSeeFinancials && (
         <Card>
           <CardHeader>
-            <CardTitle>{t("events.payments")}</CardTitle>
+            <CardTitle>{tr("To'lovlar")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {event.status === "CANCELLED" && kept > 0 && (
               <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-                {t("events.cancelledUnrefunded", { amount: formatSom(kept, locale) })}
+                
+                {tr("To'y bekor qilingan, mijozdan olingan")} {formatSom(kept, locale)}  {tr("hali qaytarilmagan. Pul qaytarilgan bo'lsa,\r\n                pastdagi \"Pulni qaytarish\" orqali yozing — shu to'y kunidan ayriladi.")}
               </p>
             )}
             <div className="space-y-2">
               {(event.payments ?? []).length === 0 && (
-                <p className="text-sm text-muted-foreground">{t("events.noPayments")}</p>
+                <p className="text-sm text-muted-foreground">{tr("To'lovlar hali kiritilmagan.")}</p>
               )}
               {(event.payments ?? []).map((p) => {
                 const isRefund = p.type === "REFUND";
@@ -281,10 +278,9 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                         {isRefund ? "−" : "+"}
                         {formatSom(p.amount, locale)}
                       </span>
-                      <span className="mt-0.5 block break-words text-xs text-muted-foreground">
-                        {isRefund ? t("events.refundedWord") : t("events.paymentWord")} ·{" "}
-                        {t(`paymentMethods.${p.method}`)}
-                        {p.note && ` · ${p.note}`}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {isRefund ? tr("Qaytarildi") : tr("To'lov")} · {tr(METHOD_LABEL[p.method] ?? p.method)}
+                        {(p.note || p.noteRu) && ` · ${pickLang(locale, p.note, p.noteRu)}`}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(p.paymentDate, locale)}</span>
@@ -293,27 +289,25 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
               })}
             </div>
             {refunded > 0 && (
-              <div className="grid grid-cols-1 gap-2 text-center text-xs min-[420px]:grid-cols-3">
-                <div className="min-w-0 rounded-lg bg-muted/60 px-2 py-2">
-                  <p className="text-muted-foreground">{t("events.received")}</p>
-                  <p className="break-words font-semibold tabular-nums">{formatSom(received, locale)}</p>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-lg bg-muted/60 px-2 py-2">
+                  <p className="text-muted-foreground">{tr("Olindi")}</p>
+                  <p className="font-semibold tabular-nums">{formatSom(received, locale)}</p>
                 </div>
-                <div className="min-w-0 rounded-lg bg-destructive/10 px-2 py-2">
-                  <p className="text-muted-foreground">{t("events.refundedWord")}</p>
-                  <p className="break-words font-semibold tabular-nums text-destructive">−{formatSom(refunded, locale)}</p>
+                <div className="rounded-lg bg-destructive/10 px-2 py-2">
+                  <p className="text-muted-foreground">{tr("Qaytarildi")}</p>
+                  <p className="font-semibold tabular-nums text-destructive">−{formatSom(refunded, locale)}</p>
                 </div>
-                <div className="min-w-0 rounded-lg bg-muted/60 px-2 py-2">
-                  <p className="text-muted-foreground">{t("events.net")}</p>
-                  <p className="break-words font-semibold tabular-nums">{formatSom(kept, locale)}</p>
+                <div className="rounded-lg bg-muted/60 px-2 py-2">
+                  <p className="text-muted-foreground">{tr("Sof")}</p>
+                  <p className="font-semibold tabular-nums">{formatSom(kept, locale)}</p>
                 </div>
               </div>
             )}
             {event.status !== "CANCELLED" && <PaymentForm eventId={event.id} />}
             {kept > 0 && (
               <details className="rounded-xl border border-border px-3 py-2" open={event.status === "CANCELLED"}>
-                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-                  {t("events.refundDetails")}
-                </summary>
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">{tr("Pulni qaytarish (vozvrat)")}</summary>
                 <div className="pt-3">
                   <PaymentForm eventId={event.id} mode="refund" />
                 </div>
@@ -326,7 +320,7 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
       {canSeeFinancials && stockUsages.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Ombordan olingan mahsulotlar</CardTitle>
+            <CardTitle>{tr("Ombordan olingan mahsulotlar")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {stockUsages.map((usage) => (
@@ -344,11 +338,11 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                       <span className="min-w-0 truncate">
                         {item.name}{" "}
                         <span className="text-muted-foreground">
-                          — {Number(item.quantity)} {UNIT_LABELS_UZ[item.unit]}
+                          — {Number(item.quantity)} {tr(UNIT_LABELS_UZ[item.unit])}
                         </span>
                       </span>
                       <span className={item.totalCost === null ? "shrink-0 text-xs text-muted-foreground" : "shrink-0 font-medium tabular-nums"}>
-                        {item.totalCost === null ? "narx kiritilmagan" : formatSom(item.totalCost, locale)}
+                        {item.totalCost === null ? tr("narx kiritilmagan") : formatSom(item.totalCost, locale)}
                       </span>
                     </li>
                   ))}
@@ -357,14 +351,14 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
             ))}
             <div className="rounded-md bg-muted p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Ombordan jami</span>
+                <span className="text-sm font-medium">{tr("Ombordan jami")}</span>
                 <span className="text-lg font-semibold">{formatSom(stockTotal, locale)}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {stockUnpriced > 0 && `${stockUnpriced} ta mahsulotning ombordagi narxi kiritilmagan — ular jamiga qo'shilmagan. `}
+                {stockUnpriced > 0 && tr(`${stockUnpriced} ta mahsulotning ombordagi narxi kiritilmagan — ular jamiga qo'shilmagan.`) + " "}
                 {hasStockExpense
-                  ? "Xarajatlarda «Ombor mahsulotlari» qatori bor."
-                  : "Bu summa xarajatga o'zi yozilmaydi: pastdagi «Ombor mahsulotlari» qatoridan kiriting."}
+                  ? tr("Xarajatlarda «Ombor mahsulotlari» qatori bor.")
+                  : tr("Bu summa xarajatga o'zi yozilmaydi: «Ombor mahsulotlari» xarajatini qo'shing.")}
               </p>
             </div>
           </CardContent>
@@ -373,13 +367,17 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
 
       {canSeeFinancials && (
         <Card>
-          <CardHeader>
-            <CardTitle>{t("events.expenses")}</CardTitle>
+          <CardHeader className="flex-row items-center justify-between gap-3">
+            <CardTitle>{tr("Xarajatlar")}</CardTitle>
+            <ExpenseForm
+              eventId={event.id}
+              suggestedAmounts={Object.keys(suggestedAmounts).length > 0 ? suggestedAmounts : undefined}
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               {(event.expenses ?? []).length === 0 && (
-                <p className="text-sm text-muted-foreground">{t("events.noExpenses")}</p>
+                <p className="text-sm text-muted-foreground">{tr("Xarajatlar hali kiritilmagan.")}</p>
               )}
               {(event.expenses ?? []).map((x) => (
                 <div
@@ -388,8 +386,8 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                 >
                   <div className="min-w-0">
                     <p className="font-medium">
-                      {t(`expenseCategories.${x.category}`)}
-                      {x.note && <span className="font-normal text-muted-foreground"> — {x.note}</span>}
+                      {tr(EVENT_EXPENSE_CATEGORY_LABELS_UZ[x.category])}
+                      {(x.note || x.noteRu) && <span className="font-normal text-muted-foreground"> — {pickLang(locale, x.note, x.noteRu)}</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">{formatDateTime(x.createdAt, locale)}</p>
                   </div>
@@ -400,10 +398,6 @@ export default async function EventDetailPage({ params }: PageProps<"/dashboard/
                 </div>
               ))}
             </div>
-            <ExpenseForm
-              eventId={event.id}
-              suggestedAmounts={Object.keys(suggestedAmounts).length > 0 ? suggestedAmounts : undefined}
-            />
           </CardContent>
         </Card>
       )}

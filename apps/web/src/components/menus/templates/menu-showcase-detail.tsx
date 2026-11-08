@@ -9,9 +9,11 @@ import { OrnamentDivider, CornerFlourish } from "@/components/menus/showcase/orn
 import { Reveal } from "@/components/menus/showcase/reveal";
 import { SafeImage } from "@/components/menus/showcase/safe-image";
 import { Lightbox, type LightboxItem } from "@/components/menus/showcase/lightbox";
+import { InViewVideo } from "@/components/menus/showcase/in-view-video";
 import { ClosingCta } from "@/components/menus/showcase/closing-cta";
 import { MENU_DISH_CATEGORIES, MENU_MEDIA_SECTIONS, type MenuMediaSection } from "@iqbol/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 import { formatSom, cn } from "@/lib/utils";
 
 // Bento rhythm for the gallery: groups of five — one 2×2 feature plus four
@@ -32,6 +34,7 @@ function tileSpans(count: number) {
 
 export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
   const { t, locale } = useLocale();
+  const pick = usePick();
   const price = Number(menu.pricePerPerson);
   const guests = menu.guestCount;
 
@@ -50,7 +53,8 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
 
   // Dead links are dropped from the gallery entirely rather than shown torn.
   const media = useMemo(
-    () => menu.media.filter((m) => m.mediaType === "VIDEO" || !broken.has(m.url)),
+    // Clients only see videos that are ready to play, and photos that load.
+    () => menu.media.filter((m) => (m.mediaType === "VIDEO" ? m.processingStatus === "READY" : !broken.has(m.url))),
     [menu.media, broken],
   );
   const sectionsPresent = MENU_MEDIA_SECTIONS.filter((s) => media.some((m) => m.section === s));
@@ -59,7 +63,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
 
   const dishPhotos: LightboxItem[] = menu.dishes
     .filter((d) => d.photoUrl && !broken.has(d.photoUrl))
-    .map((d) => ({ id: d.id, url: d.photoUrl!, caption: d.name, kind: "PHOTO" }));
+    .map((d) => ({ id: d.id, url: d.photoUrl!, caption: pick(d.name, d.nameRu), kind: "PHOTO" as const }));
 
   function openDish(dish: MenuDish) {
     const index = dishPhotos.findIndex((p) => p.id === dish.id);
@@ -68,7 +72,7 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
 
   function openMedia(index: number) {
     setLightbox({
-      items: visibleMedia.map((m) => ({ url: m.url, caption: m.caption, kind: m.mediaType })),
+      items: visibleMedia.map((m) => ({ url: m.url, caption: pick(m.caption, m.captionRu), kind: m.mediaType })),
       index,
     });
   }
@@ -86,17 +90,17 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
       <PresentationHeader />
 
       {/* ---------- Hero ---------- */}
-      <section className="relative isolate flex min-h-[calc(100svh-4rem-1px)] items-end overflow-hidden bg-[#111813] text-white">
+      <section className="relative isolate flex min-h-[calc(100svh-4rem-1px)] items-end overflow-hidden bg-ink text-white">
         <div className="absolute inset-0 -z-10 animate-ken-burns">
           <SafeImage
             src={menu.coverImageUrl}
             fallbacks={menu.media.filter((m) => m.mediaType === "PHOTO").map((m) => m.url)}
-            alt={menu.name}
+            alt={pick(menu.name, menu.nameRu)}
             className="h-full w-full object-cover"
           />
         </div>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#111813] via-[#111813]/65 to-[#111813]/45" />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(17,24,19,0.35),transparent)]" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/65 to-ink/45" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(14,12,9,0.35),transparent)]" />
 
         <div className="absolute inset-x-0 top-4 mx-auto w-full max-w-5xl px-4 sm:top-6 sm:px-6 2xl:max-w-7xl">
           <Link
@@ -108,26 +112,26 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
         </div>
 
         <div className="mx-auto w-full max-w-5xl px-4 pb-14 pt-24 text-center sm:px-6 sm:pb-20 2xl:max-w-6xl 2xl:pb-28 [@media(max-height:620px)]:pb-8 [@media(max-height:620px)]:pt-20">
-          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-[#c5d4c9] animate-fade-up">
+          <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-champagne animate-fade-up">
             {t("common.brand")} · {t("presentation.eyebrow")}
           </p>
           <h1 className="font-display mt-5 text-[clamp(2.6rem,min(9vw,11svh),8.5rem)] font-semibold leading-[0.95] tracking-tight lining-nums [overflow-wrap:anywhere] animate-fade-up [@media(max-height:620px)]:mt-3">
-            {menu.name}
+            {pick(menu.name, menu.nameRu)}
           </h1>
           {menu.isVip && (
-            <span className="mt-5 inline-flex items-center rounded-full border border-[#c5d4c9]/50 bg-[#c5d4c9]/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[#e4eee7]">
+            <span className="mt-5 inline-flex items-center rounded-full border border-champagne/50 bg-champagne/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-pearl">
               {t("common.vip")}
             </span>
           )}
-          <OrnamentDivider className="mt-7 text-[#8fa898] [@media(max-height:620px)]:mt-4" />
+          <OrnamentDivider className="mt-7 text-gold [@media(max-height:620px)]:mt-4" />
           <div className="mt-6 animate-soft-scale [@media(max-height:620px)]:mt-3">
             <p className="font-display text-gilded text-[clamp(3rem,min(8vw,10svh),7.5rem)] font-semibold lining-nums tabular-nums leading-none">{priceDigits}</p>
             <p className="mt-2 text-sm uppercase tracking-[0.3em] text-white/70">
               {somLabel} · {t("presentation.perGuest")}
             </p>
           </div>
-          {menu.description && (
-            <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg 2xl:max-w-2xl 2xl:text-xl [@media(max-height:620px)]:hidden">{menu.description}</p>
+          {(menu.description || menu.descriptionRu) && (
+            <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg 2xl:max-w-2xl 2xl:text-xl [@media(max-height:620px)]:hidden">{pick(menu.description, menu.descriptionRu)}</p>
           )}
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2 text-sm text-white/80 [@media(max-height:620px)]:mt-4">
             <span className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 backdrop-blur">
@@ -213,16 +217,16 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
                               <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full sm:h-16 sm:w-16 2xl:h-20 2xl:w-20 ring-1 ring-accent/30 ring-offset-2 ring-offset-card transition group-hover:ring-accent/70">
                                 <SafeImage
                                   src={dish.photoUrl}
-                                  alt={dish.name}
+                                  alt={pick(dish.name, dish.nameRu)}
                                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                   fallbackIcon={<UtensilsCrossed className="h-4 w-4" />}
                                   onBroken={dish.photoUrl ? () => markBroken(dish.photoUrl!) : undefined}
                                 />
                               </span>
                               <span className="min-w-0">
-                                <span className="font-display block text-xl font-semibold leading-tight min-[400px]:text-2xl 2xl:text-3xl">{dish.name}</span>
-                                {dish.description && (
-                                  <span className="mt-0.5 block text-sm italic text-muted-foreground">{dish.description}</span>
+                                <span className="font-display block text-xl font-semibold leading-tight min-[400px]:text-2xl 2xl:text-3xl">{pick(dish.name, dish.nameRu)}</span>
+                                {(dish.description || dish.descriptionRu) && (
+                                  <span className="mt-0.5 block text-sm italic text-muted-foreground">{pick(dish.description, dish.descriptionRu)}</span>
                                 )}
                               </span>
                             </button>
@@ -293,30 +297,23 @@ export function MenuShowcaseDetail({ menu }: { menu: Menu }) {
                     )}
                   >
                     {item.mediaType === "VIDEO" || /\.(?:mp4|mov)(?:$|\?)/i.test(item.url) ? (
-                      <video
-                        src={item.url}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="pointer-events-none h-full w-full object-cover"
-                      />
+                      <InViewVideo src={item.url} className="pointer-events-none h-full w-full object-cover" />
                     ) : (
                       <SafeImage
                         src={item.url}
-                        alt={item.caption ?? ""}
+                        alt={pick(item.caption, item.captionRu)}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         onBroken={() => markBroken(item.url)}
                       />
                     )}
                     <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-80 transition-opacity group-hover:opacity-100" />
                     <span className="pointer-events-none absolute inset-x-0 bottom-0 p-3 sm:p-4">
-                      <span className="block text-[10px] font-medium uppercase tracking-[0.25em] text-[#c5d4c9]">
+                      <span className="block text-[10px] font-medium uppercase tracking-[0.25em] text-champagne">
                         {t(`mediaSections.${item.section}`)}
                       </span>
-                      {item.caption && (
+                      {(item.caption || item.captionRu) && (
                         <span className="font-display mt-0.5 block text-lg font-semibold leading-tight text-white sm:text-xl">
-                          {item.caption}
+                          {pick(item.caption, item.captionRu)}
                         </span>
                       )}
                     </span>

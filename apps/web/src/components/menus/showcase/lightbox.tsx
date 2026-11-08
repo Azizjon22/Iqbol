@@ -31,6 +31,7 @@ export function Lightbox({
   const fromSwipe = useRef(false);
   const programmatic = useRef(false);
   const settle = useRef<number | undefined>(undefined);
+  // Kept in a ref for the scroll handlers; written after render, not during it.
   useLayoutEffect(() => {
     indexRef.current = index;
   }, [index]);
@@ -130,7 +131,7 @@ export function Lightbox({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#1a221c] text-white"
+          className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-ink-soft text-white"
           aria-label={t("presentation.close")}
         >
           <X className="h-5 w-5" />
@@ -154,7 +155,16 @@ export function Lightbox({
           {items.map((slide, i) => (
             <div key={slide.id ?? `${slide.url}-${i}`} className="flex min-w-full max-w-full shrink-0 grow-0 basis-full snap-start snap-always items-center justify-center px-3 sm:px-8">
               {slide.kind === "VIDEO" ? (
-                <SlideVideo key={slide.url} src={slide.url} active={i === index} />
+                <video
+                  key={slide.url}
+                  src={slide.url}
+                  controls
+                  // Only the slide in front downloads and plays; its neighbours wait.
+                  autoPlay={i === index}
+                  preload={i === index ? "auto" : "none"}
+                  playsInline
+                  className="max-h-[62vh] max-w-full rounded-lg"
+                />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -191,35 +201,5 @@ export function Lightbox({
         )}
       </div>
     </Portal>
-  );
-}
-
-/**
- * Only the slide in view plays and buffers; swiping away pauses it, and the
- * others fetch just their first frame instead of the whole file.
- */
-function SlideVideo({ src, active }: { src: string; active: boolean }) {
-  const ref = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = ref.current;
-    if (!video) return;
-    if (active) {
-      // Autoplay can be refused (e.g. low-power mode); controls stay usable.
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [active]);
-
-  return (
-    <video
-      ref={ref}
-      src={src}
-      controls
-      playsInline
-      preload={active ? "auto" : "metadata"}
-      className="max-h-[62vh] max-w-full rounded-lg"
-    />
   );
 }

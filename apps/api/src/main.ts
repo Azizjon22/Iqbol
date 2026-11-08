@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -26,11 +27,17 @@ function assertProductionSecretsAreReal() {
 
 async function bootstrap() {
   assertProductionSecretsAreReal();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Number of proxies in front of the API whose X-Forwarded-For is believed
+  // (1 = the web server). Set only when the API is unreachable from outside,
+  // as in docker-compose.prod.yml — otherwise anyone could fake their IP.
+  const trustProxy = Number(process.env.TRUST_PROXY ?? 0);
+  if (trustProxy > 0) app.set('trust proxy', trustProxy);
 
   app.use(helmet());
   app.enableCors({
-    origin: process.env.WEB_ORIGIN ?? 'http://localhost:3100',
+    origin: process.env.WEB_ORIGIN ?? 'http://localhost:3010',
     credentials: true,
   });
   app.setGlobalPrefix('api');
@@ -42,8 +49,7 @@ async function bootstrap() {
     }),
   );
 
-  // Runs onModuleDestroy on SIGTERM so background ffmpeg jobs stop with the API.
   app.enableShutdownHooks();
-  await app.listen(process.env.PORT ?? 3101);
+  await app.listen(process.env.PORT ?? 3011);
 }
 bootstrap();

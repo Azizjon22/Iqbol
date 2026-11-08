@@ -34,7 +34,8 @@ const EXTENSION_CONTENT_TYPES: Record<string, string> = {
 const FOLDERS = ['workers', 'menus', 'inventory', 'branding'] as const;
 type UploadFolder = (typeof FOLDERS)[number];
 
-const MAX_BYTES = 200 * 1024 * 1024;
+const IMAGE_MAX_BYTES = 80 * 1024 * 1024;
+const VIDEO_MAX_BYTES = 200 * 1024 * 1024;
 
 interface UploadToken {
   purpose: 'upload';
@@ -149,8 +150,13 @@ export class UploadsService {
       throw new BadRequestException('Fayl turi mos kelmaydi');
     }
     if (body.length === 0) throw new BadRequestException("Fayl bo'sh");
-    if (body.length > MAX_BYTES)
-      throw new PayloadTooLargeException('Fayl 200 MB dan katta');
+    const video = contentType.startsWith('video/');
+    const maxBytes = video ? VIDEO_MAX_BYTES : IMAGE_MAX_BYTES;
+    if (body.length > maxBytes) {
+      throw new PayloadTooLargeException(
+        video ? 'Video 200 MB dan katta' : 'Fayl 80 MB dan katta',
+      );
+    }
 
     const absolute = this.assertKey(payload.key);
     await mkdir(path.dirname(absolute), { recursive: true });
@@ -174,43 +180,55 @@ export class UploadsService {
   }
 
   /**
-   * Fire-and-forget: if `publicUrl` is a local video that isn't H.264 (e.g.
-   * an iPhone's HEVC .mov, unplayable in most browsers), transcodes it to
-   * H.264 MP4 in the background and calls `onDone` once it settles. Returns
-   * true if transcoding started — the caller should mark its row PROCESSING
-   * — or false when nothing needed to happen (not a local upload, or
-   * already H.264), in which case the caller should leave it READY.
+   * Makes an uploaded video play everywhere, start at once and run smoothly:
+   * see VideoTranscodeService.plan for when the picture is left untouched.
+   *
+   * Returns false when nothing needs doing (not a local upload, or already
+   * ideal) — the caller leaves its row READY. Otherwise the work runs in the
+   * background, the caller marks its row PROCESSING, and `onDone` is called
+   * with the new address, or a failure, once it settles. The original is
+   * kept until its replacement is complete.
    */
-  async maybeTranscodeVideo(
+  async prepareVideo(
     publicUrl: string,
     onDone: (
       result: { ok: true; url: string } | { ok: false },
-    ) => Promise<void>,
+    ) => Promise<unknown>,
   ): Promise<boolean> {
     const match = /^\/uploads\/(.+)$/.exec(publicUrl);
-    if (!match) return false; // S3/external URL — nothing we can transcode locally
+    if (!match) return false; // S3 or an outside address: not ours to rewrite
 
-    const inputPath = this.assertKey(match[1]);
+    let inputPath: string;
+    try {
+      inputPath = this.assertKey(match[1]);
+    } catch {
+      return false;
+    }
     const probe = await this.transcode.probe(inputPath);
-    if (!probe || !this.transcode.needsProcessing(probe)) return false;
+    if (!probe) return false;
+    const plan = await this.transcode.plan(inputPath, probe);
+    if (plan.action === 'keep') return false;
 
-    // Always a fresh name — the input may already be a .mp4 (e.g. H.264 but
-    // under-resolution), and ffmpeg refuses to write over its own input.
-    const folder = match[1].split('/')[0];
-    const newKey = `${folder}/${randomUUID()}.mp4`;
+    // Always a fresh name: ffmpeg cannot write over its own input, and a new
+    // address also means no browser keeps showing a cached old copy.
+    const newKey = `${match[1].split('/')[0]}/${randomUUID()}.mp4`;
     const outputPath = this.assertKey(newKey);
+    const work =
+      plan.action === 'remux'
+        ? this.transcode.remux(inputPath, outputPath)
+        : this.transcode.transcode(inputPath, outputPath, plan.scale);
 
-    this.transcode
-      .transcodeToH264(inputPath, outputPath, probe)
+    work
       .then(async () => {
-        await unlink(inputPath).catch(() => {});
         await onDone({ ok: true, url: `/uploads/${newKey}` });
+        await unlink(inputPath).catch(() => undefined);
       })
       .catch(async (error: unknown) => {
         this.logger.error(
-          `Transcode failed for ${inputPath}: ${String(error)}`,
+          `Video ${plan.action} failed for ${inputPath}: ${String(error)}`,
         );
-        await onDone({ ok: false });
+        await unlink(outputPath).catch(() => undefined);
+        await Promise.resolve(onDone({ ok: false })).catch(() => undefined);
       });
 
     return true;

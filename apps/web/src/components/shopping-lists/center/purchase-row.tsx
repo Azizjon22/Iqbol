@@ -1,5 +1,6 @@
 "use client";
 import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -32,6 +33,7 @@ export function PurchaseRow({
   canFixPrice: boolean;
 }) {
   const tr = useTr();
+  const pick = usePick();
   const locale = useLocale().locale;
 
   const router = useRouter();
@@ -84,7 +86,7 @@ export function PurchaseRow({
         <span className="relative h-11 w-11 shrink-0">
           {catalog?.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={catalog.photoUrl} alt={item.name} className="h-11 w-11 rounded-xl object-cover" />
+            <img src={catalog.photoUrl} alt={pick(item.name, item.nameRu)} className="h-11 w-11 rounded-xl object-cover" />
           ) : (
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
               {catalog?.productCategory ? (
@@ -101,10 +103,10 @@ export function PurchaseRow({
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className={cn("truncate text-sm font-medium", item.isPurchased && "text-muted-foreground")}>{item.name}</p>
+          <p className={cn("truncate text-sm font-medium", item.isPurchased && "text-muted-foreground")}>{pick(item.name, item.nameRu)}</p>
           <p className="text-xs text-muted-foreground">
             <ItemQuantity item={item} />
-            {item.note && ` · ${item.note}`}
+            {(item.note || item.noteRu) && ` · ${pick(item.note, item.noteRu)}`}
           </p>
         </div>
         {item.isPurchased ? (

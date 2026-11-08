@@ -3,6 +3,7 @@ import type { WorkerSummary } from "@/lib/types";
 export interface UpcomingAssignment {
   id: string;
   clientName: string;
+  clientNameRu?: string | null;
   eventDate: string;
 }
 
@@ -14,6 +15,7 @@ export interface TeamWorker extends WorkerSummary {
 export interface StaffingEvent {
   id: string;
   clientName: string;
+  clientNameRu?: string | null;
   eventDate: string;
   guestCount: number;
   assignedWorkerIds: string[];

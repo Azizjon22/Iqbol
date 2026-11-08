@@ -6,18 +6,23 @@ import { useRouter } from "next/navigation";
 import { WORKER_GENDERS, WORKER_POSITIONS, workerRegisterSchema } from "@iqbol/shared";
 import { Input, Label, Select, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useT } from "@/components/i18n/locale-provider";
+import { useT, useTr } from "@/components/i18n/locale-provider";
 
 export function RegisterForm() {
+  const tr = useTr();
+
   const t = useT();
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [position, setPosition] = useState<(typeof WORKER_POSITIONS)[number]>("WAITER_MALE");
   const [gender, setGender] = useState<(typeof WORKER_GENDERS)[number]>("MALE");
+  const [pin, setPin] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+
+  const needsPin = position === "CHEF";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,14 +33,16 @@ export function RegisterForm() {
       phone,
       position,
       gender,
+      pin: needsPin ? pin : undefined,
     });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri");
+      setError(parsed.error.issues[0]?.message ?? tr("Ma'lumotlar noto'g'ri"));
       return;
     }
 
     setSubmitting(true);
     try {
+      // Through this site's own server: the API is not reachable from browsers.
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,7 +50,7 @@ export function RegisterForm() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.message ?? "Ro'yxatdan o'tishda xatolik yuz berdi");
+        throw new Error(body?.message ?? tr("Ro'yxatdan o'tishda xatolik yuz berdi"));
       }
       setDone(true);
       setTimeout(() => router.push("/login"), 2500);
@@ -57,16 +64,17 @@ export function RegisterForm() {
   if (done) {
     return (
       <div className="w-full max-w-sm rounded-lg border border-success/30 bg-success/10 p-6 text-center">
-        <p className="font-medium text-success">Muvaffaqiyatli ro&apos;yxatdan o&apos;tdingiz!</p>
+        <p className="font-medium text-success">{tr("Muvaffaqiyatli ro'yxatdan o'tdingiz!")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Administrator tasdiqlashini kuting. Hozir kirish sahifasiga yo&apos;naltirilasiz.
+          
+          {tr("Administrator tasdiqlashini kuting. Hozir kirish sahifasiga yo'naltirilasiz.")}
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
+    <form suppressHydrationWarning onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
       <div>
         <Label htmlFor="fullName">{t("workers.fullName")}</Label>
         <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
@@ -88,8 +96,7 @@ export function RegisterForm() {
           value={position}
           onChange={(e) => setPosition(e.target.value as typeof position)}
         >
-          {/* Chefs are added by the super admin, never through this public form. */}
-          {WORKER_POSITIONS.filter((p) => p !== "CHEF").map((p) => (
+          {WORKER_POSITIONS.map((p) => (
             <option key={p} value={p}>
               {t(`workerPositions.${p}`)}
             </option>
@@ -110,6 +117,20 @@ export function RegisterForm() {
           ))}
         </Select>
       </div>
+      {needsPin && (
+        <div>
+          <Label htmlFor="pin">{t("auth.pin")}</Label>
+          <Input
+            id="pin"
+            inputMode="numeric"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            placeholder="****"
+            required={needsPin}
+          />
+        </div>
+      )}
       <FieldError>{error}</FieldError>
       <Button type="submit" className="w-full" disabled={submitting}>
         {submitting ? t("common.loading") : t("auth.register")}

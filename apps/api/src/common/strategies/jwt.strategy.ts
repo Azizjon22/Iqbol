@@ -29,6 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (payload.kind === 'STAFF') {
       const staff = await this.prisma.staffUser.findUnique({
         where: { id: payload.sub },
+        select: { isActive: true, tokenVersion: true, role: true },
       });
       if (
         !staff ||
@@ -37,19 +38,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ) {
         throw new UnauthorizedException('Sessiya endi amal qilmaydi');
       }
-    } else {
-      const worker = await this.prisma.worker.findUnique({
-        where: { id: payload.sub },
-      });
-      if (
-        !worker ||
-        worker.status !== 'APPROVED' ||
-        worker.position !== 'CHEF' ||
-        worker.tokenVersion !== payload.tokenVersion
-      ) {
-        throw new UnauthorizedException('Sessiya endi amal qilmaydi');
-      }
-      return { ...payload, position: worker.position };
+      return payload;
+    }
+    const worker = await this.prisma.worker.findUnique({
+      where: { id: payload.sub },
+      select: { status: true, tokenVersion: true, position: true },
+    });
+    if (
+      !worker ||
+      worker.status !== 'APPROVED' ||
+      // Only chefs have an app; a waiter's old token stops working.
+      worker.position !== 'CHEF' ||
+      worker.tokenVersion !== payload.tokenVersion
+    ) {
+      throw new UnauthorizedException('Sessiya endi amal qilmaydi');
     }
     return payload;
   }

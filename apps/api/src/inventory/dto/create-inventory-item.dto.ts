@@ -7,6 +7,7 @@ import {
   IsString,
   Min,
   MinLength,
+  Max,
 } from 'class-validator';
 import { IsMediaUrl } from '../../common/validators/is-media-url';
 
@@ -14,6 +15,10 @@ export class CreateInventoryItemDto {
   @IsString()
   @MinLength(2)
   name!: string;
+
+  @IsString()
+  @MinLength(2)
+  nameRu!: string;
 
   @IsOptional()
   @IsEnum(InventoryCategory)
@@ -34,12 +39,14 @@ export class CreateInventoryItemDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
+  @Max(100_000_000, { message: 'Miqdor juda katta' })
   quantity?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
+  @Max(100_000_000, { message: 'Miqdor juda katta' })
   minThreshold?: number;
 
   /** Price per unit of the opening stock. Honoured for the super admin only. */

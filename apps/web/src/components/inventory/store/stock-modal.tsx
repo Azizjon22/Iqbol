@@ -1,4 +1,6 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,6 +10,8 @@ import type { InventoryItem, UpcomingEvent } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
+import { usePick } from "@/components/i18n/use-pick";
 import { formatDate, cn } from "@/lib/utils";
 import { inventoryApi, qty } from "./helpers";
 
@@ -34,18 +38,23 @@ export function StockModal({
   canSeePrices: boolean;
   onClose: () => void;
 }) {
+  const tr = useTr();
+  const pick = usePick();
+  const locale = useLocale().locale;
+
   const router = useRouter();
   const [mode, setMode] = useState<StockMode>(initialMode);
   const [amount, setAmount] = useState(initialMode === "COUNT" ? String(Number(item.quantity)) : "");
   const [eventId, setEventId] = useState("");
   const [note, setNote] = useState("");
+  const [noteRu, setNoteRu] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | undefined>();
   // Price lots, oldest first; the newest one's price is the going price.
   const lots = item.lots ?? [];
   const lastPrice = lots.length > 0 ? lots[lots.length - 1].unitPrice : null;
   const [price, setPrice] = useState(lastPrice ? String(Number(lastPrice)) : "");
   const [lotPrices, setLotPrices] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | undefined>();
 
   const current = Number(item.quantity);
   const value = Number(amount.replace(",", "."));
@@ -54,7 +63,7 @@ export function StockModal({
   const overdraw = mode === "OUT" && valid && after < 0;
   const dishware = item.category === "DISHWARE";
   const presets = item.unit === "DONA" ? [10, 50, 100] : [1, 5, 10, 25];
-  const unit = UNIT_LABELS_UZ[item.unit];
+  const unit = tr(UNIT_LABELS_UZ[item.unit]);
 
   function switchMode(next: StockMode) {
     setMode(next);
@@ -68,15 +77,19 @@ export function StockModal({
     setError(undefined);
     const event = events.find((e) => e.id === eventId);
     const fullNote = [event ? `To'y: ${event.clientName}` : "", note.trim()].filter(Boolean).join(" — ");
+    const fullNoteRu = noteRu.trim()
+      ? [event ? `Свадьба: ${event.clientNameRu?.trim() || event.clientName}` : "", noteRu.trim()].filter(Boolean).join(" — ")
+      : undefined;
     try {
       if (mode === "COUNT") {
-        await inventoryApi(`/${item.id}/count`, "POST", { actual: value, note: fullNote || undefined });
+        await inventoryApi(`/${item.id}/count`, "POST", { actual: value, note: fullNote || undefined, noteRu: fullNoteRu });
       } else {
         const unitPrice = Number(price.replace(/\s/g, "").replace(",", "."));
         await inventoryApi(`/${item.id}/transactions`, "POST", {
           type: mode,
           quantity: value,
           note: fullNote || undefined,
+          noteRu: fullNoteRu,
           ...(mode === "IN" && canSeePrices && unitPrice > 0 ? { unitPrice } : {}),
         });
       }
@@ -113,16 +126,17 @@ export function StockModal({
     <Modal
       open
       onClose={onClose}
-      title={item.name}
-      description={`Hozirgi qoldiq: ${qty(item.quantity, item.unit)}`}
+      title={pick(item.name, item.nameRu)}
+      description={tr(`Hozirgi qoldiq: ${qty(item.quantity, item.unit)}`)}
       size="md"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Bekor qilish
+            
+            {tr("Bekor qilish")}
           </Button>
           <Button type="button" onClick={submit} disabled={busy || !valid || overdraw || noChange}>
-            {busy ? "Saqlanmoqda..." : mode === "IN" ? "Kirim qilish" : mode === "OUT" ? "Chiqim qilish" : "Qoldiqni tasdiqlash"}
+            {busy ? tr("Saqlanmoqda...") : mode === "IN" ? tr("Kirim qilish") : mode === "OUT" ? tr("Chiqim qilish") : tr("Qoldiqni tasdiqlash")}
           </Button>
         </>
       }
@@ -138,14 +152,14 @@ export function StockModal({
               mode === m.key ? cn(m.tone, "shadow-sm") : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {m.icon} {m.label}
+            {m.icon} {tr(m.label)}
           </button>
         ))}
       </div>
 
       <div className="mt-5">
         <Label htmlFor="stock-amount">
-          {mode === "COUNT" ? "Omborda haqiqatda qancha bor?" : mode === "IN" ? "Qancha keldi?" : dishware ? "Qancha chiqdi / sindi?" : "Qancha ishlatildi?"}
+          {mode === "COUNT" ? tr("Omborda haqiqatda qancha bor?") : mode === "IN" ? "Qancha keldi?" : dishware ? "Qancha chiqdi / sindi?" : "Qancha ishlatildi?"}
         </Label>
         <div className="relative">
           <Input
@@ -177,7 +191,8 @@ export function StockModal({
                 onClick={() => setAmount(String(current))}
                 className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
               >
-                Hammasi
+                
+                {tr("Hammasi")}
               </button>
             )}
           </div>
@@ -186,48 +201,50 @@ export function StockModal({
 
       {mode === "IN" && canSeePrices && !dishware && (
         <div className="mt-4">
-          <Label htmlFor="stock-price">1 {unit} narxi, so&apos;m</Label>
+          <Label htmlFor="stock-price">{tr(`1 ${unit} narxi, so'm`)}</Label>
           <Input
             id="stock-price"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             inputMode="decimal"
-            placeholder="masalan: 15000"
+            placeholder={tr("masalan: 15000")}
             className="tabular-nums"
           />
           <p className={cn("mt-1 text-xs", priceChanged ? "text-accent" : "text-muted-foreground")}>
             {priceChanged
-              ? `Narx o'zgargan (oldin ${Number(lastPrice).toLocaleString("ru-RU")} so'm): bu kirim alohida partiya bo'lib turadi, avval eski narxdagisi sarflanadi.`
+              ? tr(`Narx o'zgargan (oldin ${Number(lastPrice).toLocaleString("ru-RU")} so'm): bu kirim alohida partiya bo'lib turadi, avval eski narxdagisi sarflanadi.`)
               : lastPrice !== null
-                ? `Oxirgi narx: ${Number(lastPrice).toLocaleString("ru-RU")} so'm. Narx o'zgargan bo'lsa, yangisini yozing.`
-                : "Narx kiritilsa, to'yga olinganda tannarxi hisoblanadi."}
+                ? tr(`Oxirgi narx: ${Number(lastPrice).toLocaleString("ru-RU")} so'm. Narx o'zgargan bo'lsa, yangisini yozing.`)
+                : tr("Narx kiritilsa, to'yga olinganda tannarxi hisoblanadi.")}
           </p>
         </div>
       )}
 
       {mode === "OUT" && !dishware && events.length > 0 && (
         <div className="mt-4">
-          <Label htmlFor="stock-event">Qaysi to&apos;y uchun? (ixtiyoriy)</Label>
+          <Label htmlFor="stock-event">{tr("Qaysi to'y uchun? (ixtiyoriy)")}</Label>
           <Select id="stock-event" value={eventId} onChange={(e) => setEventId(e.target.value)}>
             <option value="">— tanlanmagan —</option>
             {events.map((e) => (
               <option key={e.id} value={e.id}>
-                {formatDate(e.eventDate)} — {e.clientName}
+                {formatDate(e.eventDate, locale)} — {pick(e.clientName, e.clientNameRu)}
               </option>
             ))}
           </Select>
         </div>
       )}
 
-      <div className="mt-4">
-        <Label htmlFor="stock-note">Izoh (ixtiyoriy)</Label>
-        <Input
-          id="stock-note"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder={mode === "IN" ? "masalan: Chorsu bozoridan" : mode === "OUT" ? (dishware ? "masalan: 3 ta singan" : "masalan: oshxonaga") : "masalan: oylik sanoq"}
-        />
-      </div>
+      <BilingualField
+        name="stock-note"
+        submit={false}
+        label={tr("Izoh (ixtiyoriy)")}
+        className="mt-4"
+        placeholder={mode === "IN" ? tr("masalan: Chorsu bozoridan") : mode === "OUT" ? (dishware ? "masalan: 3 ta singan" : "masalan: oshxonaga") : "masalan: oylik sanoq"}
+        onValues={(uz, ru) => {
+          setNote(uz);
+          setNoteRu(ru);
+        }}
+      />
 
       <div
         className={cn(
@@ -235,27 +252,28 @@ export function StockModal({
           overdraw ? "border-destructive/40 bg-destructive/10" : "border-border bg-muted/40",
         )}
       >
-        <span className="tabular-nums text-muted-foreground">{qty(current, item.unit)}</span>
+        <span className="tabular-nums text-muted-foreground">{tr(qty(current, item.unit))}</span>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <span className={cn("text-base font-semibold tabular-nums", overdraw ? "text-destructive" : after > current ? "text-success" : after < current ? "text-accent" : "")}>
-          {overdraw ? "Yetarli emas" : qty(after, item.unit)}
+          {overdraw ? tr("Yetarli emas") : tr(qty(after, item.unit))}
         </span>
       </div>
-      {noChange && <p className="mt-2 text-center text-xs text-muted-foreground">Sanoq hisob bilan bir xil — o&apos;zgarish yo&apos;q.</p>}
+      {noChange && <p className="mt-2 text-center text-xs text-muted-foreground">{tr("Sanoq hisob bilan bir xil — o'zgarish yo'q.")}</p>}
+      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
       {canSeePrices && !dishware && lots.length > 0 && (
         <div className="mt-5 rounded-xl border border-border p-3">
-          <p className="text-sm font-semibold">Narx bo&apos;yicha qoldiq</p>
-          <p className="mb-2 text-xs text-muted-foreground">Yuqoridagisi birinchi sarflanadi.</p>
+          <p className="text-sm font-semibold">{tr("Narx bo'yicha qoldiq")}</p>
+          <p className="mb-2 text-xs text-muted-foreground">{tr("Yuqoridagisi birinchi sarflanadi.")}</p>
           <ul className="space-y-1.5">
             {lots.map((lot) => (
               <li key={lot.id} className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="w-24 shrink-0 font-medium tabular-nums">{qty(lot.quantity, item.unit)}</span>
+                <span className="w-24 shrink-0 font-medium tabular-nums">{tr(qty(lot.quantity, item.unit))}</span>
                 {lot.unitPrice !== null ? (
                   <>
-                    <span className="text-muted-foreground tabular-nums">× {Number(lot.unitPrice).toLocaleString("ru-RU")} so&apos;m</span>
+                    <span className="text-muted-foreground tabular-nums">× {Number(lot.unitPrice).toLocaleString("ru-RU")} {tr("so'm")}</span>
                     <span className="ml-auto font-medium tabular-nums">
-                      {Math.round(Number(lot.unitPrice) * Number(lot.quantity)).toLocaleString("ru-RU")} so&apos;m
+                      {Math.round(Number(lot.unitPrice) * Number(lot.quantity)).toLocaleString("ru-RU")} {tr("so'm")}
                     </span>
                   </>
                 ) : (
@@ -264,12 +282,12 @@ export function StockModal({
                       value={lotPrices[lot.id] ?? ""}
                       onChange={(e) => setLotPrices((prev) => ({ ...prev, [lot.id]: e.target.value }))}
                       inputMode="decimal"
-                      placeholder={`1 ${unit} narxi`}
+                      placeholder={tr(`1 ${unit} narxi`)}
                       className="h-9 min-w-0 flex-1 tabular-nums"
-                      aria-label="Partiya narxi"
+                      aria-label={tr("Partiya narxi")}
                     />
                     <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => saveLotPrice(lot.id)}>
-                      Narxni saqlash
+                      {tr("Narxni saqlash")}
                     </Button>
                   </>
                 )}
@@ -278,7 +296,6 @@ export function StockModal({
           </ul>
         </div>
       )}
-      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
     </Modal>
   );
 }

@@ -11,5 +11,11 @@
     "prisma:seed": "pnpm --filter @iqbol/api prisma:seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
+  },
+  "pnpm": {
+    "overrides": {
+      "multer": "^2.3.0",
+      "lodash": "^4.18.0"
+    }
   }
 }

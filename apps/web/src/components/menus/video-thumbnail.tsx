@@ -68,7 +68,8 @@ export function VideoThumbnail({
               controls
               autoPlay
               playsInline
-              className="max-h-[85dvh] w-full max-w-4xl rounded-lg"
+              preload="auto"
+              className="max-h-[85vh] w-full max-w-4xl rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
           </div>

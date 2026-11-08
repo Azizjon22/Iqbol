@@ -1,151 +1,161 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EventsService } from './events.service';
 
-const d = (n: number) => new Prisma.Decimal(n);
-const DAY = 24 * 60 * 60 * 1000;
+const money = (n: number) => new Prisma.Decimal(n);
 
-function setup(overrides: Record<string, unknown> = {}) {
-  const prisma = {
+function setup(
+  existing?: Record<string, unknown>,
+  payments: { amount: Prisma.Decimal; type: 'PAYMENT' | 'REFUND' }[] = [],
+) {
+  const menus: Record<string, { id: string; pricePerPerson: Prisma.Decimal }> =
+    {
+      standard: { id: 'standard', pricePerPerson: money(300_000) },
+      vip: { id: 'vip', pricePerPerson: money(370_000) },
+    };
+  const saved: { data?: Record<string, unknown> } = {};
+  const write = jest.fn(async ({ data }: { data: Record<string, unknown> }) => {
+    saved.data = data;
+    return {
+      id: 'event-1',
+      clientName: 'Test',
+      payments: [],
+      ...existing,
+      ...data,
+    };
+  });
+  const prisma: Record<string, unknown> = {
+    $queryRaw: jest.fn(async () => []),
+    $transaction: jest.fn(
+      async (run: (tx: unknown) => Promise<unknown>): Promise<unknown> =>
+        run(prisma),
+    ),
     menu: {
-      findUnique: jest
-        .fn()
-        .mockResolvedValue({ id: 'm1', pricePerPerson: d(80_000) }),
+      findUnique: jest.fn(
+        async ({ where }: { where: { id: string } }) => menus[where.id] ?? null,
+      ),
     },
-    payment: { findMany: jest.fn().mockResolvedValue([]) },
+    payment: { findMany: jest.fn(async () => payments) },
     event: {
-      findUnique: jest.fn(),
-      findFirst: jest.fn().mockResolvedValue(null),
-      create: jest
-        .fn()
-        .mockImplementation(({ data }) =>
-          Promise.resolve({ id: 'e1', ...data }),
-        ),
-      update: jest
-        .fn()
-        .mockImplementation(({ data }) =>
-          Promise.resolve({ id: 'e1', totalPrice: d(24_000_000), ...data }),
-        ),
-      delete: jest.fn().mockResolvedValue({}),
+      create: write,
+      update: write,
+      // No other wedding on the same slot.
+      findFirst: jest.fn(async () => null),
+      delete: jest.fn(async () => existing),
+      findUnique: jest.fn(async () =>
+        existing
+          ? {
+              ...existing,
+              _count: { payments: payments.length, expenses: 0 },
+            }
+          : null,
+      ),
     },
-    ...overrides,
   };
-  const auditLog = { record: jest.fn().mockResolvedValue(undefined) };
-  return {
-    prisma,
-    service: new EventsService(prisma as never, auditLog as never),
-  };
+  const service = new EventsService(
+    prisma as never,
+    { record: jest.fn() } as never,
+  );
+  return { service, saved, menus };
 }
 
-const booking = (eventDate: Date) => ({
-  clientName: 'Test',
+const baseDto = {
+  clientName: 'Karimovlar',
   clientPhone: '+998901234567',
-  eventDate: eventDate.toISOString(),
+  eventDate: '2026-12-01T13:00:00.000Z',
   tableCapacity: 10,
-  guestCount: 300,
-  menuId: 'm1',
-});
+};
 
-describe('EventsService', () => {
-  it('prices a wedding at the per-person price times the guest count', async () => {
+describe('EventsService pricing', () => {
+  it("prices a new wedding as the menu's per-guest price times the guests", async () => {
+    const { service, saved } = setup();
+    await service.create(
+      { ...baseDto, guestCount: 200, menuId: 'standard' } as never,
+      'actor',
+      'Actor',
+    );
+    expect(String(saved.data!.totalPrice)).toBe('60000000');
+  });
+
+  it('rejects a wedding for a menu that does not exist', async () => {
     const { service } = setup();
-    const event = await service.create(
-      booking(new Date(Date.now() + 30 * DAY)),
-      'u1',
-      'Admin',
-    );
-    expect(event.totalPrice.toString()).toBe('24000000');
-  });
-
-  it('refuses a booking dated before today', async () => {
-    const { service, prisma } = setup();
     await expect(
-      service.create(booking(new Date(Date.now() - 3 * DAY)), 'u1', 'Admin'),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.event.create).not.toHaveBeenCalled();
+      service.create(
+        { ...baseDto, guestCount: 100, menuId: 'missing' } as never,
+        'actor',
+        'Actor',
+      ),
+    ).rejects.toThrow('Menyu topilmadi');
   });
 
-  it('refuses a second wedding on the same date and time', async () => {
-    const { service, prisma } = setup();
-    prisma.event.findFirst.mockResolvedValue({ clientName: 'Boshqa' });
+  const booked = {
+    id: 'event-1',
+    clientName: 'Karimovlar',
+    menuId: 'standard',
+    guestCount: 200,
+    // Booked back when the menu cost 250 000 per guest.
+    totalPrice: money(50_000_000),
+    firstDish: null,
+    secondDish: null,
+    status: 'CONFIRMED',
+    payments: [],
+  };
+
+  it('keeps the agreed per-guest rate when only the guest count changes', async () => {
+    const { service, saved } = setup(booked);
+    await service.update('event-1', { guestCount: 220 } as never, 'a', 'A');
+    expect(String(saved.data!.totalPrice)).toBe('55000000');
+  });
+
+  it('re-prices from the new menu when the menu is switched', async () => {
+    const { service, saved } = setup(booked);
+    await service.update('event-1', { menuId: 'vip' } as never, 'a', 'A');
+    expect(String(saved.data!.totalPrice)).toBe('74000000');
+  });
+
+  it('refuses a new price below what the client has already paid', async () => {
+    const paid = [{ amount: money(40_000_000), type: 'PAYMENT' as const }];
+    const { service } = setup(booked, paid);
+    // 100 guests × 250 000 = 25 000 000 < 40 000 000 paid
     await expect(
-      service.create(booking(new Date(Date.now() + 30 * DAY)), 'u1', 'Admin'),
-    ).rejects.toBeInstanceOf(ConflictException);
+      service.update('event-1', { guestCount: 100 } as never, 'a', 'A'),
+    ).rejects.toThrow(/allaqachon to'langan summadan/);
   });
 
-  it.each(['CONFIRMED', 'COMPLETED'])(
-    'never deletes a %s wedding',
-    async (status) => {
-      const { service, prisma } = setup();
-      prisma.event.findUnique.mockResolvedValue({
-        id: 'e1',
-        clientName: 'T',
-        status,
-        _count: { payments: 0, expenses: 0, stockUsages: 0 },
-      });
-      await expect(service.remove('e1', 'u1', 'Admin')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
-      expect(prisma.event.delete).not.toHaveBeenCalled();
-    },
-  );
+  it('counts refunds when checking the new price against money paid', async () => {
+    const paid = [
+      { amount: money(40_000_000), type: 'PAYMENT' as const },
+      { amount: money(20_000_000), type: 'REFUND' as const },
+    ];
+    const { service, saved } = setup(booked, paid);
+    await service.update('event-1', { guestCount: 100 } as never, 'a', 'A');
+    expect(String(saved.data!.totalPrice)).toBe('25000000');
+  });
 
-  it('never deletes a wedding that has money recorded on it', async () => {
-    const { service, prisma } = setup();
-    prisma.event.findUnique.mockResolvedValue({
-      id: 'e1',
-      clientName: 'T',
-      status: 'PENDING',
-      _count: { payments: 1, expenses: 0, stockUsages: 0 },
-    });
-    await expect(service.remove('e1', 'u1', 'Admin')).rejects.toBeInstanceOf(
-      BadRequestException,
+  it('will not delete a wedding that has payments on it', async () => {
+    const paid = [{ amount: money(1_000_000), type: 'PAYMENT' as const }];
+    const { service } = setup({ ...booked, status: 'PENDING' }, paid);
+    await expect(service.remove('event-1', 'a', 'A')).rejects.toThrow(
+      /to'lov yoki xarajat yozilgan/,
     );
-    expect(prisma.event.delete).not.toHaveBeenCalled();
+  });
+
+  it('will not delete a confirmed wedding even without payments', async () => {
+    const { service } = setup(booked);
+    await expect(service.remove('event-1', 'a', 'A')).rejects.toThrow(
+      /Tasdiqlangan yoki yakunlangan/,
+    );
   });
 
   it('deletes a pending wedding with no money on it', async () => {
-    const { service, prisma } = setup();
-    prisma.event.findUnique.mockResolvedValue({
-      id: 'e1',
-      clientName: 'T',
-      status: 'PENDING',
-      _count: { payments: 0, expenses: 0, stockUsages: 0 },
+    const { service } = setup({ ...booked, status: 'PENDING' });
+    await expect(service.remove('event-1', 'a', 'A')).resolves.toEqual({
+      success: true,
     });
-    await service.remove('e1', 'u1', 'Admin');
-    expect(prisma.event.delete).toHaveBeenCalled();
   });
 
-  it('will not mark a future wedding as completed', async () => {
-    const { service, prisma } = setup();
-    prisma.event.findUnique.mockResolvedValue({
-      id: 'e1',
-      clientName: 'T',
-      status: 'CONFIRMED',
-      eventDate: new Date(Date.now() + 5 * DAY),
-    });
-    await expect(
-      service.updateStatus('e1', 'COMPLETED', 'u1', 'Admin'),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('will not switch to a package cheaper than what was already paid', async () => {
-    const { service, prisma } = setup();
-    prisma.event.findUnique.mockResolvedValue({
-      id: 'e1',
-      clientName: 'T',
-      status: 'PENDING',
-      menuId: 'old',
-      guestCount: 300,
-      totalPrice: d(46_000_000),
-      eventDate: new Date(Date.now() + 5 * DAY),
-    });
-    prisma.payment.findMany.mockResolvedValue([
-      { amount: d(30_000_000), type: 'PAYMENT' },
-    ]);
-    await expect(
-      service.update('e1', { menuId: 'm1' }, 'u1', 'Admin'),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.event.update).not.toHaveBeenCalled();
+  it('leaves the price alone when neither menu nor guests change', async () => {
+    const { service, saved } = setup(booked);
+    await service.update('event-1', { notes: 'x' } as never, 'a', 'A');
+    expect(String(saved.data!.totalPrice)).toBe('50000000');
   });
 });

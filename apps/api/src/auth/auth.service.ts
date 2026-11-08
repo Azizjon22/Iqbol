@@ -33,14 +33,14 @@ export class AuthService {
   ) {}
 
   /** Throws while a `lockedUntil` timestamp is still in the future. */
-  private assertNotLocked(lockedUntil: Date | null, message: string) {
+  private assertNotLocked(lockedUntil: Date | null) {
     if (lockedUntil && lockedUntil > new Date()) {
       const minutesLeft = Math.max(
         1,
         Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000),
       );
       throw new UnauthorizedException(
-        `${message} ${minutesLeft} daqiqadan keyin qayta urinib ko'ring.`,
+        `Ko'p marta xato urinish sabab hisob vaqtincha bloklandi. ${minutesLeft} daqiqadan keyin qayta urinib ko'ring.`,
       );
     }
   }
@@ -64,10 +64,7 @@ export class AuthService {
     if (!staff || !staff.isActive) {
       throw new UnauthorizedException("Login yoki parol noto'g'ri");
     }
-    this.assertNotLocked(
-      staff.lockedUntil,
-      "Ko'p marta xato urinish sabab hisob vaqtincha bloklandi.",
-    );
+    this.assertNotLocked(staff.lockedUntil);
     const valid = await bcrypt.compare(dto.password, staff.passwordHash);
     if (!valid) {
       const failedLoginCount = staff.failedLoginCount + 1;
@@ -126,10 +123,7 @@ export class AuthService {
         "Hisobingiz hali tasdiqlanmagan. Administrator bilan bog'laning.",
       );
     }
-    this.assertNotLocked(
-      worker.lockedUntil,
-      "Ko'p marta xato urinish sabab hisob vaqtincha bloklandi.",
-    );
+    this.assertNotLocked(worker.lockedUntil);
     const valid = await bcrypt.compare(dto.pin, worker.pinHash);
     if (!valid) {
       const failedLoginCount = worker.failedLoginCount + 1;
@@ -274,6 +268,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
     const updated = await this.prisma.staffUser.update({
       where: { id: staff.id },
+      // Signs every other device out; this one gets fresh tokens below.
       data: {
         passwordHash,
         mustChangePassword: false,

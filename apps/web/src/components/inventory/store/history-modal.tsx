@@ -1,4 +1,7 @@
 "use client";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
+import { usePick } from "@/components/i18n/use-pick";
+
 
 import { useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
@@ -8,6 +11,10 @@ import { formatDateTime, cn } from "@/lib/utils";
 import { inventoryApi, qty } from "./helpers";
 
 export function TxnRow({ txn, unit, showItem }: { txn: InventoryTxn; unit: InventoryItem["unit"]; showItem?: boolean }) {
+  const tr = useTr();
+  const pick = usePick();
+  const locale = useLocale().locale;
+
   const inbound = txn.type === "IN";
   const fromList = txn.sourceShoppingListItem?.shoppingList;
   return (
@@ -22,20 +29,19 @@ export function TxnRow({ txn, unit, showItem }: { txn: InventoryTxn; unit: Inven
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm">
-          {showItem && txn.item && <span className="font-medium">{txn.item.name} </span>}
+          {showItem && txn.item && <span className="font-medium">{pick(txn.item.name, txn.item.nameRu)} </span>}
           <span className={cn("font-semibold tabular-nums", inbound ? "text-success" : "text-destructive")}>
             {inbound ? "+" : "−"}
-            {qty(txn.quantity, unit)}
+            {tr(qty(txn.quantity, unit))}
           </span>
         </p>
-        {(txn.note || fromList) && (
+        {(txn.note || txn.noteRu || fromList) && (
           <p className="truncate text-xs text-muted-foreground">
-            {txn.note ?? (fromList?.event ? `Bozorlik — ${fromList.event.clientName}` : "Bozorlik ro'yxatidan")}
+            {txn.note ? pick(txn.note, txn.noteRu) : fromList?.event ? tr(`Bozorlik — ${pick(fromList.event.clientName, fromList.event.clientNameRu)}`) : tr("Bozorlik ro'yxatidan")}
           </p>
         )}
         <p className="text-[11px] text-muted-foreground/80">
-          {formatDateTime(txn.createdAt)}
-          {txn.createdBy && ` · ${txn.createdBy.fullName}`}
+          {formatDateTime(txn.createdAt, locale)}{txn.createdBy && ` · ${txn.createdBy.fullName}`}
         </p>
       </div>
     </li>
@@ -43,6 +49,9 @@ export function TxnRow({ txn, unit, showItem }: { txn: InventoryTxn; unit: Inven
 }
 
 export function HistoryModal({ item, onClose }: { item: InventoryItem; onClose: () => void }) {
+  const tr = useTr();
+  const pick = usePick();
+
   const [txns, setTxns] = useState<InventoryTxn[] | null>(null);
   const [error, setError] = useState<string | undefined>();
 
@@ -56,7 +65,7 @@ export function HistoryModal({ item, onClose }: { item: InventoryItem; onClose: 
   const totalOut = (txns ?? []).filter((t) => t.type === "OUT").reduce((s, t) => s + Number(t.quantity), 0);
 
   return (
-    <Modal open onClose={onClose} title={`${item.name} — tarix`} description={`Hozirgi qoldiq: ${qty(item.quantity, item.unit)}`} size="md">
+    <Modal open onClose={onClose} title={`${pick(item.name, item.nameRu)} — ${tr("tarix")}`} description={tr(`Hozirgi qoldiq: ${qty(item.quantity, item.unit)}`)} size="md">
       {txns === null && !error && (
         <div className="flex justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -67,16 +76,16 @@ export function HistoryModal({ item, onClose }: { item: InventoryItem; onClose: 
         <>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl bg-success/10 px-3 py-2">
-              <p className="text-xs text-muted-foreground">Jami kirim</p>
-              <p className="font-semibold text-success tabular-nums">+{qty(totalIn, item.unit)}</p>
+              <p className="text-xs text-muted-foreground">{tr("Jami kirim")}</p>
+              <p className="font-semibold text-success tabular-nums">+{tr(qty(totalIn, item.unit))}</p>
             </div>
             <div className="rounded-xl bg-destructive/10 px-3 py-2">
-              <p className="text-xs text-muted-foreground">Jami chiqim</p>
-              <p className="font-semibold text-destructive tabular-nums">−{qty(totalOut, item.unit)}</p>
+              <p className="text-xs text-muted-foreground">{tr("Jami chiqim")}</p>
+              <p className="font-semibold text-destructive tabular-nums">−{tr(qty(totalOut, item.unit))}</p>
             </div>
           </div>
           {txns.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Hali kirim-chiqim bo&apos;lmagan.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{tr("Hali kirim-chiqim bo'lmagan.")}</p>
           ) : (
             <ul className="mt-3 divide-y divide-border">
               {txns.map((t) => (

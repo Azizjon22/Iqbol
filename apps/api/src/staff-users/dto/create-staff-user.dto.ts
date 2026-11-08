@@ -11,7 +11,7 @@ export class CreateStaffUserDto {
   phone!: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   password!: string;
 
   @IsEnum(StaffRole)

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useBrand } from "./brand-provider";
+import { usePick } from "@/components/i18n/use-pick";
 
 /**
  * The project's logo: the uploaded image when there is one, otherwise the
@@ -18,8 +19,9 @@ export function BrandMark({
   name?: string;
 }) {
   const brand = useBrand();
+  const pick = usePick();
   const src = logoUrl === undefined ? brand.logoUrl : logoUrl;
-  const label = name ?? brand.brandName;
+  const label = name ?? pick(brand.brandName, brand.brandNameRu);
 
   if (src) {
     return (

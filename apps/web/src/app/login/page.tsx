@@ -15,7 +15,7 @@ export default function LoginPage() {
         <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">{t("common.brand")}</h1>
         <p className="mt-1 max-w-xs text-sm text-muted-foreground">{t("authExtra.welcome")}</p>
       </div>
-      <div className="relative w-full max-w-sm animate-soft-scale rounded-2xl border border-border/80 bg-card p-6 shadow-[0_12px_40px_rgba(12,27,46,0.06)]">
+      <div className="relative w-full max-w-sm animate-soft-scale rounded-2xl border border-border/80 bg-card p-6 shadow-[0_12px_40px_rgba(23,20,15,0.06)]">
         <LoginForm />
       </div>
     </main>

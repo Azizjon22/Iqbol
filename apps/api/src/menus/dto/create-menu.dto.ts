@@ -8,6 +8,8 @@ import {
   IsString,
   Min,
   MinLength,
+  IsPositive,
+  Max,
 } from 'class-validator';
 
 export class CreateMenuDto {
@@ -15,20 +17,30 @@ export class CreateMenuDto {
   @MinLength(2)
   name!: string;
 
+  @IsString()
+  @MinLength(2)
+  nameRu!: string;
+
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @IsPositive({ message: "Narx 0 dan katta bo'lishi kerak" })
+  @Max(100_000_000, { message: 'Narx juda katta' })
   pricePerPerson!: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(2000, { message: 'Mehmonlar soni 2000 tadan oshmasligi kerak' })
   guestCount?: number;
 
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  descriptionRu?: string;
 
   @IsOptional()
   @IsMediaUrl()

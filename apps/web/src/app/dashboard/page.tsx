@@ -17,6 +17,7 @@ import {
   type WeekDay,
 } from "@/components/dashboard/overview-parts";
 import { getLocale } from "@/i18n/locale";
+import { pickLang } from "@/i18n/pick";
 import { getDictionary, translate } from "@/i18n/get-dictionary";
 
 interface DashboardOverview {
@@ -25,7 +26,7 @@ interface DashboardOverview {
   todayEvents: PrepEvent[];
   tomorrowEvents: PrepEvent[];
   week: WeekDay[];
-  lowStockItems?: { id: string; name: string; quantity: string; unit: string }[];
+  lowStockItems?: { id: string; name: string; nameRu?: string | null; quantity: string; unit: string }[];
   pendingShoppingLists?: number;
   monthlyFinancials?: {
     eventCount: number;
@@ -88,10 +89,10 @@ export default async function DashboardOverviewPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_120%_at_100%_0%,var(--surface-glow),transparent_60%)]" />
         <div className="relative flex flex-wrap items-end justify-between gap-5">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent sm:tracking-[0.22em]">
+            <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent">
               {dict.weekdaysLong[weekdayIndex(today)]} · {formatDate(today, locale)}
             </p>
-            <h1 className="font-display mt-2 text-[clamp(1.85rem,4.2vw,3rem)] font-semibold leading-[1.05] tracking-tight [overflow-wrap:anywhere]">
+            <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
               {greeting}
               {fullName && `, ${fullName}`}
             </h1>
@@ -117,7 +118,7 @@ export default async function DashboardOverviewPage() {
       </section>
 
       {/* ---------- Key numbers ---------- */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <StatTile
           featured
           label={t("dashboard.activeWeddings")}
@@ -142,10 +143,10 @@ export default async function DashboardOverviewPage() {
         />
       </div>
 
-      <div className={cn("grid gap-6", (showAttention || fin) && "@min-[960px]/main:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]")}>
+      <div className={cn("grid gap-6", (showAttention || fin) && "xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]")}>
         <div className="min-w-0 space-y-6">
           {/* ---------- Week plan ---------- */}
-          <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+          <section className="@container rounded-2xl border border-border bg-card p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-base font-semibold">{t("dashboard.weekPlan")}</h2>
               <Link href="/dashboard/events" className="text-sm text-primary hover:underline">
@@ -155,7 +156,7 @@ export default async function DashboardOverviewPage() {
             {counts.week === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{t("dashboard.nothingThisWeek")}</p>
             ) : (
-              <WeekPlan week={overview.week} t={t} weekdays={dict.weekdaysShort} />
+              <WeekPlan week={overview.week} t={t} weekdays={dict.weekdaysShort} locale={locale} />
             )}
           </section>
 
@@ -211,7 +212,7 @@ export default async function DashboardOverviewPage() {
         </div>
 
         {(showAttention || fin) && (
-          <aside className="space-y-6 @min-[960px]/main:sticky @min-[960px]/main:top-20 @min-[960px]/main:self-start">
+          <aside className="grid items-start gap-6 md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] xl:sticky xl:top-20 xl:grid-cols-1 xl:self-start">
             {/* ---------- Month finance (SUPER_ADMIN) ---------- */}
             {fin && (
               <Link
@@ -219,7 +220,7 @@ export default async function DashboardOverviewPage() {
                 className="block rounded-2xl border border-border bg-card p-5 transition hover:border-primary/30 hover:shadow-md"
               >
                 <p className="text-sm text-muted-foreground">{t("dashboard.monthFinance")}</p>
-                <p className="font-display mt-1 break-words text-[clamp(1.35rem,3vw,1.875rem)] font-semibold leading-tight lining-nums tabular-nums">{formatSom(fin.totalCollected, locale)}</p>
+                <p className="font-display mt-1 text-3xl font-semibold lining-nums tabular-nums">{formatSom(fin.totalCollected, locale)}</p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={{ width: `${collectedPct}%` }} />
                 </div>
@@ -227,15 +228,15 @@ export default async function DashboardOverviewPage() {
                   {t("dashboard.collectedOf", { percent: collectedPct })} · {formatSom(fin.totalExpected, locale)}
                 </p>
                 <dl className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="min-w-0 text-muted-foreground">{t("dashboard.netProfit")}</dt>
-                    <dd className={cn("shrink-0 text-right font-semibold tabular-nums", Number(fin.netProfit) < 0 && "text-destructive")}>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">{t("dashboard.netProfit")}</dt>
+                    <dd className={cn("font-semibold tabular-nums", Number(fin.netProfit) < 0 && "text-destructive")}>
                       {formatSom(fin.netProfit, locale)}
                     </dd>
                   </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <dt className="min-w-0 text-muted-foreground">{t("dashboard.outstanding")}</dt>
-                    <dd className={cn("shrink-0 text-right font-semibold tabular-nums", Number(fin.totalOutstanding) > 0 && "text-accent")}>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">{t("dashboard.outstanding")}</dt>
+                    <dd className={cn("font-semibold tabular-nums", Number(fin.totalOutstanding) > 0 && "text-accent")}>
                       {formatSom(fin.totalOutstanding, locale)}
                     </dd>
                   </div>
@@ -258,7 +259,7 @@ export default async function DashboardOverviewPage() {
                     )}
                     {prepAlerts.map(({ event, issues }) => (
                       <AttentionItem key={event.id} href={`/dashboard/events/${event.id}`} icon={<CalendarHeart className="h-4 w-4" />}>
-                        <span className="block font-medium">{event.clientName}</span>
+                        <span className="block font-medium">{pickLang(locale, event.clientName, event.clientNameRu)}</span>
                         <span className="block text-xs text-muted-foreground">
                           {formatTime(event.eventDate)} · {issues.join(", ")}
                         </span>
@@ -270,7 +271,7 @@ export default async function DashboardOverviewPage() {
                         <span className="block text-xs text-muted-foreground">
                           {lowStock
                             .slice(0, 4)
-                            .map((i) => `${i.name} (${Number(i.quantity)})`)
+                            .map((i) => `${pickLang(locale, i.name, i.nameRu)} (${Number(i.quantity)})`)
                             .join(", ")}
                           {lowStock.length > 4 && ` +${lowStock.length - 4}`}
                         </span>

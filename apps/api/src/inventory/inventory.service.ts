@@ -84,6 +84,7 @@ export class InventoryService {
     const item = await this.prisma.inventoryItem.create({
       data: {
         name: dto.name,
+        nameRu: dto.nameRu,
         category: dto.category,
         productCategory: dto.productCategory,
         photoUrl: dto.photoUrl,
@@ -98,6 +99,7 @@ export class InventoryService {
         'IN',
         dto.quantity,
         "Boshlang'ich qoldiq",
+        undefined,
         actorId,
         role === 'SUPER_ADMIN' ? dto.unitPrice : undefined,
       );
@@ -125,6 +127,7 @@ export class InventoryService {
       select: {
         id: true,
         name: true,
+        nameRu: true,
         productCategory: true,
         unit: true,
         photoUrl: true,
@@ -213,6 +216,7 @@ export class InventoryService {
       dto.type,
       dto.quantity,
       dto.note,
+      dto.noteRu,
       actorId,
       dto.type === 'IN' && role === 'SUPER_ADMIN' ? dto.unitPrice : undefined,
     );
@@ -247,11 +251,15 @@ export class InventoryService {
     const note = ['Inventarizatsiya', dto.note?.trim()]
       .filter(Boolean)
       .join(': ');
+    const noteRu = dto.noteRu?.trim()
+      ? ['Инвентаризация', dto.noteRu.trim()].join(': ')
+      : undefined;
     const transaction = await this.move(
       item.id,
       diff.isPositive() ? 'IN' : 'OUT',
       diff.abs().toNumber(),
       note,
+      noteRu,
       actorId,
     );
 
@@ -273,6 +281,7 @@ export class InventoryService {
     type: InventoryTxnType,
     quantity: number,
     note: string | undefined,
+    noteRu: string | undefined,
     actorId: string | null,
     unitPrice?: number | null,
   ) {
@@ -285,6 +294,8 @@ export class InventoryService {
         note,
         actorId,
         unitPrice,
+        undefined,
+        noteRu,
       );
       return transaction;
     });
@@ -308,6 +319,7 @@ export class InventoryService {
     unitPrice?: number | null,
     /** Set when stock is being put back: the opening date of its original lot. */
     restoreTo?: Date,
+    noteRu?: string,
   ) {
     await tx.$queryRaw`SELECT id FROM inventory_items WHERE id = ${itemId} FOR UPDATE`;
     const updated = await tx.inventoryItem.updateMany({
@@ -394,7 +406,14 @@ export class InventoryService {
     }
 
     const transaction = await tx.inventoryTransaction.create({
-      data: { itemId, type, quantity: amount, note, createdById: actorId },
+      data: {
+        itemId,
+        type,
+        quantity: amount,
+        note,
+        noteRu,
+        createdById: actorId,
+      },
       include: txnInclude,
     });
     return { transaction, allocations };

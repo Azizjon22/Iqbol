@@ -44,7 +44,7 @@ export class DashboardService {
       this.prisma.event.findMany({
         where: { eventDate: { gte: today, lt: weekEnd }, ...notCancelled },
         include: {
-          menu: { select: { name: true } },
+          menu: { select: { name: true, nameRu: true } },
           assignments: {
             include: {
               worker: {
@@ -70,14 +70,18 @@ export class DashboardService {
       return {
         id: e.id,
         clientName: e.clientName,
+        clientNameRu: e.clientNameRu,
         clientPhone: e.clientPhone,
         eventDate: e.eventDate,
         status: e.status,
         guestCount: e.guestCount,
         tableCapacity: e.tableCapacity,
         menuName: e.menu.name,
+        menuNameRu: e.menu.nameRu,
         firstDish: e.firstDish,
+        firstDishRu: e.firstDishRu,
         secondDish: e.secondDish,
+        secondDishRu: e.secondDishRu,
         assignedWorkers: e.assignments.map((a) => a.worker),
         shoppingListCount: e._count.shoppingLists,
         ...(showMoney ? { balance: e.totalPrice.sub(paid) } : {}),
@@ -96,6 +100,7 @@ export class DashboardService {
           .map((e) => ({
             id: e.id,
             clientName: e.clientName,
+            clientNameRu: e.clientNameRu,
             eventDate: e.eventDate,
             guestCount: e.guestCount,
             status: e.status,

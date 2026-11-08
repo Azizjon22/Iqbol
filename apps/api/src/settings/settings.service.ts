@@ -23,7 +23,9 @@ export class SettingsService {
     });
     return {
       brandName: row.brandName,
+      brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
+      contactPhone: row.contactPhone,
       heroMediaUrl: row.heroMediaUrl,
       heroMediaKind: row.heroMediaKind,
       heroMediaStatus: row.heroMediaStatus,
@@ -34,6 +36,8 @@ export class SettingsService {
   async updateBrand(dto: UpdateBrandDto, actorId: string, actorName: string) {
     const before = await this.getBrand();
     const brandName = dto.brandName?.trim();
+    const contactPhone = dto.contactPhone?.trim();
+    const brandNameRu = dto.brandNameRu?.trim();
     const heroMediaUrl =
       dto.heroMediaUrl === undefined ? undefined : dto.heroMediaUrl;
     const heroMediaKind =
@@ -42,19 +46,20 @@ export class SettingsService {
         : heroMediaUrl === undefined
           ? undefined
           : (dto.heroMediaKind ?? null);
-    // A new URL starts READY; the video-transcode check below may bump it to
-    // PROCESSING once the row exists. Clearing the hero resets it to null.
+    // A new hero file starts READY; clearing it clears the status too.
     const heroMediaStatus =
       heroMediaUrl === null
         ? null
         : heroMediaUrl === undefined
           ? undefined
-          : 'READY';
+          : ('READY' as const);
     const row = await this.prisma.appSettings.upsert({
       where: { id: ID },
       create: {
         id: ID,
         brandName: brandName || undefined,
+        contactPhone: contactPhone || undefined,
+        brandNameRu: brandNameRu || undefined,
         logoUrl: dto.logoUrl ?? null,
         heroMediaUrl: heroMediaUrl ?? null,
         heroMediaKind: heroMediaKind ?? null,
@@ -62,6 +67,8 @@ export class SettingsService {
       },
       update: {
         brandName: brandName || undefined,
+        contactPhone: contactPhone || undefined,
+        brandNameRu: brandNameRu || undefined,
         logoUrl: dto.logoUrl,
         heroMediaUrl,
         heroMediaKind,
@@ -70,16 +77,13 @@ export class SettingsService {
     });
 
     if (heroMediaUrl && heroMediaKind === 'VIDEO') {
-      const started = await this.uploads.maybeTranscodeVideo(
-        heroMediaUrl,
-        async (result) => {
-          await this.prisma.appSettings.update({
-            where: { id: ID },
-            data: result.ok
-              ? { heroMediaUrl: result.url, heroMediaStatus: 'READY' }
-              : { heroMediaStatus: 'FAILED' },
-          });
-        },
+      const started = await this.uploads.prepareVideo(heroMediaUrl, (result) =>
+        this.prisma.appSettings.update({
+          where: { id: ID },
+          data: result.ok
+            ? { heroMediaUrl: result.url, heroMediaStatus: 'READY' }
+            : { heroMediaStatus: 'FAILED' },
+        }),
       );
       if (started) {
         await this.prisma.appSettings.update({
@@ -93,6 +97,8 @@ export class SettingsService {
     const changes: string[] = [];
     if (brandName && brandName !== before.brandName)
       changes.push(`nom: "${before.brandName}" → "${brandName}"`);
+    if (contactPhone && contactPhone !== before.contactPhone)
+      changes.push(`telefon: "${before.contactPhone}" → "${contactPhone}"`);
     if (dto.logoUrl !== undefined && dto.logoUrl !== before.logoUrl) {
       changes.push(dto.logoUrl ? 'logo yangilandi' : 'logo olib tashlandi');
     }
@@ -115,7 +121,9 @@ export class SettingsService {
     }
     return {
       brandName: row.brandName,
+      brandNameRu: row.brandNameRu,
       logoUrl: row.logoUrl,
+      contactPhone: row.contactPhone,
       heroMediaUrl: row.heroMediaUrl,
       heroMediaKind: row.heroMediaKind,
       heroMediaStatus: row.heroMediaStatus,

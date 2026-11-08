@@ -17,6 +17,22 @@ export class PaymentsService {
     private auditLog: AuditLogService,
   ) {}
 
+  /**
+   * Row-locks the wedding for the rest of the transaction, then reads its
+   * payments. Two money movements on one wedding therefore run one after
+   * the other, and each checks the balance the other left behind — without
+   * it, a double click could collect (or refund) the same money twice.
+   */
+  private async lockEvent(tx: Prisma.TransactionClient, eventId: string) {
+    await tx.$queryRaw`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
+    const event = await tx.event.findUnique({
+      where: { id: eventId },
+      include: { payments: { select: { id: true, amount: true, type: true } } },
+    });
+    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
+    return event;
+  }
+
   async create(
     eventId: string,
     dto: CreatePaymentDto,
@@ -51,6 +67,7 @@ export class PaymentsService {
             amount,
             method: dto.method,
             note: dto.note,
+            noteRu: dto.noteRu,
             createdById: actorId,
           },
         });
@@ -103,8 +120,9 @@ export class PaymentsService {
   ) {
     const { refund, event } = await this.prisma.$transaction(async (tx) => {
       const event = await this.lockEvent(tx, eventId);
+      const amount = new Prisma.Decimal(dto.amount);
       const kept = netPaid(event.payments);
-      if (new Prisma.Decimal(dto.amount).greaterThan(kept)) {
+      if (amount.greaterThan(kept)) {
         throw new BadRequestException(
           kept.lessThanOrEqualTo(0)
             ? "Bu to'y uchun qaytariladigan pul yo'q"
@@ -115,14 +133,16 @@ export class PaymentsService {
         data: {
           eventId,
           type: 'REFUND',
-          amount: new Prisma.Decimal(dto.amount),
+          amount,
           method: dto.method,
           note: dto.note,
+          noteRu: dto.noteRu,
           createdById: actorId,
         },
       });
       return { refund, event };
     });
+
     await this.auditLog.record({
       actorId,
       actorName,
@@ -134,21 +154,6 @@ export class PaymentsService {
     return refund;
   }
 
-  /**
-   * Reads the wedding with its payments under a row lock, so two payments
-   * entered at the same moment are checked one after the other instead of
-   * both passing against the same balance.
-   */
-  private async lockEvent(tx: Prisma.TransactionClient, eventId: string) {
-    await tx.$queryRaw`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
-    const event = await tx.event.findUnique({
-      where: { id: eventId },
-      include: { payments: { select: { amount: true, type: true } } },
-    });
-    if (!event) throw new NotFoundException("To'y buyurtmasi topilmadi");
-    return event;
-  }
-
   findAllForEvent(eventId: string) {
     return this.prisma.payment.findMany({
       where: { eventId },
@@ -158,28 +163,28 @@ export class PaymentsService {
   }
 
   async remove(id: string, actorId: string, actorName: string) {
-    const payment = await this.prisma.payment.findUnique({
+    const found = await this.prisma.payment.findUnique({
       where: { id },
-      include: {
-        event: {
-          select: {
-            clientName: true,
-            payments: { select: { id: true, amount: true, type: true } },
-          },
-        },
-      },
+      select: { eventId: true },
     });
-    if (!payment) throw new NotFoundException("To'lov topilmadi");
-    // Removing a payment must not leave more refunded than was ever paid.
-    if (payment.type === 'PAYMENT') {
-      const after = netPaid(payment.event.payments.filter((p) => p.id !== id));
-      if (after.isNegative()) {
-        throw new BadRequestException(
-          "Bu to'lovga qaytarish bog'langan — avval qaytarish yozuvini o'chiring",
-        );
+    if (!found) throw new NotFoundException("To'lov topilmadi");
+
+    const { payment, event } = await this.prisma.$transaction(async (tx) => {
+      const event = await this.lockEvent(tx, found.eventId);
+      const payment = await tx.payment.findUnique({ where: { id } });
+      if (!payment) throw new NotFoundException("To'lov topilmadi");
+      // Removing a payment must not leave more refunded than was ever paid.
+      if (payment.type === 'PAYMENT') {
+        const after = netPaid(event.payments.filter((p) => p.id !== id));
+        if (after.isNegative()) {
+          throw new BadRequestException(
+            "Bu to'lovga qaytarish bog'langan — avval qaytarish yozuvini o'chiring",
+          );
+        }
       }
-    }
-    await this.prisma.payment.delete({ where: { id } });
+      await tx.payment.delete({ where: { id } });
+      return { payment, event };
+    });
 
     await this.auditLog.record({
       actorId,
@@ -187,7 +192,7 @@ export class PaymentsService {
       action: 'DELETE',
       entityType: 'PAYMENT',
       entityId: id,
-      description: `"${payment.event.clientName}" to'yidan ${Number(payment.amount).toLocaleString('uz-UZ')} so'm ${payment.type === 'REFUND' ? 'qaytarish' : "to'lov"} yozuvini o'chirdi`,
+      description: `"${event.clientName}" to'yidan ${Number(payment.amount).toLocaleString('uz-UZ')} so'm ${payment.type === 'REFUND' ? 'qaytarish' : "to'lov"} yozuvini o'chirdi`,
     });
 
     return { success: true };

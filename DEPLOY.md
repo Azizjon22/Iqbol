@@ -17,7 +17,6 @@ ko'rinadi; API va baza internetga ochilmaydi.
 ```bash
 git clone https://github.com/Azizjon22/Iqbol.git /opt/iqbol
 cd /opt/iqbol
-git checkout dev
 
 cp deploy/.env.production.example .env.production
 nano .env.production
@@ -30,8 +29,6 @@ nano .env.production
 | `DOMAIN` | Sayt manzili, `https://`siz. Masalan `iqbol.uz` |
 | `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET` | Har biri alohida: `openssl rand -base64 32` |
 | `SEED_SUPER_ADMIN_PHONE`, `SEED_SUPER_ADMIN_PASSWORD` | Birinchi hisob. Parol kamida 8 belgi |
-| `TELEGRAM_BOT_TOKEN` | @BotFather bergan token. Bo'sh qoldirilsa bot o'chiq |
-| `TELEGRAM_REMINDER_TIMES` | Eslatma soatlari, masalan `09:00,20:00` (Toshkent vaqti) |
 | `CONTACT_PHONE` | Menyu taqdimotida ko'rinadigan telefon |
 
 Ishga tushirish:
@@ -41,18 +38,26 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 ```
 
 Birinchi yig'ish bir necha daqiqa oladi. API har ishga tushganda bazaga
-yangi migratsiyalarni o'zi qo'llaydi.
+yangi migratsiyalarni o'zi qo'llaydi. Kalitlar bo'sh yoki namunadagi qiymatda
+qolsa, API va sayt ishga tushmaydi — bu ataylab shunday.
 
-Super admin hisobini yaratish (bir marta):
+Boshlang'ich ma'lumotlarni yozish (bir marta):
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production exec api pnpm exec prisma db seed
 ```
 
-Productionda seed faqat bitta super admin yaratadi: demo hisoblar ham, demo
-to'ylar ham qo'shilmaydi. Birinchi kirishda tizim parolni almashtirishni
-so'raydi. Shundan keyin `.env.production`dagi `SEED_SUPER_ADMIN_PASSWORD`ni
-o'chirib qo'ysa bo'ladi.
+Productionda seed:
+
+- bitta super admin yaratadi — birinchi kirishda tizim parolni almashtirishni
+  so'raydi;
+- baza bo'sh bo'lsa, to'yxona menyulari, idishlar va oshpazlar bozorlik
+  yozadigan mahsulotlar katalogini qo'shadi;
+- demo hisoblar, demo ishchilar va demo to'ylarni **yaratmaydi**;
+- qayta ishga tushirilsa, mavjud ma'lumotni o'zgartirmaydi va o'chirmaydi.
+
+Kirgandan keyin `.env.production`dagi `SEED_SUPER_ADMIN_PASSWORD`ni o'chirib
+qo'ysa bo'ladi.
 
 Tekshirish: brauzerda `https://DOMAIN` ochiladi, login sahifasi chiqadi.
 
@@ -60,11 +65,30 @@ Tekshirish: brauzerda `https://DOMAIN` ochiladi, login sahifasi chiqadi.
 
 1. Kirib, parolni almashtiring.
 2. Profil sahifasida sayt nomi va logotipni kiriting.
-3. Menyular bo'limida paketlarni kiriting.
-4. Xodimlar sahifasida admin, zavzal va oshpaz hisoblarini oching. Har biriga
-   vaqtinchalik parol/PIN berasiz, ular birinchi kirishda o'zinikini o'rnatadi.
-5. Telegram botda `/start` bosib, telefon raqam va parol bilan ulaning.
-   Oshpaz va admin ham shunday ulanadi.
+3. Menyular bo'limida narxlarni tekshiring va namunaviy rasmlar o'rniga
+   to'yxonaning o'z rasm va videolarini yuklang.
+4. Xodimlar sahifasida admin va zavzal, Ishchilar sahifasida oshpaz hisoblarini
+   oching. Har biriga vaqtinchalik parol/PIN berasiz, ular birinchi kirishda
+   o'zinikini o'rnatadi.
+
+## Xavfsizlik qoidalari (tizim o'zi bajaradi)
+
+- Parol yoki PIN ketma-ket 5 marta xato kiritilsa, hisob 15 daqiqaga
+  bloklanadi. Super admin yangi parol/PIN bersa, blok darhol ochiladi.
+- Parol/PIN almashtirilsa, xodim o'chirilsa yoki roli o'zgarsa, uning barcha
+  qurilmalardagi sessiyasi shu zahoti tugaydi.
+
+## Rasm va videolar
+
+- Video hajmi 200 MB gacha, rasm 80 MB gacha (MP4, MOV, JPG, PNG, WebP).
+- Yuklangan video fonda avtomatik tayyorlanadi: har qanday telefon va
+  brauzerda ochiladigan, darhol boshlanadigan va to'xtab qolmaydigan holatga
+  keltiriladi. iPhone'ning 4K videosi 1080p ga o'tkaziladi; allaqachon mos
+  bo'lgan video esa o'zgartirilmaydi (sifati aynan saqlanadi).
+- Tayyorlash bir necha soniyadan bir necha daqiqagacha davom etadi (server
+  kuchiga va video uzunligiga qarab). Shu paytda menyu studiyasida "Video
+  tayyorlanmoqda" yozuvi turadi; mijozlar videoni tayyor bo'lgach ko'radi.
+- Server tayyorlash o'rtasida qayta ishga tushsa, ish o'zi davom ettiriladi.
 
 ## Zaxira nusxa
 
@@ -110,7 +134,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 ```bash
 C="docker compose -f docker-compose.prod.yml --env-file .env.production"
 $C ps                 # hamma xizmat "running" bo'lishi kerak
-$C logs -f api        # API jurnali (bot eslatmalari ham shu yerda)
+$C logs -f api
 $C logs -f web
 ```
 
@@ -118,12 +142,8 @@ Server o'chib yonsa, xizmatlar o'zi qayta ko'tariladi (`restart: unless-stopped`
 
 ## Muhim qoidalar
 
-- **Bot faqat bitta joyda ishlasin.** Bir xil token bilan serverda ham,
-  o'z kompyuteringizda ham API ishga tushirilsa, xabarlar adashadi. Lokal
-  test uchun @BotFather'da alohida test bot oching.
 - **`.env.production` git'ga tushmaydi** va tushmasligi kerak. Undagi
   kalitlarni hech kimga yubormang.
-- **Token yoki parol ochilib qolsa**, darhol almashtiring: bot tokeni
-  @BotFather'da (`/mybots` → API Token → Revoke), parollar sayt ichida.
-- **To'yni o'chirish.** Tasdiqlangan yoki to'lov yozilgan to'y o'chirilmaydi,
-  faqat bekor qilinadi — hisob-kitob tarixi saqlanishi uchun.
+- **Parol ochilib qolsa**, darhol sayt ichida almashtiring.
+- **Lokal seed'dagi parollar** (`Iqbol2024!` va boshqalar) faqat ishlab chiqish
+  uchun. Ular serverda hech qachon yaratilmaydi.

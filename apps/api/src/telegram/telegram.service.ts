@@ -103,7 +103,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.webUrl = (
       config.get<string>('TELEGRAM_WEB_URL') ||
       config.get<string>('WEB_ORIGIN') ||
-      'http://localhost:3100'
+      'http://localhost:3010'
     ).replace(/\/+$/, '');
     this.timeZone = config.get<string>('TELEGRAM_TIMEZONE') || 'Asia/Tashkent';
     this.reminderTimes = (

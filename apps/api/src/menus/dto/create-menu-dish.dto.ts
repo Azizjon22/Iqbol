@@ -17,9 +17,17 @@ export class CreateMenuDishDto {
   @MinLength(2)
   name!: string;
 
+  @IsString()
+  @MinLength(2)
+  nameRu!: string;
+
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  descriptionRu?: string;
 
   @IsOptional()
   @IsMediaUrl()

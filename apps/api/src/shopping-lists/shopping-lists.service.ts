@@ -16,7 +16,7 @@ const include = {
   items: true,
   createdByWorker: { select: { id: true, fullName: true, position: true } },
   event: {
-    select: { id: true, clientName: true, eventDate: true, guestCount: true },
+    select: { id: true, clientName: true, clientNameRu: true, eventDate: true, guestCount: true },
   },
   reviewedBy: { select: { id: true, fullName: true } },
   approvedBy: { select: { id: true, fullName: true } },
@@ -28,6 +28,18 @@ const include = {
  */
 export const ADMIN_VISIBLE_STATUSES: ShoppingListStatus[] = [
   'APPROVED',
+  'PURCHASED',
+  'CLOSED',
+];
+
+/** Largest amount the totalCost column (Decimal 14,2) is trusted with. */
+const MAX_TOTAL_COST = 99_999_999_999;
+
+/**
+ * Once a wedding's shopping is bought (and later priced and closed), the
+ * bazaar is over for that date: chefs cannot add another list to it.
+ */
+export const SHOPPING_DONE_STATUSES: ShoppingListStatus[] = [
   'PURCHASED',
   'CLOSED',
 ];
@@ -52,6 +64,42 @@ const STATUS_LABEL_UZ: Record<string, string> = {
   CLOSED: 'Yopilgan',
 };
 
+/**
+ * The buyer wants one line per product: tomatoes for the salad and for the
+ * first dish arrive as one total. Same name (any case) and unit add up.
+ */
+export function mergeSameProduct<
+  T extends {
+    name: string;
+    nameRu?: string;
+    quantity: number;
+    unit: string;
+    note?: string;
+    noteRu?: string;
+  },
+>(items: T[]): T[] {
+  const merged = new Map<string, T>();
+  for (const item of items) {
+    const k = `${item.name.trim().toLowerCase()}|${item.unit}`;
+    const prev = merged.get(k);
+    merged.set(
+      k,
+      prev
+        ? {
+            ...prev,
+            quantity: +(prev.quantity + item.quantity).toFixed(3),
+            note:
+              [prev.note, item.note].filter(Boolean).join('; ') || undefined,
+            noteRu:
+              [prev.noteRu, item.noteRu].filter(Boolean).join('; ') ||
+              undefined,
+          }
+        : { ...item, name: item.name.trim(), nameRu: item.nameRu?.trim() },
+    );
+  }
+  return [...merged.values()];
+}
+
 @Injectable()
 export class ShoppingListsService {
   constructor(
@@ -64,20 +112,38 @@ export class ShoppingListsService {
     if (dto.eventId) {
       const event = await this.prisma.event.findUnique({
         where: { id: dto.eventId },
-        select: { id: true },
+        select: { status: true },
       });
       if (!event) throw new BadRequestException("To'y topilmadi");
+      if (event.status === 'CANCELLED') {
+        throw new BadRequestException(
+          "Bekor qilingan to'y uchun bozorlik yozilmaydi",
+        );
+      }
+      const done = await this.prisma.shoppingList.count({
+        where: {
+          eventId: dto.eventId,
+          status: { in: SHOPPING_DONE_STATUSES },
+        },
+      });
+      if (done > 0) {
+        throw new BadRequestException(
+          "Bu to'yning bozorligi yakunlangan — yangi ro'yxat yozib bo'lmaydi",
+        );
+      }
     }
     const list = await this.prisma.shoppingList.create({
       data: {
         eventId: dto.eventId,
         createdByWorkerId: workerId,
         items: {
-          create: dto.items.map((item) => ({
+          create: mergeSameProduct(dto.items).map((item) => ({
             name: item.name,
+            nameRu: item.nameRu,
             quantity: item.quantity,
             unit: item.unit,
             note: item.note,
+            noteRu: item.noteRu,
           })),
         },
       },
@@ -150,6 +216,7 @@ export class ShoppingListsService {
     actorId: string,
     actorName: string,
     role?: StaffRole,
+    confirmedItemIds: string[] = [],
   ) {
     if (status === 'APPROVED') {
       throw new BadRequestException(
@@ -160,6 +227,43 @@ export class ShoppingListsService {
       throw new ForbiddenException("Bu amal uchun ruxsatingiz yo'q");
     }
     const existing = await this.findOne(id, role);
+    // Only two moves go through here, and only forwards: finishing the
+    // purchase once every item is bought, and closing a finished list.
+    if (status === 'PURCHASED') {
+      if (existing.status !== 'APPROVED') {
+        throw new BadRequestException(
+          "Xaridni faqat adminga yuborilgan ro'yxatda yakunlash mumkin",
+        );
+      }
+      if (existing.items.some((item) => !item.isPurchased)) {
+        throw new BadRequestException(
+          'Hali sotib olinmagan mahsulotlar bor — avval ularni belgilang',
+        );
+      }
+    } else if (status === 'CLOSED') {
+      if (existing.status !== 'PURCHASED') {
+        throw new BadRequestException(
+          "Faqat xaridi yakunlangan ro'yxatni yopish mumkin",
+        );
+      }
+      if (
+        existing.items.some(
+          (item) => item.totalCost === null && item.unitPrice === null,
+        )
+      ) {
+        throw new BadRequestException(
+          'Hamma mahsulotning narxi kiritilmagan — avval narxlarni kiriting',
+        );
+      }
+      const confirmed = new Set(confirmedItemIds);
+      if (existing.items.some((item) => !confirmed.has(item.id))) {
+        throw new BadRequestException(
+          'Yopishdan oldin har bir mahsulot narxini tekshirib belgilang',
+        );
+      }
+    } else {
+      throw new BadRequestException("Ro'yxatni bu holatga qaytarib bo'lmaydi");
+    }
     const list = await this.prisma.shoppingList.update({
       where: { id },
       data: { status, reviewedById: actorId, reviewedAt: new Date() },
@@ -225,6 +329,7 @@ export class ShoppingListsService {
     for (const input of dto.items) {
       const quantity = new Prisma.Decimal(input.quantity);
       const note = input.note?.trim() || null;
+      const noteRu = input.noteRu?.trim() || null;
 
       if (!input.id) {
         changes.push(
@@ -235,10 +340,12 @@ export class ShoppingListsService {
             data: {
               shoppingListId: id,
               name: input.name,
+              nameRu: input.nameRu,
               quantity,
               originalQuantity: 0,
               unit: input.unit,
               note,
+              noteRu,
             },
           }),
         );
@@ -250,8 +357,10 @@ export class ShoppingListsService {
       if (
         !quantityChanged &&
         existing.name === input.name &&
+        existing.nameRu === input.nameRu &&
         existing.unit === input.unit &&
-        existing.note === note
+        existing.note === note &&
+        (existing.noteRu ?? null) === noteRu
       ) {
         continue;
       }
@@ -275,10 +384,12 @@ export class ShoppingListsService {
           where: { id: existing.id },
           data: {
             name: input.name,
+            nameRu: input.nameRu,
             quantity,
             originalQuantity,
             unit: input.unit,
             note,
+            noteRu,
           },
         }),
       );
@@ -340,6 +451,41 @@ export class ShoppingListsService {
    * clears on next load. SUPER_ADMIN's badge counts lists fresh from chefs;
    * ADMIN's counts lists SUPER_ADMIN has just sent them.
    */
+  /**
+   * What the bell shows, cheap enough for the dashboard to ask every few
+   * seconds: how many lists are waiting and which one arrived last.
+   */
+  async pending(role: StaffRole | undefined) {
+    const where: Prisma.ShoppingListWhereInput =
+      role === 'ADMIN'
+        ? { status: 'APPROVED', adminSeenAt: null }
+        : { status: 'SUBMITTED' };
+    const [count, latest] = await Promise.all([
+      this.prisma.shoppingList.count({ where }),
+      this.prisma.shoppingList.findFirst({
+        where,
+        orderBy:
+          role === 'ADMIN' ? { approvedAt: 'desc' } : { createdAt: 'desc' },
+        select: {
+          id: true,
+          createdByWorker: { select: { fullName: true } },
+          event: { select: { clientName: true, clientNameRu: true } },
+          _count: { select: { items: true } },
+        },
+      }),
+    ]);
+    return {
+      count,
+      latest: latest && {
+        id: latest.id,
+        workerName: latest.createdByWorker.fullName,
+        clientName: latest.event?.clientName ?? null,
+        clientNameRu: latest.event?.clientNameRu ?? null,
+        itemCount: latest._count.items,
+      },
+    };
+  }
+
   async markAllSeen(role: StaffRole | undefined, reviewedById: string) {
     if (role === 'ADMIN') {
       await this.prisma.shoppingList.updateMany({
@@ -452,6 +598,11 @@ export class ShoppingListsService {
         'Narxni faqat sotib olingan mahsulot uchun tuzatish mumkin',
       );
     }
+    if (list.status === 'CLOSED') {
+      throw new BadRequestException(
+        "Ro'yxat tasdiqlab yopilgan — narxlarni endi o'zgartirib bo'lmaydi",
+      );
+    }
     const { unitPrice, totalCost } = this.resolvePrice(dto, item.quantity);
     await this.prisma.shoppingListItem.update({
       where: { id: itemId },
@@ -487,10 +638,13 @@ export class ShoppingListsService {
     }
     if (dto.unitPrice !== undefined) {
       const unitPrice = new Prisma.Decimal(dto.unitPrice).toDecimalPlaces(2);
-      return {
-        unitPrice,
-        totalCost: unitPrice.mul(quantity).toDecimalPlaces(2),
-      };
+      const totalCost = unitPrice.mul(quantity).toDecimalPlaces(2);
+      if (totalCost.greaterThan(MAX_TOTAL_COST)) {
+        throw new BadRequestException(
+          'Jami summa juda katta — narxni tekshiring',
+        );
+      }
+      return { unitPrice, totalCost };
     }
     throw new BadRequestException(
       'Narxni kiriting (jami summa yoki 1 birlik narxi)',

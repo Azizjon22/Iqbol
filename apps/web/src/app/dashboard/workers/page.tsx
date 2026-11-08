@@ -27,6 +27,7 @@ export default async function WorkersPage() {
   const events: StaffingEvent[] = upcoming.map((e) => ({
     id: e.id,
     clientName: e.clientName,
+    clientNameRu: e.clientNameRu,
     eventDate: e.eventDate,
     guestCount: e.guestCount,
     assignedWorkerIds: e.assignments.map((a) => a.workerId),
@@ -36,7 +37,7 @@ export default async function WorkersPage() {
     ...w,
     upcoming: upcoming
       .filter((e) => e.assignments.some((a) => a.workerId === w.id))
-      .map((e) => ({ id: e.id, clientName: e.clientName, eventDate: e.eventDate })),
+      .map((e) => ({ id: e.id, clientName: e.clientName, clientNameRu: e.clientNameRu, eventDate: e.eventDate })),
   }));
 
   const busyThisWeek = team.filter(

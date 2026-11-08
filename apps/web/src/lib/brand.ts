@@ -10,14 +10,16 @@ export const getBrand = cache(async (): Promise<Brand> => {
   try {
     const b = await publicApiFetch<Brand>("/settings/brand");
     const kind = b.heroMediaKind === "VIDEO" || b.heroMediaKind === "IMAGE" ? b.heroMediaKind : null;
-    // A video still transcoding (or one that failed) isn't playable yet —
-    // fall back to the default backdrop rather than show a blank/broken one.
-    const usable = !!b.heroMediaUrl && (kind !== "VIDEO" || b.heroMediaStatus === "READY");
+    // A hero video is only shown once it is ready to play everywhere; until
+    // then the presentation falls back to its default backdrop.
+    const pending = kind === "VIDEO" && !!b.heroMediaStatus && b.heroMediaStatus !== "READY";
     return {
       brandName: b.brandName || DEFAULT_BRAND.brandName,
+      brandNameRu: b.brandNameRu ?? null,
       logoUrl: b.logoUrl ?? null,
-      heroMediaUrl: usable ? b.heroMediaUrl : null,
-      heroMediaKind: usable ? kind : null,
+      contactPhone: b.contactPhone?.trim() || DEFAULT_BRAND.contactPhone,
+      heroMediaUrl: pending ? null : (b.heroMediaUrl ?? null),
+      heroMediaKind: b.heroMediaUrl && !pending ? kind : null,
       heroMediaStatus: b.heroMediaStatus ?? null,
     };
   } catch {

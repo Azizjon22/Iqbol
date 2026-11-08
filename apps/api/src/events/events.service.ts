@@ -13,6 +13,7 @@ import { AssignWorkerDto } from './dto/assign-worker.dto';
 import { FindEventsQuery } from './dto/find-events.query';
 import { netPaid } from '../common/money/net-paid';
 import { localMidnight } from '../common/time/tashkent';
+import { SHOPPING_DONE_STATUSES } from '../shopping-lists/shopping-lists.service';
 
 const eventInclude = {
   menu: true,
@@ -55,6 +56,21 @@ const eventDetailInclude = {
   },
 };
 
+// Weddings happen in Tashkent (UTC+5, no DST).
+const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+/** The instant tomorrow starts, Tashkent time. */
+function startOfTomorrow() {
+  const local = new Date(Date.now() + TZ_OFFSET_MS);
+  return new Date(
+    Date.UTC(
+      local.getUTCFullYear(),
+      local.getUTCMonth(),
+      local.getUTCDate() + 1,
+    ) - TZ_OFFSET_MS,
+  );
+}
+
 const STATUS_LABEL_UZ: Record<string, string> = {
   PENDING: 'Kutilmoqda',
   CONFIRMED: 'Tasdiqlangan',
@@ -85,15 +101,19 @@ export class EventsService {
     const event = await this.prisma.event.create({
       data: {
         clientName: dto.clientName,
+        clientNameRu: dto.clientNameRu,
         clientPhone: dto.clientPhone,
         eventDate,
         tableCapacity: dto.tableCapacity,
         guestCount: dto.guestCount,
         menuId: dto.menuId,
         totalPrice,
-        notes: dto.notes,
+        notes: dto.notes?.trim() || null,
+        notesRu: dto.notesRu?.trim() || null,
         firstDish: dto.firstDish?.trim() || null,
+        firstDishRu: dto.firstDishRu?.trim() || null,
         secondDish: dto.secondDish?.trim() || null,
+        secondDishRu: dto.secondDishRu?.trim() || null,
         createdById: actorId,
       },
       include: eventDetailInclude,
@@ -115,7 +135,7 @@ export class EventsService {
     const startOfToday = localMidnight(new Date());
     return this.prisma.event.findMany({
       where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
-      select: { id: true, clientName: true, eventDate: true },
+      select: { id: true, clientName: true, clientNameRu: true, eventDate: true },
       orderBy: { eventDate: 'asc' },
       // Also backs the chef's read-only events calendar, which needs every
       // upcoming booking in view, not just the nearest handful.
@@ -127,13 +147,14 @@ export class EventsService {
    * What a chef needs to plan cooking: upcoming weddings with guests, tables
    * and the menu's dishes, plus their own shopping lists per wedding. No money.
    */
-  chefAgenda(workerId: string) {
+  async chefAgenda(workerId: string) {
     const startOfToday = localMidnight(new Date());
-    return this.prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
       select: {
         id: true,
         clientName: true,
+        clientNameRu: true,
         eventDate: true,
         status: true,
         guestCount: true,
@@ -141,24 +162,39 @@ export class EventsService {
         menu: {
           select: {
             name: true,
+            nameRu: true,
             dishes: {
-              select: { id: true, name: true, category: true },
+              select: { id: true, name: true, nameRu: true, category: true },
               orderBy: { order: 'asc' },
             },
           },
         },
         assignments: { where: { workerId }, select: { id: true } },
         firstDish: true,
+        firstDishRu: true,
         secondDish: true,
+        secondDishRu: true,
         shoppingLists: {
           where: { createdByWorkerId: workerId },
           select: { id: true, status: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
         },
+        // Any list bought for the wedding ends its shopping for every chef.
+        _count: {
+          select: {
+            shoppingLists: {
+              where: { status: { in: SHOPPING_DONE_STATUSES } },
+            },
+          },
+        },
       },
       orderBy: { eventDate: 'asc' },
       take: 200,
     });
+    return events.map(({ _count, ...event }) => ({
+      ...event,
+      shoppingClosed: _count.shoppingLists > 0,
+    }));
   }
 
   async findAll(query: FindEventsQuery) {
@@ -230,29 +266,59 @@ export class EventsService {
     ) {
       await this.assertSlotFree(new Date(dto.eventDate), id);
     }
+    const repriced = !totalPrice.equals(existing.totalPrice);
 
-    const event = await this.prisma.event.update({
-      where: { id },
-      data: {
-        clientName: dto.clientName,
-        clientPhone: dto.clientPhone,
-        eventDate: dto.eventDate ? new Date(dto.eventDate) : undefined,
-        tableCapacity: dto.tableCapacity,
-        guestCount: dto.guestCount,
-        menuId: dto.menuId,
-        notes: dto.notes,
-        // "" clears a choice; undefined leaves it untouched.
-        firstDish:
-          dto.firstDish === undefined
-            ? undefined
-            : dto.firstDish.trim() || null,
-        secondDish:
-          dto.secondDish === undefined
-            ? undefined
-            : dto.secondDish.trim() || null,
-        totalPrice,
-      },
-      include: eventDetailInclude,
+    const event = await this.prisma.$transaction(async (tx) => {
+      if (repriced) {
+        // Money already taken must still fit under the new price — otherwise
+        // the wedding would show a negative debt. The row lock keeps a
+        // payment from slipping in between this check and the update.
+        await tx.$queryRaw`SELECT id FROM events WHERE id = ${id} FOR UPDATE`;
+        const paid = netPaid(
+          await tx.payment.findMany({
+            where: { eventId: id },
+            select: { amount: true, type: true },
+          }),
+        );
+        if (paid.greaterThan(totalPrice)) {
+          throw new BadRequestException(
+            `Yangi narx (${totalPrice.toNumber().toLocaleString('ru-RU')} so'm) allaqachon to'langan summadan (${paid.toNumber().toLocaleString('ru-RU')} so'm) kam — avval ortiqcha pulni qaytaring`,
+          );
+        }
+      }
+      return tx.event.update({
+        where: { id },
+        data: {
+          clientName: dto.clientName,
+          clientNameRu: dto.clientNameRu,
+          clientPhone: dto.clientPhone,
+          eventDate: dto.eventDate ? new Date(dto.eventDate) : undefined,
+          tableCapacity: dto.tableCapacity,
+          guestCount: dto.guestCount,
+          menuId: dto.menuId,
+          notes: dto.notes === undefined ? undefined : dto.notes.trim() || null,
+          notesRu: dto.notesRu === undefined ? undefined : dto.notesRu.trim() || null,
+          // "" clears a choice; undefined leaves it untouched.
+          firstDish:
+            dto.firstDish === undefined
+              ? undefined
+              : dto.firstDish.trim() || null,
+          firstDishRu:
+            dto.firstDishRu === undefined
+              ? undefined
+              : dto.firstDishRu.trim() || null,
+          secondDish:
+            dto.secondDish === undefined
+              ? undefined
+              : dto.secondDish.trim() || null,
+          secondDishRu:
+            dto.secondDishRu === undefined
+              ? undefined
+              : dto.secondDishRu.trim() || null,
+          totalPrice,
+        },
+        include: eventDetailInclude,
+      });
     });
 
     const changes: string[] = [];
@@ -297,10 +363,7 @@ export class EventsService {
   ) {
     const existing = await this.ensureExists(id);
     // A wedding is "completed" once its day has come, never ahead of time.
-    if (
-      status === 'COMPLETED' &&
-      existing.eventDate >= localMidnight(new Date(), 1)
-    ) {
+    if (status === 'COMPLETED' && existing.eventDate >= startOfTomorrow()) {
       throw new BadRequestException(
         "Kelajakdagi to'yni yakunlangan deb belgilab bo'lmaydi",
       );

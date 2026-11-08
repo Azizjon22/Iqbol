@@ -8,15 +8,15 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { formatSom } from "@/lib/utils";
 
 const COLORS = [
-  "#111813",
-  "#3c4f44",
-  "#1f7a62",
-  "#c2342a",
-  "#5b6fd6",
-  "#1d6a8a",
-  "#5d7364",
-  "#3d5a80",
-  "#6b7280",
+  "#17140f",
+  "#b8903f",
+  "#1e6b52",
+  "#8c2a3c",
+  "#2f4a7a",
+  "#9c6b3c",
+  "#5b3a5e",
+  "#4f6b5d",
+  "#7a7063",
 ];
 
 export function ExpensesCategoryChart({

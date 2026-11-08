@@ -195,8 +195,10 @@ export class WorkersService {
         photoUrl: dto.photoUrl,
         pinHash,
         mustChangePin: dto.pin ? true : undefined,
-        // An admin-forced PIN reset should kill this worker's existing sessions.
+        // An admin-set PIN signs the worker's devices out and lifts a lockout.
         tokenVersion: dto.pin ? { increment: 1 } : undefined,
+        failedLoginCount: dto.pin ? 0 : undefined,
+        lockedUntil: dto.pin ? null : undefined,
       },
     });
 

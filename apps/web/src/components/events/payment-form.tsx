@@ -1,12 +1,15 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { startTransition, useActionState, useEffect, useRef } from "react";
 import { PAYMENT_METHODS } from "@iqbol/shared";
 import { addPaymentAction, addRefundAction, type FormActionState } from "@/lib/actions/events.actions";
 import { Input, Select, Label, FieldError } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { Button } from "@/components/ui/button";
-import { useT } from "@/components/i18n/locale-provider";
 
+import { METHOD_LABEL } from "@/lib/payment-methods";
 const initialState: FormActionState = undefined;
 
 /**
@@ -14,7 +17,8 @@ const initialState: FormActionState = undefined;
  * server-side refusal (e.g. "exceeds the remaining balance") keeps the input.
  */
 export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mode?: "payment" | "refund" }) {
-  const t = useT();
+  const tr = useTr();
+
   const refund = mode === "refund";
   const action = (refund ? addRefundAction : addPaymentAction).bind(null, eventId);
   const [state, formAction, isPending] = useActionState(action, initialState);
@@ -28,7 +32,7 @@ export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mo
   }, [isPending, state]);
 
   return (
-    <form
+    <form suppressHydrationWarning
       ref={formRef}
       onSubmit={(e) => {
         e.preventDefault();
@@ -39,25 +43,27 @@ export function PaymentForm({ eventId, mode = "payment" }: { eventId: string; mo
       className="flex flex-col gap-3 sm:flex-row sm:items-end"
     >
       <div className="flex-1">
-        <Label htmlFor={`${mode}-amount`}>{refund ? t("events.refundAmount") : t("events.amountSom")}</Label>
+        <Label htmlFor={`${mode}-amount`}>{refund ? "Qaytariladigan summa" : tr("Summa (so'm)")}</Label>
         <Input id={`${mode}-amount`} name="amount" type="number" min={1} required />
       </div>
       <div>
-        <Label htmlFor={`${mode}-method`}>{t("events.method")}</Label>
+        <Label htmlFor={`${mode}-method`}>{tr("Usul")}</Label>
         <Select id={`${mode}-method`} name="method" className="sm:w-36">
           {PAYMENT_METHODS.map((m) => (
             <option key={m} value={m}>
-              {t(`paymentMethods.${m}`)}
+              {tr(METHOD_LABEL[m])}
             </option>
           ))}
         </Select>
       </div>
-      <div className="flex-1">
-        <Label htmlFor={`${mode}-note`}>{t("events.note")}</Label>
-        <Input id={`${mode}-note`} name="note" placeholder={refund ? t("events.refundNotePlaceholder") : undefined} />
-      </div>
+      <BilingualField
+        name="note"
+        label={tr("Izoh")}
+        className="min-w-48 flex-1"
+        placeholder={refund ? tr("masalan: to'y bekor qilindi, zaklad qaytarildi") : undefined}
+      />
       <Button type="submit" variant={refund ? "destructive" : "primary"} disabled={isPending}>
-        {isPending ? t("common.saving") : refund ? t("events.refundSubmit") : t("events.paymentSubmit")}
+        {isPending ? tr("Saqlanmoqda...") : refund ? tr("Pulni qaytarish") : tr("To'lov qo'shish")}
       </Button>
       <FieldError>{state?.error}</FieldError>
     </form>

@@ -17,6 +17,10 @@ export class CreateEventDto {
   clientName!: string;
 
   @IsString()
+  @MinLength(2)
+  clientNameRu!: string;
+
+  @IsString()
   @Matches(/^\+?[0-9]{9,15}$/, { message: "Telefon raqami noto'g'ri" })
   clientPhone!: string;
 
@@ -30,7 +34,7 @@ export class CreateEventDto {
   @Type(() => Number)
   @IsInt()
   @IsPositive()
-  @Max(400, { message: 'Mehmonlar soni 400 tadan oshmasligi kerak' })
+  @Max(2000, { message: 'Mehmonlar soni 2000 tadan oshmasligi kerak' })
   guestCount!: number;
 
   @IsString()
@@ -42,9 +46,21 @@ export class CreateEventDto {
 
   @IsOptional()
   @IsString()
+  notesRu?: string;
+
+  @IsOptional()
+  @IsString()
   firstDish?: string;
 
   @IsOptional()
   @IsString()
+  firstDishRu?: string;
+
+  @IsOptional()
+  @IsString()
   secondDish?: string;
+
+  @IsOptional()
+  @IsString()
+  secondDishRu?: string;
 }

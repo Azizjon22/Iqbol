@@ -9,8 +9,11 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   ({ className, ...props }, ref) => (
     <input
       ref={ref}
+      // Password managers and other extensions stamp their own attributes
+      // on fields before React hydrates; that is not a mismatch worth a warning.
+      suppressHydrationWarning
       className={cn(
-        "flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-card-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
+        "flex h-10 w-full min-w-0 rounded-md border border-input bg-card px-3 text-sm text-card-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
         className,
       )}
       {...props}
@@ -45,8 +48,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   ({ className, ...props }, ref) => (
     <textarea
       ref={ref}
+      suppressHydrationWarning
       className={cn(
-        "flex min-h-20 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-card-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
+        "flex min-h-20 w-full min-w-0 rounded-md border border-input bg-card px-3 py-2 text-sm text-card-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
         className,
       )}
       {...props}
@@ -59,8 +63,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
   ({ className, children, ...props }, ref) => (
     <select
       ref={ref}
+      suppressHydrationWarning
       className={cn(
-        "flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
+        "flex h-10 w-full min-w-0 rounded-md border border-input bg-card px-3 text-sm text-card-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
         className,
       )}
       {...props}

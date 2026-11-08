@@ -1,6 +1,3 @@
--- CreateEnum
-CREATE TYPE "MediaProcessingStatus" AS ENUM ('READY', 'PROCESSING', 'FAILED');
-
 -- AlterEnum
 -- This migration adds more than one value to an enum.
 -- With PostgreSQL versions 11 and earlier, this is not possible
@@ -19,28 +16,16 @@ ALTER TYPE "EventExpenseCategory" ADD VALUE 'STOCK';
 ALTER TABLE "inventory_transactions" DROP CONSTRAINT "inventory_transactions_createdById_fkey";
 
 -- AlterTable
-ALTER TABLE "staff_users" ADD COLUMN     "failedLoginCount" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "lockedUntil" TIMESTAMP(3),
-ADD COLUMN     "telegramChatId" TEXT,
-ADD COLUMN     "tokenVersion" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "staff_users" ADD COLUMN     "telegramChatId" TEXT;
 
 -- AlterTable
-ALTER TABLE "workers" ADD COLUMN     "failedLoginCount" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "lockedUntil" TIMESTAMP(3),
-ADD COLUMN     "telegramChatId" TEXT,
-ADD COLUMN     "tokenVersion" INTEGER NOT NULL DEFAULT 0;
-
--- AlterTable
-ALTER TABLE "menu_media" ADD COLUMN     "processingStatus" "MediaProcessingStatus" NOT NULL DEFAULT 'READY';
+ALTER TABLE "workers" ADD COLUMN     "telegramChatId" TEXT;
 
 -- AlterTable
 ALTER TABLE "inventory_transactions" ALTER COLUMN "createdById" DROP NOT NULL;
 
 -- AlterTable
 ALTER TABLE "shopping_lists" ADD COLUMN     "telegramMessages" JSONB;
-
--- AlterTable
-ALTER TABLE "app_settings" ADD COLUMN     "heroMediaStatus" "MediaProcessingStatus";
 
 -- CreateTable
 CREATE TABLE "inventory_lots" (

@@ -35,10 +35,9 @@ services:
       JWT_REFRESH_TTL: 30d
       PORT: 3001
       WEB_ORIGIN: https://${DOMAIN:?DOMAIN kerak}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_REMINDER_TIMES: ${TELEGRAM_REMINDER_TIMES:-09:00,20:00}
-      TELEGRAM_TIMEZONE: Asia/Tashkent
-      TELEGRAM_WEB_URL: https://${DOMAIN}
+      # Only the web container can reach the API, so its X-Forwarded-For
+      # (the visitor's address, used for rate limiting) is believed.
+      TRUST_PROXY: 1
       SEED_SUPER_ADMIN_PHONE: ${SEED_SUPER_ADMIN_PHONE:-}
       SEED_SUPER_ADMIN_PASSWORD: ${SEED_SUPER_ADMIN_PASSWORD:-}
     volumes:
@@ -50,13 +49,13 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         API_URL: http://api:3001/api
+        NEXT_PUBLIC_CONTACT_PHONE: ${CONTACT_PHONE:-}
     restart: unless-stopped
     depends_on:
       - api
     environment:
       API_URL: http://api:3001/api
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET kerak}
-      NEXT_PUBLIC_CONTACT_PHONE: ${CONTACT_PHONE:-}
 
   caddy:
     image: caddy:2-alpine

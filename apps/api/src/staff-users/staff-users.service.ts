@@ -82,7 +82,13 @@ export class StaffUsersService {
       description: `"${staff.fullName}" (${ROLE_LABEL_UZ[staff.role] ?? staff.role}) xodimini qo'shdi`,
     });
 
-    const { passwordHash: _omit, ...safe } = staff;
+    const {
+      passwordHash: _omit,
+      tokenVersion: _tokenVersion,
+      failedLoginCount: _failedLoginCount,
+      lockedUntil: _lockedUntil,
+      ...safe
+    } = staff;
     return safe;
   }
 
@@ -135,6 +141,9 @@ export class StaffUsersService {
         passwordHash,
         mustChangePassword: dto.password ? true : undefined,
         tokenVersion: revokesSessions ? { increment: 1 } : undefined,
+        // A fresh password from the super admin also lifts a lockout.
+        failedLoginCount: dto.password ? 0 : undefined,
+        lockedUntil: dto.password ? null : undefined,
       },
     });
 
@@ -161,7 +170,13 @@ export class StaffUsersService {
       description: `"${existing.fullName}" xodimini tahrirladi${changes.length ? ` (${changes.join(', ')})` : ''}`,
     });
 
-    const { passwordHash: _omit, ...safe } = staff;
+    const {
+      passwordHash: _omit,
+      tokenVersion: _tokenVersion,
+      failedLoginCount: _failedLoginCount,
+      lockedUntil: _lockedUntil,
+      ...safe
+    } = staff;
     return safe;
   }
 

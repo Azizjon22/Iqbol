@@ -16,18 +16,18 @@ export function ChangePasswordForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <form action={formAction} className="space-y-4">
+      <form suppressHydrationWarning action={formAction} className="space-y-4">
         <div>
           <Label htmlFor="currentPassword">{tr("Joriy parol (admin bergan)")}</Label>
           <PasswordInput id="currentPassword" name="currentPassword" required autoComplete="current-password" />
         </div>
         <div>
           <Label htmlFor="newPassword">{tr("Yangi parol")}</Label>
-          <PasswordInput id="newPassword" name="newPassword" required minLength={6} autoComplete="new-password" />
+          <PasswordInput id="newPassword" name="newPassword" required minLength={8} autoComplete="new-password" />
         </div>
         <div>
           <Label htmlFor="confirmPassword">{tr("Yangi parolni tasdiqlang")}</Label>
-          <PasswordInput id="confirmPassword" name="confirmPassword" required minLength={6} autoComplete="new-password" />
+          <PasswordInput id="confirmPassword" name="confirmPassword" required minLength={8} autoComplete="new-password" />
         </div>
         <FieldError>{state?.error}</FieldError>
         <SubmitButton className="w-full" pendingText={tr("Saqlanmoqda...")}>
@@ -35,7 +35,7 @@ export function ChangePasswordForm() {
           {tr("Parolni saqlash va davom etish")}
         </SubmitButton>
       </form>
-      <form action={logoutAction} className="mt-4 text-center">
+      <form suppressHydrationWarning action={logoutAction} className="mt-4 text-center">
         <button type="submit" className="text-sm text-muted-foreground hover:underline">
           
           {tr("Chiqish")}

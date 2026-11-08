@@ -1,21 +1,22 @@
 /** Brand type + default, safe to import from client components. */
 export type HeroMediaKind = "IMAGE" | "VIDEO";
-export type HeroMediaStatus = "READY" | "PROCESSING" | "FAILED";
 
 export interface Brand {
   brandName: string;
+  brandNameRu?: string | null;
   logoUrl: string | null;
+  /** Public contact phone on the client presentation. */
+  contactPhone: string;
   heroMediaUrl: string | null;
   heroMediaKind: HeroMediaKind | null;
-  /** Only meaningful while heroMediaKind is VIDEO — a fresh upload transcodes in the background. */
-  heroMediaStatus: HeroMediaStatus | null;
+  /** "PROCESSING" while a freshly uploaded hero video is being prepared. */
+  heroMediaStatus?: "READY" | "PROCESSING" | "FAILED" | null;
 }
 
 export const DEFAULT_BRAND: Brand = {
   brandName: "Iqbol",
   logoUrl: null,
+  contactPhone: "+998 90 000 00 00",
   heroMediaUrl: null,
   heroMediaKind: null,
-  heroMediaStatus: null,
 };
-

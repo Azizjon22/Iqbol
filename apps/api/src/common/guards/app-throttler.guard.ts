@@ -3,14 +3,14 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 
 /**
  * Every browser request reaches this API through the Next.js server's own
- * server-side fetch (apps/web/src/lib/api.ts) — so the stock IP-keyed
- * ThrottlerGuard sees every real user as the *same* client (the Next.js
- * process's IP), and a shared login limit starts rejecting normal
- * concurrent staff use, not just abuse.
+ * server-side fetch (apps/web/src/lib/api.ts), so the socket address is the
+ * web server's for everyone. Two things keep one user from eating another's
+ * allowance:
  *
- * Login/registration requests carry the account's phone number in the
- * body — key on that instead so each account gets its own bucket. Every
- * other route (no `phone` in the body) falls back to the default IP key.
+ * - Login/registration requests carry the account's phone number in the
+ *   body — key on that, so each account gets its own bucket.
+ * - Everything else keys on the client IP. The web server forwards it in
+ *   X-Forwarded-For and TRUST_PROXY (see main.ts) makes `req.ip` honour it.
  */
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {

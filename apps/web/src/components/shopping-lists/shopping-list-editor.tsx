@@ -8,15 +8,18 @@ import { Pencil, Plus, Send, Trash2, X } from "lucide-react";
 import { UNIT_LABELS_UZ, UNITS, type Unit } from "@iqbol/shared";
 import type { ShoppingList } from "@/lib/types";
 import { Input, Select } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { Button } from "@/components/ui/button";
 import { isShoppingListSent } from "@/lib/shopping-list-status";
 
 interface Row {
   id?: string;
   name: string;
+  nameRu: string;
   quantity: string;
   unit: Unit;
   note: string | null;
+  noteRu: string | null;
   /** Chef's figure, for the "8 → 5" hint while editing. */
   original: string | null;
 }
@@ -27,9 +30,11 @@ function rowsFrom(list: ShoppingList): Row[] {
     .map((item) => ({
       id: item.id,
       name: item.name,
+      nameRu: item.nameRu ?? "",
       quantity: String(Number(item.quantity)),
       unit: item.unit,
       note: item.note,
+      noteRu: item.noteRu ?? null,
       original: item.originalQuantity ?? String(Number(item.quantity)),
     }));
 }
@@ -73,8 +78,8 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
 
   function validRows() {
     const cleaned = rows.map((r) => ({ ...r, name: r.name.trim() }));
-    if (cleaned.some((r) => r.name.length < 2)) {
-      throw new Error(tr("Mahsulot nomini kiriting (kamida 2 harf)"));
+    if (cleaned.some((r) => r.name.length < 2 || r.nameRu.trim().length < 2)) {
+      throw new Error(tr("Ikkala tilda ham yozing"));
     }
     if (cleaned.some((r) => !(Number(r.quantity) > 0))) {
       throw new Error(tr("Miqdor 0 dan katta bo'lishi kerak"));
@@ -85,9 +90,11 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
     return cleaned.map((r) => ({
       id: r.id,
       name: r.name,
+      nameRu: r.nameRu.trim(),
       quantity: Number(r.quantity),
       unit: r.unit,
       note: r.note ?? undefined,
+      noteRu: r.noteRu ?? undefined,
     }));
   }
 
@@ -120,7 +127,7 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
         )}
         {!sent && (
           <Button type="button" size="sm" onClick={() => run(true)} disabled={busy}>
-            <Send className="h-4 w-4" /> {busy ? tr("Yuborilmoqda...") : "Adminga yuborish"}
+            <Send className="h-4 w-4" /> {busy ? tr("Yuborilmoqda...") : tr("Adminga yuborish")}
           </Button>
         )}
         {error && <span className="text-xs text-destructive">{error}</span>}
@@ -137,16 +144,24 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
           const changed = chefQuantity > 0 && chefQuantity !== Number(row.quantity);
           return (
             <div key={row.id ?? `new-${index}`} className="flex flex-wrap items-center gap-2">
-              {row.id ? (
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{row.name}</span>
-              ) : (
-                <Input
-                  value={row.name}
-                  onChange={(e) => update(index, { name: e.target.value })}
+              <div className="min-w-0 flex-1 space-y-1">
+                <BilingualField
+                  name={`item-name-${index}`}
+                  submit={false}
+                  defaultValue={row.name}
+                  defaultValueRu={row.nameRu}
                   placeholder={tr("Mahsulot nomi")}
-                  className="h-8 min-w-0 flex-1"
+                  onValues={(uz, ru) => update(index, { name: uz, nameRu: ru })}
                 />
-              )}
+                <BilingualField
+                  name={`item-note-${index}`}
+                  submit={false}
+                  defaultValue={row.note}
+                  defaultValueRu={row.noteRu}
+                  placeholder={tr("Izoh (ixtiyoriy)")}
+                  onValues={(uz, ru) => update(index, { note: uz, noteRu: ru })}
+                />
+              </div>
               {changed && (
                 <span className="text-xs text-muted-foreground">
                   oshpaz: <span className="line-through">{chefQuantity}</span>
@@ -191,7 +206,7 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
         type="button"
         size="sm"
         variant="ghost"
-        onClick={() => setRows((prev) => [...prev, { name: "", quantity: "", unit: "KG", note: null, original: null }])}
+        onClick={() => setRows((prev) => [...prev, { name: "", nameRu: "", quantity: "", unit: "KG", note: null, noteRu: null, original: null }])}
       >
         <Plus className="h-4 w-4" />  {tr("Mahsulot qo'shish")}
       </Button>
@@ -204,7 +219,7 @@ export function ShoppingListEditor({ list }: { list: ShoppingList }) {
         </Button>
         {!sent && (
           <Button type="button" size="sm" onClick={() => run(true)} disabled={busy}>
-            <Send className="h-4 w-4" /> Saqlab, adminga yuborish
+            <Send className="h-4 w-4" /> {tr("Saqlab, adminga yuborish")}
           </Button>
         )}
         <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={busy}>

@@ -1,12 +1,14 @@
+import { getTr } from "@/i18n/server-tr";
+import { getLocale } from "@/i18n/locale";
 import Link from "next/link";
 import { CalendarHeart, ChefHat, Plus, ShoppingCart } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import type { ShoppingList } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { OrnamentDivider } from "@/components/menus/showcase/ornament-divider";
 import { ChefEventCard } from "@/components/worker/chef/chef-event-card";
 import { ChefListCard } from "@/components/worker/chef/chef-list-card";
-import { OrnamentDivider } from "@/components/menus/showcase/ornament-divider";
 import { WEEKDAYS, daysUntil, type ChefEvent } from "@/components/worker/chef/types";
 
 function greeting() {
@@ -15,6 +17,9 @@ function greeting() {
 }
 
 export default async function WorkerHomePage() {
+  const tr = await getTr();
+  const locale = await getLocale();
+
   const session = await getSession();
   const isChef = session?.user.kind === "WORKER" && session.user.position === "CHEF";
   const [myLists, agenda] = await Promise.all([
@@ -34,16 +39,16 @@ export default async function WorkerHomePage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--surface-glow),transparent_60%)]" />
         <div className="relative">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
-            {WEEKDAYS[today.getDay()]} · {formatDate(today)}
+            {tr(WEEKDAYS[today.getDay()])} · {formatDate(today, locale)}
           </p>
           <h1 className="font-display mt-1.5 text-3xl font-semibold tracking-tight sm:text-4xl">
-            {greeting()}, {session?.user.fullName.split(" ")[0]}
+            {tr(greeting())}, {session?.user.fullName.split(" ")[0]}
           </h1>
           <OrnamentDivider align="start" className="mt-2 text-accent" />
           {isChef && (
             <p className="mt-2.5 text-sm text-muted-foreground">
-              {week.length > 0 ? `Bu hafta ${week.length} ta to'y` : "Bu hafta to'y yo'q"}
-              {withoutList.length > 0 && ` · ${withoutList.length} tasiga bozorlik yozilmagan`}
+              {week.length > 0 ? tr(`Bu hafta ${week.length} ta to'y`) : tr("Bu hafta to'y yo'q")}
+              {withoutList.length > 0 && tr(` · ${withoutList.length} tasiga bozorlik yozilmagan`)}
             </p>
           )}
         </div>
@@ -54,12 +59,13 @@ export default async function WorkerHomePage() {
           <div className="flex items-end justify-between">
             <div>
               <h2 className="flex items-center gap-2 text-base font-semibold">
-                <CalendarHeart className="h-4 w-4 text-primary" /> Keyingi to&apos;y
+                <CalendarHeart className="h-4 w-4 text-primary" /> {tr("Keyingi to'y")}
               </h2>
               <span className="mt-1 block h-0.5 w-8 rounded-full bg-gradient-to-r from-accent to-accent/10" />
             </div>
             <Link href="/worker/events" className="text-sm text-primary hover:underline">
-              Hammasi ({agenda.length}) →
+              
+              {tr(`Hammasi (${agenda.length})`)} →
             </Link>
           </div>
           {next ? (
@@ -67,7 +73,7 @@ export default async function WorkerHomePage() {
           ) : (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border py-10 text-center">
               <CalendarHeart className="h-7 w-7 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">Hozircha rejada to&apos;y yo&apos;q — yangisi qo&apos;shilganda shu yerda chiqadi.</p>
+              <p className="text-sm text-muted-foreground">{tr("Hozircha rejada to'y yo'q — yangisi qo'shilganda shu yerda chiqadi.")}</p>
             </div>
           )}
         </section>
@@ -81,7 +87,7 @@ export default async function WorkerHomePage() {
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Plus className="h-5 w-5" />
           </span>
-          <span className="text-sm font-semibold leading-tight">Yangi bozorlik ro&apos;yxati</span>
+          <span className="text-sm font-semibold leading-tight">{tr("Yangi bozorlik ro'yxati")}</span>
         </Link>
         <Link
           href="/worker/shopping?tab=mine"
@@ -91,7 +97,8 @@ export default async function WorkerHomePage() {
             <ShoppingCart className="h-5 w-5" />
           </span>
           <span className="text-sm font-semibold leading-tight">
-            Ro&apos;yxatlarim <span className="text-muted-foreground">({myLists.length})</span>
+            
+            {tr("Ro'yxatlarim")} <span className="text-muted-foreground">({myLists.length})</span>
           </span>
         </Link>
       </div>
@@ -100,7 +107,7 @@ export default async function WorkerHomePage() {
         <section className="space-y-3">
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold">
-              <ChefHat className="h-4 w-4 text-accent" /> Ro&apos;yxatlarim holati
+              <ChefHat className="h-4 w-4 text-accent" /> {tr("Ro'yxatlarim holati")}
             </h2>
             <span className="mt-1 block h-0.5 w-8 rounded-full bg-gradient-to-r from-accent to-accent/10" />
           </div>

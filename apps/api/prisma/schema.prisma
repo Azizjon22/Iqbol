@@ -64,18 +64,16 @@ enum MenuMediaSection {
   OTHER
 }
 
-enum MediaType {
-  PHOTO
-  VIDEO
-}
-
-// A freshly uploaded HEVC (.mov) video is unplayable in most browsers —
-// PROCESSING covers the window where it's being transcoded to H.264 in
-// the background; READY is the only state the public showcase ever plays.
+// A freshly uploaded video may be repacked or re-encoded in the background.
 enum MediaProcessingStatus {
   READY
   PROCESSING
   FAILED
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
 }
 
 enum Unit {
@@ -142,13 +140,15 @@ model StaffUser {
   phone              String    @unique
   passwordHash       String
   mustChangePassword Boolean   @default(false)
+  // Sessions: bumped to sign every existing token out at once.
+  tokenVersion       Int       @default(0)
+  // Brute-force guard: wrong tries in a row and the lock they earn.
+  failedLoginCount   Int       @default(0)
+  lockedUntil        DateTime?
   role               StaffRole
   isActive           Boolean   @default(true)
   // Telegram chat linked through the bot (phone + password); notifications go here.
   telegramChatId     String?   @unique
-  tokenVersion       Int       @default(0)
-  failedLoginCount   Int       @default(0)
-  lockedUntil        DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -172,6 +172,11 @@ model Worker {
   phone            String         @unique
   pinHash          String?
   mustChangePin    Boolean        @default(false)
+  // Sessions: bumped to sign every existing token out at once.
+  tokenVersion     Int            @default(0)
+  // Brute-force guard: wrong tries in a row and the lock they earn.
+  failedLoginCount Int            @default(0)
+  lockedUntil      DateTime?
   photoUrl         String?
   position         WorkerPosition
   gender           WorkerGender?
@@ -180,9 +185,6 @@ model Worker {
   telegramChatId   String?        @unique
   approvedBy       StaffUser?     @relation("WorkerApprovedBy", fields: [approvedById], references: [id])
   approvedById     String?
-  tokenVersion     Int            @default(0)
-  failedLoginCount Int            @default(0)
-  lockedUntil      DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -198,9 +200,11 @@ model Worker {
 model Menu {
   id             String   @id @default(cuid())
   name           String
+  nameRu         String?
   pricePerPerson Decimal  @db.Decimal(12, 2)
   guestCount     Int      @default(150)
   description    String?
+  descriptionRu  String?
   coverImageUrl  String?
   isVip          Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -214,14 +218,16 @@ model Menu {
 }
 
 model MenuDish {
-  id          String           @id @default(cuid())
-  menuId      String
-  menu        Menu             @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  category    MenuDishCategory
-  name        String
-  description String?
-  photoUrl    String?
-  order       Int              @default(0)
+  id            String           @id @default(cuid())
+  menuId        String
+  menu          Menu             @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  category      MenuDishCategory
+  name          String
+  nameRu        String?
+  description   String?
+  descriptionRu String?
+  photoUrl      String?
+  order         Int              @default(0)
 
   @@index([menuId])
   @@map("menu_dishes")
@@ -235,6 +241,7 @@ model MenuMedia {
   mediaType        MediaType
   url              String
   caption          String?
+  captionRu        String?
   order            Int                   @default(0)
   processingStatus MediaProcessingStatus @default(READY)
 
@@ -247,6 +254,7 @@ model MenuMedia {
 model Event {
   id            String      @id @default(cuid())
   clientName    String
+  clientNameRu  String?
   clientPhone   String
   eventDate     DateTime
   tableCapacity Int
@@ -259,8 +267,11 @@ model Event {
   // these and the guest count. Stored as names so later menu edits don't
   // rewrite what was agreed. Set by SUPER_ADMIN only.
   firstDish     String?
+  firstDishRu   String?
   secondDish    String?
+  secondDishRu  String?
   notes         String?
+  notesRu       String?
   createdById   String
   createdBy     StaffUser   @relation("EventCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime    @default(now())
@@ -298,6 +309,7 @@ model EventWorkerAssignment {
 model InventoryItem {
   id              String            @id @default(cuid())
   name            String            @unique
+  nameRu          String?
   category        InventoryCategory @default(PRODUCT)
   productCategory ProductCategory?
   photoUrl        String?
@@ -374,6 +386,7 @@ model InventoryTransaction {
   type                     InventoryTxnType
   quantity                 Decimal           @db.Decimal(12, 3)
   note                     String?
+  noteRu                   String?
   sourceShoppingListItemId String?           @unique
   sourceShoppingListItem   ShoppingListItem? @relation(fields: [sourceShoppingListItemId], references: [id])
   // null when a chef moved the stock (taking it for a wedding); the note says who.
@@ -420,6 +433,7 @@ model ShoppingListItem {
   shoppingListId   String
   shoppingList     ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   name             String
+  nameRu           String?
   quantity         Decimal      @db.Decimal(12, 3)
   // What the chef originally asked for, recorded the first time SUPER_ADMIN
   // changes the quantity. 0 means SUPER_ADMIN added the item themselves.
@@ -432,6 +446,7 @@ model ShoppingListItem {
   totalCost        Decimal?     @db.Decimal(14, 2)
   isPurchased      Boolean      @default(false)
   note             String?
+  noteRu           String?
 
   inventoryTransaction InventoryTransaction?
 
@@ -457,6 +472,7 @@ model Payment {
   paymentDate DateTime      @default(now())
   method      PaymentMethod
   note        String?
+  noteRu      String?
   createdById String
   createdBy   StaffUser     @relation(fields: [createdById], references: [id])
   createdAt   DateTime      @default(now())
@@ -472,6 +488,7 @@ model EventExpense {
   category    EventExpenseCategory
   amount      Decimal              @db.Decimal(14, 2)
   note        String?
+  noteRu      String?
   createdById String
   createdBy   StaffUser            @relation(fields: [createdById], references: [id])
   createdAt   DateTime             @default(now())
@@ -505,9 +522,13 @@ model AuditLog {
 model AppSettings {
   id              String                 @id @default("app")
   brandName       String                 @default("Iqbol")
+  brandNameRu     String?
   logoUrl         String?
+  /// Public contact number shown on the client presentation (header + CTA).
+  contactPhone    String                 @default("+998 90 000 00 00")
   heroMediaUrl    String?
   heroMediaKind   String?
+  // Null when no hero media is set.
   heroMediaStatus MediaProcessingStatus?
   updatedAt       DateTime               @updatedAt
 

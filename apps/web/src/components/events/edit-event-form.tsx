@@ -1,12 +1,14 @@
 "use client";
+import { useTr } from "@/components/i18n/locale-provider";
+
 
 import { startTransition, useActionState } from "react";
 import { updateEventAction, type FormActionState } from "@/lib/actions/events.actions";
-import { Input, Label, Select, Textarea, FieldError } from "@/components/ui/input";
+import { Input, Label, Select, FieldError } from "@/components/ui/input";
+import { BilingualField } from "@/components/i18n/bilingual-field";
 import { MenuAndDishes } from "@/components/events/menu-and-dishes";
 import { Button } from "@/components/ui/button";
 import type { EventDetail, Menu } from "@/lib/types";
-import { useT } from "@/components/i18n/locale-provider";
 
 const initialState: FormActionState = undefined;
 
@@ -17,12 +19,13 @@ function toDateTimeLocalValue(value: string) {
 }
 
 export function EditEventForm({ event, menus, canSetDishes }: { event: EventDetail; menus: Menu[]; canSetDishes: boolean }) {
-  const t = useT();
+  const tr = useTr();
+
   const action = updateEventAction.bind(null, event.id);
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   return (
-    <form
+    <form suppressHydrationWarning
       // onSubmit + formAction instead of action={formAction}: React resets an
       // action-bound form after every submit, wiping everything the user typed
       // whenever the server sends back a validation error.
@@ -33,20 +36,24 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
       }}
       className="space-y-4"
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+        <BilingualField
+          name="clientName"
+          label={tr("Mijoz ismi")}
+          defaultValue={event.clientName}
+          defaultValueRu={event.clientNameRu}
+          required
+        />
         <div>
-          <Label htmlFor="clientName">{t("events.clientName")}</Label>
-          <Input id="clientName" name="clientName" defaultValue={event.clientName} required />
-        </div>
-        <div>
-          <Label htmlFor="clientPhone">{t("events.clientPhone")}</Label>
+          <Label htmlFor="clientPhone">{tr("Mijoz telefoni")}</Label>
           <Input id="clientPhone" name="clientPhone" defaultValue={event.clientPhone} placeholder="+998901234567" required />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <Label htmlFor="eventDate">{t("events.dateTime")}</Label>
+      {/* Two columns on tablets (date gets a full row), three only when wide. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+        <div className="sm:col-span-2 xl:col-span-1">
+          <Label htmlFor="eventDate">{tr("Sana va vaqt")}</Label>
           <Input
             id="eventDate"
             name="eventDate"
@@ -56,14 +63,14 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
           />
         </div>
         <div>
-          <Label htmlFor="guestCount">{t("events.guestCountLabel")}</Label>
-          <Input id="guestCount" name="guestCount" type="number" min={1} max={400} defaultValue={event.guestCount} required />
+          <Label htmlFor="guestCount">{tr("Mehmonlar soni")}</Label>
+          <Input id="guestCount" name="guestCount" type="number" min={1} defaultValue={event.guestCount} required />
         </div>
         <div>
-          <Label htmlFor="tableCapacity">{t("events.tableType")}</Label>
+          <Label htmlFor="tableCapacity">{tr("Stol turi")}</Label>
           <Select id="tableCapacity" name="tableCapacity" defaultValue={String(event.tableCapacity)} required>
-            <option value="10">{t("events.seatsOption", { count: 10 })}</option>
-            <option value="12">{t("events.seatsOption", { count: 12 })}</option>
+            <option value="10">{tr("10 kishilik")}</option>
+            <option value="12">{tr("12 kishilik")}</option>
           </Select>
         </div>
       </div>
@@ -72,18 +79,24 @@ export function EditEventForm({ event, menus, canSetDishes }: { event: EventDeta
         menus={menus}
         defaultMenuId={event.menuId}
         defaultFirst={event.firstDish}
+        defaultFirstRu={event.firstDishRu}
         defaultSecond={event.secondDish}
+        defaultSecondRu={event.secondDishRu}
         canSetDishes={canSetDishes}
       />
 
-      <div>
-        <Label htmlFor="notes">{t("events.notesOptional")}</Label>
-        <Textarea id="notes" name="notes" rows={3} defaultValue={event.notes ?? ""} />
-      </div>
+      <BilingualField
+        name="notes"
+        label={tr("Izoh (ixtiyoriy)")}
+        multiline
+        rows={3}
+        defaultValue={event.notes}
+        defaultValueRu={event.notesRu}
+      />
 
       <FieldError>{state?.error}</FieldError>
       <Button type="submit" disabled={isPending}>
-        {isPending ? t("common.saving") : t("events.saveChanges")}
+        {isPending ? tr("Saqlanmoqda...") : <>{tr("O'zgarishlarni saqlash")}</>}
       </Button>
     </form>
   );

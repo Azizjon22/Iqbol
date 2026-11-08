@@ -26,8 +26,6 @@ const MAX_BYTES = 200 * 1024 * 1024;
 export class UploadsController {
   constructor(private uploads: UploadsService) {}
 
-  // Uploading is for logged-in SUPER_ADMIN and ADMIN only: there is no
-  // anonymous upload route, so nobody outside can fill the disk.
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @Post('presign')
@@ -66,15 +64,21 @@ export class UploadsController {
         headers: {
           'Content-Type': opened.type,
           'Content-Disposition': 'inline',
+          // Photos and videos are shown on the public presentation pages.
+          'Cross-Origin-Resource-Policy': 'cross-origin',
         },
         acceptRanges: true,
         lastModified: true,
-        maxAge: '1h',
+        // Every upload gets a random name and is never rewritten, so a
+        // browser may keep it for good: the second viewing is instant.
+        maxAge: '365d',
+        immutable: true,
       },
-      (err?: Error & { code?: string }) => {
+      (err?: Error & { code?: string; status?: number }) => {
         // A viewer skipping ahead aborts the previous range; that is normal.
+        // Otherwise pass on what went wrong (e.g. 416 for a range past the end).
         if (err && err.code !== 'ECONNABORTED' && !res.headersSent)
-          res.status(404).end();
+          res.status(err.status ?? 404).end();
       },
     );
   }
@@ -97,7 +101,7 @@ function readLimited(req: Request, maxBytes: number): Promise<Buffer> {
   if (Buffer.isBuffer(req.body)) {
     if (req.body.length > maxBytes) {
       return Promise.reject(
-        new PayloadTooLargeException('Fayl 200 MB dan katta'),
+        new PayloadTooLargeException('Video 200 MB dan katta'),
       );
     }
     return Promise.resolve(req.body);
@@ -113,16 +117,16 @@ function readLimited(req: Request, maxBytes: number): Promise<Buffer> {
       reject(error);
     };
     req.on('data', (chunk: Buffer | string) => {
-      // Once oversized, stop buffering (stay memory-safe) but let the
-      // stream keep draining instead of destroying the socket — killing
-      // it here would tear down the connection before Nest gets a chance
-      // to send the 413 response, surfacing as a raw ECONNRESET/500 to
-      // the client instead of a clean error.
+      // Once oversized, stop buffering (stay memory-safe) but let the stream
+      // keep draining instead of destroying the socket — killing it here
+      // would tear down the connection before the 413 answer can be sent,
+      // and the uploader would see a bare network error instead of a reason.
       if (settled) return;
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       total += buf.length;
       if (total > maxBytes) {
-        fail(new PayloadTooLargeException('Fayl 200 MB dan katta'));
+        chunks.length = 0;
+        fail(new PayloadTooLargeException('Video 200 MB dan katta'));
         return;
       }
       chunks.push(buf);

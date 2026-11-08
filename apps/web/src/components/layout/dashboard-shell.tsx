@@ -10,41 +10,16 @@ import { cn } from "@/lib/utils";
 import { logoutAction } from "@/lib/actions/auth.actions";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { useLocale } from "@/components/i18n/locale-provider";
+import { useLocale, useTr } from "@/components/i18n/locale-provider";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { ShoppingListToast, useLivePendingLists } from "./live-shopping-alerts";
 
 const COLLAPSE_KEY = "nav-collapsed";
-
-type NavMode = "full" | "rail" | "auto";
-
-const NAV_CLASSES: Record<NavMode, { group: string; title: string; link: string; label: string; badge: string }> = {
-  full: {
-    group: "mb-4",
-    title: "block",
-    link: "gap-3 px-3 py-2.5 text-sm",
-    label: "truncate",
-    badge: "ml-auto h-5 min-w-5 text-[11px]",
-  },
-  rail: {
-    group: "mb-3",
-    title: "hidden",
-    link: "flex-col justify-center gap-1 px-1 py-2 text-center text-[10px] leading-tight",
-    label: "line-clamp-2 break-words",
-    badge: "absolute right-1 top-1 h-4 min-w-4 text-[10px]",
-  },
-  auto: {
-    group: "mb-3 xl:mb-4",
-    title: "hidden xl:block",
-    link: "flex-col justify-center gap-1 px-1 py-2 text-center text-[10px] leading-tight xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:py-2.5 xl:text-left xl:text-sm",
-    label: "line-clamp-2 break-words xl:line-clamp-none xl:truncate",
-    badge: "absolute right-1 top-1 h-4 min-w-4 text-[10px] xl:static xl:ml-auto xl:h-5 xl:min-w-5 xl:text-[11px]",
-  },
-};
 
 export function DashboardShell({
   fullName,
   role,
-  pendingShoppingListsCount = 0,
+  pendingShoppingListsCount: initialPendingCount = 0,
   children,
 }: {
   fullName: string;
@@ -57,6 +32,9 @@ export function DashboardShell({
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const { t } = useLocale();
+  const tr = useTr();
+  const live = useLivePendingLists(initialPendingCount, role === "SUPER_ADMIN" || role === "ADMIN");
+  const pendingShoppingListsCount = live.count;
 
   useEffect(() => {
     // Hydration-safe: starts false on the server/first paint, then corrects
@@ -91,83 +69,75 @@ export function DashboardShell({
     });
   }
 
-  // "full" = labelled list (mobile drawer, wide desktop); "rail" = icon over a
-  // short label (user-collapsed); "auto" = rail on tablets and small laptops
-  // (md..xl) where a 260px sidebar would squeeze the page, full from xl up.
-  const navContent = (mode: NavMode) => {
-    const c = NAV_CLASSES[mode];
-    return (
-      <>
-        {NAV_GROUPS.map((group) => {
-          const groupItems = items.filter((item) => item.group === group.id);
-          if (groupItems.length === 0) return null;
-          return (
-            <div key={group.id} className={c.group}>
-              <p className={cn("mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80", c.title)}>
+  const navContent = (compact: boolean) => (
+    <>
+      {NAV_GROUPS.map((group) => {
+        const groupItems = items.filter((item) => item.group === group.id);
+        if (groupItems.length === 0) return null;
+        return (
+          <div key={group.id} className={cn("mb-4", compact && "mb-3")}>
+            {!compact && (
+              <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
                 {t(group.labelKey)}
               </p>
-              <div className="flex flex-col gap-0.5">
-                {groupItems.map((item) => {
-                  const active = isNavActive(pathname, item.href);
-                  const Icon = item.icon;
-                  const showBadge = item.href === "/dashboard/shopping-lists" && pendingShoppingListsCount > 0;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      title={mode === "full" ? undefined : t(item.labelKey)}
-                      className={cn(
-                        "group relative flex items-center rounded-xl font-medium transition-all",
-                        c.link,
-                        active
-                          ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                          : "text-foreground/70 hover:bg-muted hover:text-foreground",
-                      )}
-                    >
-                      <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "opacity-100" : "opacity-80")} />
-                      <span className={cn("max-w-full", c.label)}>{t(item.labelKey)}</span>
-                      {showBadge && (
-                        <span
-                          className={cn(
-                            "flex items-center justify-center rounded-full px-1 font-semibold",
-                            c.badge,
-                            active
-                              ? "bg-primary-foreground/20 text-primary-foreground"
-                              : "bg-destructive text-destructive-foreground",
-                          )}
-                        >
-                          {pendingShoppingListsCount}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
+            )}
+            <div className="flex flex-col gap-0.5">
+              {groupItems.map((item) => {
+                const active = isNavActive(pathname, item.href);
+                const Icon = item.icon;
+                const showBadge = item.href === "/dashboard/shopping-lists" && pendingShoppingListsCount > 0;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={compact ? t(item.labelKey) : undefined}
+                    className={cn(
+                      "group relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all",
+                      compact ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
+                      active
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        : "text-foreground/70 hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "opacity-100" : "opacity-80")} />
+                    {!compact && <span className="truncate">{t(item.labelKey)}</span>}
+                    {showBadge && (
+                      <span
+                        className={cn(
+                          "flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold",
+                          compact && "absolute -right-0.5 -top-0.5 h-4 min-w-4 text-[10px]",
+                          !compact && "ml-auto",
+                          active
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : "bg-destructive text-destructive-foreground",
+                        )}
+                      >
+                        {pendingShoppingListsCount}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
-          );
-        })}
-      </>
-    );
-  };
+          </div>
+        );
+      })}
+    </>
+  );
 
   return (
-    <div className="flex min-h-svh bg-background">
-      {/* Desktop sidebar: a rail on tablets (md..xl), full width from xl unless collapsed */}
+    <div className="flex min-h-screen bg-background">
+      {/* Desktop sidebar */}
       <aside
         className={cn(
-          "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border/70 bg-card md:flex",
-          collapsed ? "w-[88px]" : "w-[88px] xl:w-[260px]",
+          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border/70 bg-card md:flex",
+          collapsed ? "w-[76px]" : "w-[260px]",
         )}
       >
-        <div
-          className={cn(
-            "flex h-16 items-center gap-2.5 border-b border-border/60",
-            collapsed ? "justify-center px-2" : "justify-center px-2 xl:justify-start xl:px-4",
-          )}
-        >
+        <div className={cn("flex h-16 items-center gap-2.5 border-b border-border/60", collapsed ? "justify-center px-2" : "px-4")}>
           <BrandMark className="h-9 w-9 shrink-0 text-lg shadow-sm shadow-primary/25" />
           {!collapsed && (
-            <div className="hidden min-w-0 flex-1 xl:block">
+            <div className="min-w-0 flex-1">
               <p className="font-display truncate text-lg font-semibold leading-tight tracking-tight">
                 {t("common.brand")}
               </p>
@@ -176,12 +146,9 @@ export function DashboardShell({
           )}
         </div>
 
-        <nav className={cn("flex-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-2 xl:px-3")}>
-          {navContent(collapsed ? "rail" : "auto")}
-        </nav>
+        <nav className={cn("flex-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-3")}>{navContent(collapsed)}</nav>
 
-        {/* Collapsing only makes sense where the full sidebar is shown. */}
-        <div className="hidden border-t border-border/60 p-3 xl:block">
+        <div className={cn("border-t border-border/60 p-3", collapsed && "flex justify-center")}>
           <button
             type="button"
             onClick={toggleCollapsed}
@@ -197,7 +164,7 @@ export function DashboardShell({
       {/* Mobile drawer */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] flex-col border-r border-border bg-card shadow-xl transition-transform md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-border bg-card shadow-xl transition-transform md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -206,16 +173,11 @@ export function DashboardShell({
             <BrandMark className="h-9 w-9 text-lg" />
             <span className="font-display text-lg font-semibold">{t("common.brand")}</span>
           </span>
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            aria-label={t("common.close")}
-            className="-mr-2 flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
+          <button type="button" onClick={() => setMobileOpen(false)} aria-label={t("common.close")}>
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto px-3 py-4">{navContent("full")}</nav>
+        <nav className="flex-1 overflow-y-auto px-3 py-4">{navContent(false)}</nav>
       </aside>
 
       {mobileOpen && (
@@ -227,11 +189,11 @@ export function DashboardShell({
         />
       )}
 
-      <div className="flex min-h-svh min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-card/85 px-3 backdrop-blur-md sm:gap-3 sm:px-6">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-card/85 px-4 backdrop-blur-md sm:px-6">
           <button
             type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-foreground hover:bg-muted md:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-foreground hover:bg-muted md:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label={t("common.openMenu")}
           >
@@ -253,7 +215,7 @@ export function DashboardShell({
             <h1 className="truncate text-base font-semibold tracking-tight sm:text-[17px]">{pageTitle}</h1>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <LanguageSwitcher />
             <ThemeToggle />
             {pendingShoppingListsCount > 0 && (
@@ -271,7 +233,7 @@ export function DashboardShell({
             <Link
               href="/dashboard/profile"
               title={t("nav.profile")}
-              className="ml-1 hidden items-center gap-2 rounded-full border border-border/80 bg-muted/40 py-1 pl-1 pr-3 transition hover:border-primary/40 hover:bg-muted md:flex"
+              className="ml-1 hidden items-center gap-2 rounded-full border border-border/80 bg-muted/40 py-1 pl-1 pr-3 transition hover:border-primary/40 hover:bg-muted sm:flex"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
                 {fullName
@@ -282,11 +244,11 @@ export function DashboardShell({
                   .toUpperCase()}
               </span>
               <div className="min-w-0 text-left">
-                <p className="max-w-[9rem] truncate text-xs font-medium leading-none lg:max-w-[7.5rem] xl:max-w-[10rem]">{fullName}</p>
+                <p className="max-w-[120px] truncate text-xs font-medium leading-none">{tr(fullName)}</p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">{t(`roles.${role}`)}</p>
               </div>
             </Link>
-            <form action={logoutAction}>
+            <form suppressHydrationWarning action={logoutAction}>
               <button
                 type="submit"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -308,20 +270,21 @@ export function DashboardShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col items-center gap-0.5 px-0.5 py-2 text-center text-[10px] font-medium leading-tight",
+                  "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                <Icon className="h-5 w-5 shrink-0" />
-                <span className="line-clamp-2 w-full">{t(item.labelKey)}</span>
+                <Icon className="h-5 w-5" />
+                <span className="max-w-[64px] truncate">{t(item.labelKey)}</span>
               </Link>
             );
           })}
         </nav>
 
-        <main className="@container/main min-w-0 flex-1 bg-[radial-gradient(ellipse_at_top,var(--surface-glow),transparent_50%)] p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6">
+        <main className="flex-1 bg-[radial-gradient(ellipse_at_top,var(--surface-glow),transparent_50%)] p-4 pb-24 sm:p-6 md:pb-6">
           {children}
         </main>
+        <ShoppingListToast alert={live.alert} onClose={live.dismiss} />
       </div>
     </div>
   );

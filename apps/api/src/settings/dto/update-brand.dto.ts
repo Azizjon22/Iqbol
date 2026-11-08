@@ -15,6 +15,19 @@ export class UpdateBrandDto {
   @MaxLength(40)
   brandName?: string;
 
+  /** Public contact phone on the client presentation (spaces allowed). */
+  @IsOptional()
+  @IsString()
+  @MinLength(9)
+  @MaxLength(30)
+  contactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(40)
+  brandNameRu?: string;
+
   /** null resets to the default letter mark. */
   @IsOptional()
   @ValidateIf((_, v) => v !== null)
