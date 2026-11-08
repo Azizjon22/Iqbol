@@ -53,6 +53,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     ) {
       throw new UnauthorizedException('Sessiya endi amal qilmaydi');
     }
-    return payload;
+    // The token doesn't carry the position; the chef-only routes need it.
+    return { ...payload, position: worker.position };
   }
 }

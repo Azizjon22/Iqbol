@@ -1,5 +1,17 @@
 /** Uzbek source text → Russian. Keys with "{x}" are full-string patterns, not shown as-is. */
 export const PHRASES_RU: Record<string, string> = {
+  // Store price lots and stock taken for a wedding.
+  "Narx bo'yicha qoldiq": "Остаток по ценам",
+  "Yuqoridagisi birinchi sarflanadi.": "Верхняя партия расходуется первой.",
+  "Narxni saqlash": "Сохранить цену",
+  "Partiya narxi": "Цена партии",
+  "masalan: 15000": "например: 15000",
+  "Narx kiritilsa, to'yga olinganda tannarxi hisoblanadi.": "Если указать цену, при выдаче на свадьбу будет посчитана себестоимость.",
+  "Ombordan olingan mahsulotlar": "Продукты, взятые со склада",
+  "narx kiritilmagan": "цена не указана",
+  "Ombordan jami": "Всего со склада",
+  "Xarajatlarda «Ombor mahsulotlari» qatori bor.": "В расходах уже есть строка «Продукты со склада».",
+  "Bu summa xarajatga o'zi yozilmaydi: «Ombor mahsulotlari» xarajatini qo'shing.": "Эта сумма не попадает в расходы сама: добавьте расход «Продукты со склада».",
   "— mehmonlar soni, sana yoki menyuni yangilang": "— обновите число гостей, дату или меню",
   ". Kerak bo'lsa miqdorlarni to'g'rilang.": ". При необходимости поправьте количество.",
   "· To'y menyusi": "· Свадебное меню",
@@ -712,6 +724,11 @@ export const PHRASES_RU: Record<string, string> = {
 };
 
 export const PHRASE_PATTERNS: { uz: string; ru: string }[] = [
+  { uz: "1 {x} narxi, so'm", ru: "Цена за 1 $1, сум" },
+  { uz: "1 {x} narxi", ru: "Цена за 1 $1" },
+  { uz: "Narx o'zgargan (oldin {x} so'm): bu kirim alohida partiya bo'lib turadi, avval eski narxdagisi sarflanadi.", ru: "Цена изменилась (было $1 сум): этот приход станет отдельной партией, сначала расходуется товар по старой цене." },
+  { uz: "Oxirgi narx: {x} so'm. Narx o'zgargan bo'lsa, yangisini yozing.", ru: "Последняя цена: $1 сум. Если цена изменилась, укажите новую." },
+  { uz: "{x} ta mahsulotning ombordagi narxi kiritilmagan — ular jamiga qo'shilmagan.", ru: "У $1 товаров не указана складская цена — они не вошли в итог." },
   { uz: "{x} | To'yxona boshqaruv tizimi", ru: "$1 | Система управления банкетным залом" },
   { uz: "{x} to'yxonasi uchun admin panel: to'y buyurtmalari, menyular, ombor va ishchilar.", ru: "Админ-панель банкетного зала $1: заказы свадеб, меню, склад и сотрудники." },
   { uz: "{x} to'yxonasining to'y menyu paketlari.", ru: "Пакеты свадебных меню банкетного зала $1." },
