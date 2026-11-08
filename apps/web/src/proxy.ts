@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decryptSession, encryptSession, SESSION_COOKIE, type SessionData } from "@/lib/session";
+import { decryptSession, encryptSession, sessionCookieOptions, SESSION_COOKIE, type SessionData } from "@/lib/session";
 import { isJwtExpiringSoon } from "@/lib/jwt-decode";
 
 const ZAVZAL_EXACT_PATHS = ["/dashboard"];
@@ -80,17 +80,12 @@ export default async function proxy(req: NextRequest) {
     if (!refreshed) {
       response = NextResponse.redirect(new URL("/login", req.url));
       response.cookies.delete(SESSION_COOKIE);
+      response.cookies.delete({ name: SESSION_COOKIE, path: "/", secure: true, sameSite: "none", partitioned: true });
       return response;
     }
     session = refreshed;
     const token = await encryptSession(refreshed);
-    response.cookies.set(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60,
-    });
+    response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(refreshed));
   }
 
   return response;

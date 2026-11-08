@@ -5,13 +5,16 @@ import { LinkButton } from "@/components/ui/button";
 import { ArchivedEventsGrid } from "@/components/events/archived-events-grid";
 import { getLocale } from "@/i18n/locale";
 import { getDictionary, translate } from "@/i18n/get-dictionary";
+import { getSession } from "@/lib/session";
+import { ReportActions } from "@/components/reports/report-actions";
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 export default async function ArchivedEventsPage() {
-  const [events, locale] = await Promise.all([apiFetch<EventDetail[]>("/events"), getLocale()]);
+  const [events, locale, session] = await Promise.all([apiFetch<EventDetail[]>("/events"), getLocale(), getSession()]);
+  const isSuperAdmin = session?.user.kind === "STAFF" && session.user.role === "SUPER_ADMIN";
   const dict = getDictionary(locale);
   const t = (key: string) => translate(dict, key);
 
@@ -30,6 +33,7 @@ export default async function ArchivedEventsPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight">{t("events.archive")}</h1>
           <p className="text-sm text-muted-foreground">{t("events.archiveSubtitle")}</p>
         </div>
+        {isSuperAdmin && <ReportActions kind="ARCHIVE" />}
       </div>
 
       <ArchivedEventsGrid events={archived} locale={locale} />

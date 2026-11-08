@@ -1,5 +1,16 @@
 /** Uzbek source text → Russian. Keys with "{x}" are full-string patterns, not shown as-is. */
 export const PHRASES_RU: Record<string, string> = {
+  "Telegram ulanmagan — botda /start bosib, telefon va parolingiz bilan ulaning": "Telegram не подключён — нажмите /start в боте и войдите по телефону и паролю",
+  "Telegramga yuborib bo'lmadi — birozdan keyin qayta urinib ko'ring": "Не удалось отправить в Telegram — попробуйте чуть позже",
+  "Telegram bot o'chiq": "Telegram-бот выключен",
+  "Shu oy": "Этот месяц",
+  "O'tgan oy": "Прошлый месяц",
+  "Shu yil": "Этот год",
+  "Butun davr": "Весь период",
+  "Telegramga": "В Telegram",
+  "PDF Telegramga yuborildi": "PDF отправлен в Telegram",
+  "Hisobot davri": "Период отчёта",
+  "Hisobotni tayyorlab bo'lmadi": "Не удалось подготовить отчёт",
   // Store price lots and stock taken for a wedding.
   "Narx bo'yicha qoldiq": "Остаток по ценам",
   "Yuqoridagisi birinchi sarflanadi.": "Верхняя партия расходуется первой.",

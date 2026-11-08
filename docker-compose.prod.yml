@@ -40,6 +40,12 @@ services:
       TRUST_PROXY: 1
       SEED_SUPER_ADMIN_PHONE: ${SEED_SUPER_ADMIN_PHONE:-}
       SEED_SUPER_ADMIN_PASSWORD: ${SEED_SUPER_ADMIN_PASSWORD:-}
+      # Telegram bot and mini app (empty token = off). The mini app opens the
+      # site itself, so it needs the real https domain.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_REMINDER_TIMES: ${TELEGRAM_REMINDER_TIMES:-09:00,20:00}
+      TELEGRAM_TIMEZONE: Asia/Tashkent
+      TELEGRAM_WEB_URL: https://${DOMAIN}
     volumes:
       - uploads:/app/apps/api/uploads
 

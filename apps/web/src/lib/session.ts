@@ -29,6 +29,8 @@ export interface SessionData {
   accessToken: string;
   refreshToken: string;
   user: SessionUser;
+  /** Signed in from the Telegram mini app, which may run inside an iframe. */
+  telegram?: boolean;
 }
 
 function secretKey() {
@@ -60,16 +62,26 @@ export async function decryptSession(token: string): Promise<SessionData | null>
   }
 }
 
+/**
+ * A mini app session must survive Telegram Web's iframe, where only a
+ * SameSite=None, Secure, partitioned cookie is kept; everywhere else Lax.
+ */
+export function sessionCookieOptions(data: Pick<SessionData, "telegram">) {
+  return data.telegram
+    ? { httpOnly: true, secure: true, sameSite: "none" as const, partitioned: true, path: "/", maxAge: MAX_AGE_SECONDS }
+    : {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        path: "/",
+        maxAge: MAX_AGE_SECONDS,
+      };
+}
+
 export async function setSession(data: SessionData) {
   const token = await encryptSession(data);
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: MAX_AGE_SECONDS,
-  });
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(data));
 }
 
 export async function getSession(): Promise<SessionData | null> {
@@ -82,4 +94,6 @@ export async function getSession(): Promise<SessionData | null> {
 export async function clearSession() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
+  // The mini app's cookie lives in its own partition and needs its own delete.
+  cookieStore.delete({ name: SESSION_COOKIE, path: "/", secure: true, sameSite: "none", partitioned: true });
 }

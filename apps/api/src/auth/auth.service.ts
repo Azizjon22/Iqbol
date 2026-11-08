@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthPayload } from '../common/types/auth-payload';
@@ -165,6 +166,100 @@ export class AuthService {
         kind: 'WORKER' as const,
       },
     };
+  }
+
+  /**
+   * Telegram mini app sign-in. Telegram signs the launch data with the bot
+   * token; when the signature holds, the chat must already be linked to an
+   * account through the bot (phone + password/PIN), and that account is
+   * signed in — the same tokens a normal login would give.
+   */
+  async loginTelegram(initData: string) {
+    const token = this.config.get<string>('TELEGRAM_BOT_TOKEN', '').trim();
+    if (!token) throw new UnauthorizedException("Telegram bot o'chiq");
+
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash') ?? '';
+    params.delete('hash');
+    const checkString = [...params.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${v}`)
+      .join('\n');
+    const secret = createHmac('sha256', 'WebAppData').update(token).digest();
+    const expected = createHmac('sha256', secret).update(checkString).digest();
+    const given = Buffer.from(hash, 'hex');
+    if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+      throw new UnauthorizedException("Telegram ma'lumotlari tasdiqlanmadi");
+    }
+    const authDate = Number(params.get('auth_date') ?? 0);
+    if (!authDate || Date.now() / 1000 - authDate > 24 * 60 * 60) {
+      throw new UnauthorizedException(
+        'Telegram sessiyasi eskirgan — ilovani qayta oching',
+      );
+    }
+    let telegramId: string;
+    try {
+      telegramId = String(
+        (JSON.parse(params.get('user') ?? '{}') as { id?: number }).id ?? '',
+      );
+    } catch {
+      telegramId = '';
+    }
+    if (!telegramId) {
+      throw new UnauthorizedException('Telegram foydalanuvchisi aniqlanmadi');
+    }
+
+    // In a private chat the chat id is the user's id.
+    const staff = await this.prisma.staffUser.findUnique({
+      where: { telegramChatId: telegramId },
+    });
+    if (staff?.isActive) {
+      const payload: AuthPayload = {
+        sub: staff.id,
+        kind: 'STAFF',
+        role: staff.role,
+        fullName: staff.fullName,
+        mustChangePassword: staff.mustChangePassword,
+        tokenVersion: staff.tokenVersion,
+      };
+      return {
+        ...this.signTokens(payload),
+        user: {
+          id: staff.id,
+          fullName: staff.fullName,
+          phone: staff.phone,
+          role: staff.role,
+          mustChangePassword: staff.mustChangePassword,
+          kind: 'STAFF' as const,
+        },
+      };
+    }
+    const worker = await this.prisma.worker.findUnique({
+      where: { telegramChatId: telegramId },
+    });
+    if (worker && worker.status === 'APPROVED' && worker.position === 'CHEF') {
+      const payload: AuthPayload = {
+        sub: worker.id,
+        kind: 'WORKER',
+        fullName: worker.fullName,
+        mustChangePin: worker.mustChangePin,
+        tokenVersion: worker.tokenVersion,
+      };
+      return {
+        ...this.signTokens(payload),
+        user: {
+          id: worker.id,
+          fullName: worker.fullName,
+          phone: worker.phone,
+          position: worker.position,
+          mustChangePin: worker.mustChangePin,
+          kind: 'WORKER' as const,
+        },
+      };
+    }
+    throw new UnauthorizedException(
+      'Telegram hisobingiz tizimga ulanmagan. Botda /start bosib, telefon raqamingiz va parolingiz (oshpaz — PIN) bilan ulaning.',
+    );
   }
 
   async refresh(refreshToken: string): Promise<TokenPair> {

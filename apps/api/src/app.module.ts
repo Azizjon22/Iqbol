@@ -20,6 +20,7 @@ import { EventExpensesModule } from './event-expenses/event-expenses.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     UploadsModule,
     DashboardModule,
     AuditLogModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

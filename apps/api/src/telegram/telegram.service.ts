@@ -7,6 +7,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import {
+  PERIOD_LABELS,
+  REPORT_KINDS,
+  REPORT_PERIODS,
+  ReportsService,
+  type ReportKind,
+  type ReportPeriod,
+} from '../reports/reports.service';
 
 interface TgMessage {
   message_id: number;
@@ -20,6 +28,18 @@ interface LinkButton {
   text: string;
   url: string;
 }
+
+interface TgCallback {
+  id: string;
+  from: { id: number };
+  message?: { chat: { id: number; type: string } };
+  data?: string;
+}
+
+const REPORT_TITLES: Record<ReportKind, string> = {
+  ACCOUNTING: '📊 Hisob-kitob',
+  ARCHIVE: '🗂 Arxiv',
+};
 
 /** A sent message, kept so it can be edited when the list changes. */
 interface MessageRef {
@@ -78,6 +98,10 @@ function normalizePhone(raw: string): string | null {
  *   weddings that still have no shopping list, and every linked super admin
  *   about lists they have not opened yet.
  * - A freshly submitted list is announced to the super admins at once.
+ * - Super admins get the accounting summary and the wedding archive as PDF
+ *   files (/hisobot, /arxiv, or the keyboard buttons).
+ * - With an https TELEGRAM_WEB_URL every site link opens as a Telegram mini
+ *   app (signed in through /tg), and the chat's menu button opens it too.
  *
  * Without TELEGRAM_BOT_TOKEN the whole service stays off.
  */
@@ -97,6 +121,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private prisma: PrismaService,
     private auth: AuthService,
+    private reports: ReportsService,
     config: ConfigService,
   ) {
     this.token = config.get<string>('TELEGRAM_BOT_TOKEN', '').trim();
@@ -118,6 +143,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     return this.token.length > 0;
   }
 
+  /** Telegram opens mini apps from https addresses only. */
+  private get miniApp() {
+    return this.webUrl.startsWith('https://');
+  }
+
   onModuleInit() {
     if (!this.enabled) {
       this.logger.warn("TELEGRAM_BOT_TOKEN yo'q — Telegram bot o'chiq.");
@@ -127,6 +157,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(
       `Telegram bot yoqildi. Eslatmalar: ${this.reminderTimes.join(', ') || "yo'q"} (${this.timeZone})`,
     );
+    void this.setUp();
     void this.poll();
     this.timer = setInterval(() => void this.tick(), 30_000);
   }
@@ -135,6 +166,42 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.running = false;
     this.abort?.abort();
     if (this.timer) clearInterval(this.timer);
+  }
+
+  /** The command list, and the menu button that opens the mini app. */
+  private async setUp() {
+    await this.call('setMyCommands', {
+      commands: [
+        { command: 'start', description: 'Botni ulash' },
+        { command: 'tekshir', description: 'Eslatmalarni hozir tekshirish' },
+        { command: 'hisobot', description: 'Hisob-kitob (PDF, super admin)' },
+        { command: 'arxiv', description: "To'ylar arxivi (PDF, super admin)" },
+        { command: 'chiqish', description: 'Botdan uzish' },
+      ],
+    }).catch((err: Error) => this.logger.warn(`setMyCommands: ${err.message}`));
+    await this.call('setChatMenuButton', {
+      menu_button: this.miniApp
+        ? {
+            type: 'web_app',
+            text: 'Ilova',
+            web_app: { url: `${this.webUrl}/tg` },
+          }
+        : { type: 'commands' },
+    }).catch((err: Error) =>
+      this.logger.warn(`setChatMenuButton: ${err.message}`),
+    );
+  }
+
+  /** A site link as a keyboard button: a mini app when possible, else a URL. */
+  private button(b: LinkButton) {
+    if (this.miniApp && b.url.startsWith(this.webUrl)) {
+      const next = b.url.slice(this.webUrl.length) || '/';
+      return {
+        text: b.text,
+        web_app: { url: `${this.webUrl}/tg?next=${encodeURIComponent(next)}` },
+      };
+    }
+    return b;
   }
 
   // ---------------------------------------------------------------- Bot API
@@ -180,7 +247,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           const sent = await this.call<{ message_id: number }>(method, {
             ...target,
             text,
-            reply_markup: { inline_keyboard: buttons.map((b) => [b]) },
+            reply_markup: {
+              inline_keyboard: buttons.map((b) => [this.button(b)]),
+            },
           });
           return sent.message_id;
         } catch (err) {
@@ -241,10 +310,18 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       this.abort = new AbortController();
       try {
         const updates = await this.call<
-          { update_id: number; message?: TgMessage }[]
+          {
+            update_id: number;
+            message?: TgMessage;
+            callback_query?: TgCallback;
+          }[]
         >(
           'getUpdates',
-          { offset, timeout: 25, allowed_updates: ['message'] },
+          {
+            offset,
+            timeout: 25,
+            allowed_updates: ['message', 'callback_query'],
+          },
           this.abort.signal,
         );
         for (const update of updates) {
@@ -252,6 +329,10 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           if (update.message?.chat.type === 'private') {
             await this.onMessage(update.message).catch((err: Error) =>
               this.logger.error(`Xabarni qayta ishlashda xato: ${err.message}`),
+            );
+          } else if (update.callback_query) {
+            await this.onCallback(update.callback_query).catch((err: Error) =>
+              this.logger.error(`Tugmani qayta ishlashda xato: ${err.message}`),
             );
           }
         }
@@ -274,9 +355,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       if (linked && text === '/start') {
         await this.send(
           chatId,
-          `${linked.fullName}, siz allaqachon ulangansiz.\n\n/tekshir — eslatmalarni hozir tekshirish\n/chiqish — botdan uzish`,
+          `${linked.fullName}, siz allaqachon ulangansiz.\n\n/tekshir — eslatmalarni hozir tekshirish` +
+            (linked.role === 'SUPER_ADMIN'
+              ? "\n/hisobot — hisob-kitob (PDF)\n/arxiv — to'ylar arxivi (PDF)"
+              : '') +
+            '\n/chiqish — botdan uzish',
           this.homeButton(linked.kind),
         );
+        if (linked.role === 'SUPER_ADMIN') await this.reportKeyboard(chatId);
         return;
       }
       this.pending.set(chatId, { step: 'PHONE' });
@@ -299,6 +385,37 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         chatId,
         'Bot hisobingizdan uzildi. Qayta ulash uchun /start bosing.',
       );
+      return;
+    }
+
+    const reportKind: ReportKind | null =
+      text === '/hisobot' || text === REPORT_TITLES.ACCOUNTING
+        ? 'ACCOUNTING'
+        : text === '/arxiv' || text === REPORT_TITLES.ARCHIVE
+          ? 'ARCHIVE'
+          : null;
+    if (reportKind) {
+      const linked = await this.linkedAccount(chatId);
+      if (linked?.role !== 'SUPER_ADMIN') {
+        await this.send(chatId, 'Hisobotlar faqat super admin uchun.');
+        return;
+      }
+      await this.call('sendMessage', {
+        chat_id: chatId,
+        text: `${REPORT_TITLES[reportKind]} — qaysi davr uchun?`,
+        reply_markup: {
+          inline_keyboard: [
+            REPORT_PERIODS.slice(0, 2).map((p) => ({
+              text: PERIOD_LABELS[p],
+              callback_data: `rep:${reportKind}:${p}`,
+            })),
+            REPORT_PERIODS.slice(2).map((p) => ({
+              text: PERIOD_LABELS[p],
+              callback_data: `rep:${reportKind}:${p}`,
+            })),
+          ],
+        },
+      });
       return;
     }
 
@@ -435,12 +552,119 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
             : `✅ ${user.fullName}, bot ulandi.\n\nOshpaz bozorlik yuborsa, shu yerga xabar keladi. Ko'rilmagan ro'yxatlar soat ${this.reminderTimes.join(' va ')} da eslatiladi.`,
         this.homeButton(state.kind),
       );
+      if ((user as { role?: string }).role === 'SUPER_ADMIN') {
+        await this.reportKeyboard(chatId);
+      }
     } catch (err) {
       await this.send(
         chatId,
         `${(err as Error).message || "Kod noto'g'ri"}\n\nQayta yozing yoki /start bilan boshidan boshlang.`,
       );
     }
+  }
+
+  /** Two always-visible buttons for the super admin's PDF reports. */
+  private async reportKeyboard(chatId: number) {
+    await this.call('sendMessage', {
+      chat_id: chatId,
+      text: "Hisobotlarni PDF ko'rinishida olish uchun pastdagi tugmalardan foydalaning.",
+      reply_markup: {
+        keyboard: [
+          [{ text: REPORT_TITLES.ACCOUNTING }, { text: REPORT_TITLES.ARCHIVE }],
+        ],
+        resize_keyboard: true,
+        is_persistent: true,
+      },
+    }).catch(() => undefined);
+  }
+
+  private async onCallback(cb: TgCallback) {
+    const [tag, kind, period] = (cb.data ?? '').split(':');
+    const chatId = cb.message?.chat.id ?? cb.from.id;
+    if (
+      tag !== 'rep' ||
+      !REPORT_KINDS.includes(kind as ReportKind) ||
+      !REPORT_PERIODS.includes(period as ReportPeriod)
+    ) {
+      await this.call('answerCallbackQuery', { callback_query_id: cb.id });
+      return;
+    }
+    const linked = await this.linkedAccount(chatId);
+    if (linked?.role !== 'SUPER_ADMIN') {
+      await this.call('answerCallbackQuery', {
+        callback_query_id: cb.id,
+        text: 'Hisobotlar faqat super admin uchun.',
+        show_alert: true,
+      });
+      return;
+    }
+    await this.call('answerCallbackQuery', {
+      callback_query_id: cb.id,
+      text: 'Hisobot tayyorlanmoqda…',
+    });
+    await this.sendReport(
+      String(chatId),
+      kind as ReportKind,
+      period as ReportPeriod,
+    );
+  }
+
+  /** Builds the PDF and sends it as a file; tells the chat if that failed. */
+  private async sendReport(
+    chatId: string,
+    kind: ReportKind,
+    period: ReportPeriod,
+  ) {
+    await this.call('sendChatAction', {
+      chat_id: chatId,
+      action: 'upload_document',
+    }).catch(() => undefined);
+    try {
+      const file = await this.reports.build(kind, period);
+      const form = new FormData();
+      form.append('chat_id', chatId);
+      form.append('caption', file.caption);
+      form.append(
+        'document',
+        new Blob([new Uint8Array(file.buffer)], { type: 'application/pdf' }),
+        file.filename,
+      );
+      const res = await fetch(
+        `https://api.telegram.org/bot${this.token}/sendDocument`,
+        { method: 'POST', body: form },
+      );
+      const data = (await res.json()) as { ok: boolean; description?: string };
+      if (!data.ok) throw new Error(data.description ?? 'sendDocument failed');
+      return true;
+    } catch (err) {
+      this.logger.error(`Hisobot yuborilmadi: ${(err as Error).message}`);
+      await this.send(
+        chatId,
+        "Hisobotni tayyorlab bo'lmadi, birozdan keyin qayta urinib ko'ring.",
+      );
+      return false;
+    }
+  }
+
+  /** For the site / mini app: the PDF goes to this super admin's linked chat. */
+  async sendReportToStaff(
+    staffId: string,
+    kind: ReportKind,
+    period: ReportPeriod,
+  ) {
+    const staff = await this.prisma.staffUser.findUnique({
+      where: { id: staffId },
+      select: { telegramChatId: true, role: true, isActive: true },
+    });
+    if (
+      !staff?.telegramChatId ||
+      staff.role !== 'SUPER_ADMIN' ||
+      !staff.isActive
+    ) {
+      return 'NOT_LINKED' as const;
+    }
+    const sent = await this.sendReport(staff.telegramChatId, kind, period);
+    return sent ? ('SENT' as const) : ('FAILED' as const);
   }
 
   private homeButton(kind: 'WORKER' | 'STAFF'): LinkButton {

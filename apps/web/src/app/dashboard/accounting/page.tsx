@@ -14,6 +14,7 @@ import { formatDate, formatSom } from "@/lib/utils";
 import { getLocale } from "@/i18n/locale";
 import { pickLang } from "@/i18n/pick";
 import { getDictionary, translate } from "@/i18n/get-dictionary";
+import { ReportActions } from "@/components/reports/report-actions";
 
 export default async function AccountingPage() {
   const session = await getSession();
@@ -36,9 +37,12 @@ export default async function AccountingPage() {
 
   return (
     <div className="space-y-6 animate-fade-up">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">{t("accounting.title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("accounting.subtitle")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">{t("accounting.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("accounting.subtitle")}</p>
+        </div>
+        <ReportActions kind="ACCOUNTING" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

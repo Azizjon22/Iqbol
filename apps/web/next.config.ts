@@ -13,7 +13,12 @@ const nextConfig: NextConfig = {
         headers: [
           // Browsers ignore this over plain http, so local development is unaffected.
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          // Only this site and Telegram (the mini app runs in an iframe on
+          // web.telegram.org) may frame the pages.
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org",
+          },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],

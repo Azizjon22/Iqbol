@@ -18,6 +18,7 @@ import { WorkerLoginDto } from './dto/worker-login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ChangeStaffPasswordDto } from './dto/change-staff-password.dto';
 import { ChangeWorkerPinDto } from './dto/change-worker-pin.dto';
+import { TelegramLoginDto } from './dto/telegram-login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -35,6 +36,14 @@ export class AuthController {
   @Post('worker/login')
   loginWorker(@Body() dto: WorkerLoginDto) {
     return this.auth.loginWorker(dto);
+  }
+
+  /** Sign-in from inside the Telegram mini app. */
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post('telegram')
+  loginTelegram(@Body() dto: TelegramLoginDto) {
+    return this.auth.loginTelegram(dto.initData);
   }
 
   @Public()
