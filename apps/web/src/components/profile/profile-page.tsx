@@ -1,5 +1,7 @@
 "use client";
 
+import { TelegramLinkCard } from "@/components/telegram/telegram-link-card";
+import type { TelegramStatus } from "@/lib/actions/telegram.actions";
 import { startTransition, useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, KeyRound, Link2, Palette, Phone, RotateCcw, ShieldCheck } from "lucide-react";
@@ -362,11 +364,13 @@ export function ProfilePage({
   brand,
   canEditBrand,
   passwordChanged,
+  telegram,
 }: {
   user: { fullName: string; phone: string; role: StaffRole };
   brand: Brand;
   canEditBrand: boolean;
   passwordChanged: boolean;
+  telegram: TelegramStatus | null;
 }) {
   const tr = useTr();
 
@@ -391,6 +395,8 @@ export function ProfilePage({
       </section>
 
       {canEditBrand && <BrandCard brand={brand} />}
+
+      {telegram && <TelegramLinkCard status={telegram} />}
 
       <PasswordCard justChanged={passwordChanged} />
     </div>

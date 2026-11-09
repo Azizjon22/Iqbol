@@ -168,13 +168,8 @@ export class AuthService {
     };
   }
 
-  /**
-   * Telegram mini app sign-in. Telegram signs the launch data with the bot
-   * token; when the signature holds, the chat must already be linked to an
-   * account through the bot (phone + password/PIN), and that account is
-   * signed in — the same tokens a normal login would give.
-   */
-  async loginTelegram(initData: string) {
+  /** Checks Telegram's signature on the mini app's launch data; returns the user's id. */
+  telegramIdFromInitData(initData: string): string {
     const token = this.config.get<string>('TELEGRAM_BOT_TOKEN', '').trim();
     if (!token) throw new UnauthorizedException("Telegram bot o'chiq");
 
@@ -208,6 +203,17 @@ export class AuthService {
     if (!telegramId) {
       throw new UnauthorizedException('Telegram foydalanuvchisi aniqlanmadi');
     }
+    return telegramId;
+  }
+
+  /**
+   * Telegram mini app sign-in. Telegram signs the launch data with the bot
+   * token; when the signature holds, the chat must already be linked to an
+   * account through the bot (phone + password/PIN), and that account is
+   * signed in — the same tokens a normal login would give.
+   */
+  async loginTelegram(initData: string) {
+    const telegramId = this.telegramIdFromInitData(initData);
 
     // In a private chat the chat id is the user's id.
     const staff = await this.prisma.staffUser.findUnique({

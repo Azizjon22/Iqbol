@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { TelegramService } from '../telegram/telegram.service';
 import { PaymentType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -83,6 +84,7 @@ export class EventsService {
   constructor(
     private prisma: PrismaService,
     private auditLog: AuditLogService,
+    private telegram: TelegramService,
   ) {}
 
   async create(dto: CreateEventDto, actorId: string, actorName: string) {
@@ -135,7 +137,12 @@ export class EventsService {
     const startOfToday = localMidnight(new Date());
     return this.prisma.event.findMany({
       where: { eventDate: { gte: startOfToday }, status: { not: 'CANCELLED' } },
-      select: { id: true, clientName: true, clientNameRu: true, eventDate: true },
+      select: {
+        id: true,
+        clientName: true,
+        clientNameRu: true,
+        eventDate: true,
+      },
       orderBy: { eventDate: 'asc' },
       // Also backs the chef's read-only events calendar, which needs every
       // upcoming booking in view, not just the nearest handful.
@@ -297,7 +304,8 @@ export class EventsService {
           guestCount: dto.guestCount,
           menuId: dto.menuId,
           notes: dto.notes === undefined ? undefined : dto.notes.trim() || null,
-          notesRu: dto.notesRu === undefined ? undefined : dto.notesRu.trim() || null,
+          notesRu:
+            dto.notesRu === undefined ? undefined : dto.notesRu.trim() || null,
           // "" clears a choice; undefined leaves it untouched.
           firstDish:
             dto.firstDish === undefined
@@ -382,6 +390,11 @@ export class EventsService {
       entityId: event.id,
       description: `"${event.clientName}" to'y holatini ${STATUS_LABEL_UZ[existing.status] ?? existing.status} → ${STATUS_LABEL_UZ[status] ?? status} ga o'zgartirdi`,
     });
+
+    // The closing account goes to the super admins' Telegram (once per wedding).
+    if (status === 'COMPLETED' && existing.status !== 'COMPLETED') {
+      void this.telegram.reportEventCompleted(event.id);
+    }
 
     return this.withBalance(event);
   }

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { loginStaffAction, loginWorkerAction, type AuthActionState } from "@/lib/actions/auth.actions";
 import { Input, PasswordInput, Label, FieldError } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -35,8 +36,47 @@ export function LoginForm() {
   const [workerPhone, setWorkerPhone] = useState("");
   const [workerPin, setWorkerPin] = useState("");
 
+  // Inside the Telegram mini app: a linked account signs in by itself; if it
+  // is not linked yet, the password/PIN sign-in below links it (tgInitData).
+  const [tgInitData, setTgInitData] = useState("");
+  const [tgChecking, setTgChecking] = useState(false);
+
+  async function onTelegramReady() {
+    const initData = (window as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData;
+    if (!initData) return;
+    setTgInitData(initData);
+    setTgChecking(true);
+    try {
+      const res = await fetch("/api/telegram/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.redirect) {
+        window.location.replace(data.redirect);
+        return;
+      }
+    } catch {
+      // Fall back to the form.
+    }
+    setTgChecking(false);
+  }
+
+  if (tgChecking) {
+    return (
+      <div className="flex w-full max-w-sm flex-col items-center gap-3 py-6 text-sm text-muted-foreground">
+        <div className="h-1 w-40 overflow-hidden rounded-full bg-foreground/10">
+          <div className="animate-splash-bar h-full w-2/5 rounded-full bg-primary" />
+        </div>
+        Telegram tekshirilmoqda…
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-sm">
+      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" onReady={() => void onTelegramReady()} />
       <div className="mb-4 flex justify-end">
         <LanguageSwitcher />
       </div>
@@ -66,6 +106,7 @@ export function LoginForm() {
       {mode === "staff" ? (
         <form suppressHydrationWarning action={staffFormAction} className="space-y-4">
           <LoginAlert message={staffState?.kind === "connection" ? staffState.error : undefined} />
+          {tgInitData && <input type="hidden" name="tgInitData" value={tgInitData} />}
           <div>
             <Label htmlFor="phone">{t("authExtra.phoneLabel")}</Label>
             <Input
@@ -99,6 +140,7 @@ export function LoginForm() {
       ) : (
         <form suppressHydrationWarning action={workerFormAction} className="space-y-4">
           <LoginAlert message={workerState?.kind === "connection" ? workerState.error : undefined} />
+          {tgInitData && <input type="hidden" name="tgInitData" value={tgInitData} />}
           <div>
             <Label htmlFor="worker-phone">{t("authExtra.phoneLabel")}</Label>
             <Input

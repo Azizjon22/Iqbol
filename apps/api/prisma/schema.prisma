@@ -149,6 +149,7 @@ model StaffUser {
   isActive           Boolean   @default(true)
   // Telegram chat linked through the bot (phone + password); notifications go here.
   telegramChatId     String?   @unique
+  telegramLinkedAt   DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -183,6 +184,7 @@ model Worker {
   status           WorkerStatus   @default(PENDING)
   // Telegram chat linked through the bot (phone + PIN); reminders go here.
   telegramChatId   String?        @unique
+  telegramLinkedAt DateTime?
   approvedBy       StaffUser?     @relation("WorkerApprovedBy", fields: [approvedById], references: [id])
   approvedById     String?
   createdAt        DateTime       @default(now())
@@ -252,30 +254,33 @@ model MenuMedia {
 // ---------- Events (to'y buyurtmalari) ----------
 
 model Event {
-  id            String      @id @default(cuid())
-  clientName    String
-  clientNameRu  String?
-  clientPhone   String
-  eventDate     DateTime
-  tableCapacity Int
-  guestCount    Int
-  menuId        String
-  menu          Menu        @relation(fields: [menuId], references: [id])
-  totalPrice    Decimal     @db.Decimal(14, 2)
-  status        EventStatus @default(PENDING)
+  id                 String      @id @default(cuid())
+  clientName         String
+  clientNameRu       String?
+  clientPhone        String
+  eventDate          DateTime
+  tableCapacity      Int
+  guestCount         Int
+  menuId             String
+  menu               Menu        @relation(fields: [menuId], references: [id])
+  totalPrice         Decimal     @db.Decimal(14, 2)
+  status             EventStatus @default(PENDING)
   // The couple's pick from the menu's options — chefs plan shopping around
   // these and the guest count. Stored as names so later menu edits don't
   // rewrite what was agreed. Set by SUPER_ADMIN only.
-  firstDish     String?
-  firstDishRu   String?
-  secondDish    String?
-  secondDishRu  String?
-  notes         String?
-  notesRu       String?
-  createdById   String
-  createdBy     StaffUser   @relation("EventCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  firstDish          String?
+  firstDishRu        String?
+  secondDish         String?
+  secondDishRu       String?
+  notes              String?
+  notesRu            String?
+  createdById        String
+  createdBy          StaffUser   @relation("EventCreatedBy", fields: [createdById], references: [id])
+  // When the closing account was posted to the super admins' Telegram — kept
+  // in the database so a restart never posts the same wedding twice.
+  archivedNotifiedAt DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   assignments   EventWorkerAssignment[]
   shoppingLists ShoppingList[]

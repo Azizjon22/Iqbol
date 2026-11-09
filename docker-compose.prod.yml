@@ -46,6 +46,8 @@ services:
       TELEGRAM_REMINDER_TIMES: ${TELEGRAM_REMINDER_TIMES:-09:00,20:00}
       TELEGRAM_TIMEZONE: Asia/Tashkent
       TELEGRAM_WEB_URL: https://${DOMAIN}
+      ERROR_ALERT_BOT_TOKEN: ${ERROR_ALERT_BOT_TOKEN:-}
+      ERROR_ALERT_CHAT_ID: ${ERROR_ALERT_CHAT_ID:-}
     volumes:
       - uploads:/app/apps/api/uploads
 

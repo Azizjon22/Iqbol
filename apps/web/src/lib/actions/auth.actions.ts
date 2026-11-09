@@ -12,6 +12,27 @@ type AuthTokenResponse = { accessToken: string; refreshToken: string; user: Sess
 
 export type AuthActionState = { error?: string; kind?: "credentials" | "connection" } | undefined;
 
+/**
+ * A sign-in made inside the Telegram mini app links that Telegram account, so
+ * the next launch signs in by itself; the session then gets the mini app's
+ * cookie. Linking is best-effort: the sign-in itself already succeeded.
+ */
+async function linkTelegram(formData: FormData, accessToken: string): Promise<boolean> {
+  const initData = formData.get("tgInitData");
+  if (typeof initData !== "string" || !initData) return false;
+  try {
+    await fetch(publicApiUrl("/telegram/webapp-link"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ initData }),
+      cache: "no-store",
+    });
+  } catch {
+    // Still signed in; only the automatic next sign-in is lost.
+  }
+  return true;
+}
+
 const CONNECTION_ERROR = "Server bilan bog'lanib bo'lmadi. Ulanishni tekshirib, qayta urinib ko'ring.";
 
 async function postLogin(url: string, body: unknown): Promise<Response | "connection"> {
@@ -51,7 +72,8 @@ export async function loginStaffAction(
   }
 
   const data = await res.json();
-  await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user });
+  const telegram = await linkTelegram(formData, data.accessToken);
+  await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user, ...(telegram && { telegram }) });
   redirect(data.user.mustChangePassword ? "/change-password" : "/dashboard");
 }
 
@@ -79,7 +101,8 @@ export async function loginWorkerAction(
   }
 
   const data = await res.json();
-  await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user });
+  const telegram = await linkTelegram(formData, data.accessToken);
+  await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user, ...(telegram && { telegram }) });
   redirect(data.user.mustChangePin ? "/change-pin" : "/worker");
 }
 

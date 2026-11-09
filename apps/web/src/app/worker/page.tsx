@@ -9,6 +9,8 @@ import { formatDate } from "@/lib/utils";
 import { OrnamentDivider } from "@/components/menus/showcase/ornament-divider";
 import { ChefEventCard } from "@/components/worker/chef/chef-event-card";
 import { ChefListCard } from "@/components/worker/chef/chef-list-card";
+import { TelegramLinkCard } from "@/components/telegram/telegram-link-card";
+import type { TelegramStatus } from "@/lib/actions/telegram.actions";
 import { WEEKDAYS, daysUntil, type ChefEvent } from "@/components/worker/chef/types";
 
 function greeting() {
@@ -22,9 +24,10 @@ export default async function WorkerHomePage() {
 
   const session = await getSession();
   const isChef = session?.user.kind === "WORKER" && session.user.position === "CHEF";
-  const [myLists, agenda] = await Promise.all([
+  const [myLists, agenda, telegram] = await Promise.all([
     apiFetch<ShoppingList[]>("/shopping-lists/mine"),
     isChef ? apiFetch<ChefEvent[]>("/events/chef-agenda").catch(() => []) : Promise.resolve<ChefEvent[]>([]),
+    apiFetch<TelegramStatus>("/telegram/status").catch(() => null),
   ]);
 
   const next = agenda[0];
@@ -116,6 +119,8 @@ export default async function WorkerHomePage() {
           ))}
         </section>
       )}
+
+      {telegram?.enabled && !telegram.linked && <TelegramLinkCard status={telegram} />}
     </div>
   );
 }

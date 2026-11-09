@@ -1,3 +1,4 @@
+import { ErrorAlertsModule } from './error-alerts/error-alerts.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -41,6 +42,7 @@ import { ReportsModule } from './reports/reports.module';
     DashboardModule,
     AuditLogModule,
     ReportsModule,
+    ErrorAlertsModule,
   ],
   controllers: [AppController],
   providers: [

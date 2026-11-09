@@ -11,6 +11,7 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import type { Locale } from "@/i18n/types";
 import { getSession } from "@/lib/session";
 import { TelegramBridge } from "@/components/telegram/telegram-bridge";
+import { ErrorReporter } from "@/components/error-reporter";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <LocaleProvider locale={locale} dictionary={dictionary}>
             {children}
             {session?.telegram && <TelegramBridge />}
+            <ErrorReporter />
           </LocaleProvider>
         </BrandProvider>
       </body>

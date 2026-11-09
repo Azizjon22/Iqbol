@@ -54,6 +54,7 @@ function setup(
   const service = new EventsService(
     prisma as never,
     { record: jest.fn() } as never,
+    { reportEventCompleted: jest.fn() } as never,
   );
   return { service, saved, menus };
 }

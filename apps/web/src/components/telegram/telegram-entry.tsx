@@ -92,8 +92,8 @@ export function TelegramEntry({ next }: { next?: string }) {
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {state.message}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Botga qayting, /start bosing va tizimga kiradigan telefon raqamingiz hamda parolingiz (oshpaz — PIN) bilan ulaning.
-            Keyin ilovani qayta oching.
+            Avval saytga kirib, Profil sahifasidagi «Telegram botga ulash» tugmasini bosing (yoki botda /start bosib,
+            telefon raqamingiz va parolingiz bilan ulaning). Keyin ilovani qayta oching.
           </p>
           <button
             type="button"

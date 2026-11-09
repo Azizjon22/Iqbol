@@ -147,3 +147,11 @@ Server o'chib yonsa, xizmatlar o'zi qayta ko'tariladi (`restart: unless-stopped`
 - **Parol ochilib qolsa**, darhol sayt ichida almashtiring.
 - **Lokal seed'dagi parollar** (`Iqbol2024!` va boshqalar) faqat ishlab chiqish
   uchun. Ular serverda hech qachon yaratilmaydi.
+
+## Telegram bot
+
+- Bot API ichida long polling bilan ishlaydi: API **bitta nusxada** bo'lsin (ikkita bo'lsa Telegram 409 Conflict beradi).
+- `TELEGRAM_WEB_URL` `https://` bilan boshlanishi shart, aks holda mini-app ochilmaydi.
+- Har bir xodim yoki oshpaz bir marta ulaydi: Profil (oshpazda bosh sahifa) → «Telegram botga ulash» → botda «Start». Havola bir martalik, 15 daqiqa amal qiladi. Keyin mini-app login va parolsiz ochiladi.
+- Super admin ulanishi bilan hali yozilmagan yakunlangan to'ylarning yakuniy hisobi botga yoziladi. Har bir to'y faqat bir marta yoziladi.
+- Ixtiyoriy: `ERROR_ALERT_BOT_TOKEN` va `ERROR_ALERT_CHAT_ID` berilsa, server (5xx) va brauzer xatolari alohida botga keladi.
