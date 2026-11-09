@@ -2,3 +2,6 @@ node_modules
 dist
 .env
 coverage
+
+# Local copies of .env made while changing settings — they hold secrets.
+.env.bak*

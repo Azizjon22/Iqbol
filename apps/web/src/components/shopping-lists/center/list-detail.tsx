@@ -12,7 +12,7 @@ import { ShoppingListPdfButton } from "@/components/shopping-lists/shopping-list
 import { ProductCategoryIcon } from "@/components/inventory/product-category-icon";
 import { formatDate, formatDateTime, formatSom, cn } from "@/lib/utils";
 import { catalogIndex, groupBySection, listApi, listProgress, parseNumber } from "./helpers";
-import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { ItemQuantity } from "@/components/shopping-lists/item-quantity";
 
 const STEPS = [
@@ -28,8 +28,8 @@ function stepIndex(status: ShoppingList["status"]) {
 }
 
 /**
- * One list. The chef who wrote it confirms it, then marks each item bought
- * with what it cost; the super admin only watches and can fix a price.
+ * One list. The chef who wrote it confirms it and, back from the bazaar,
+ * records one total; the super admin watches, and either can fix the total.
  */
 export function ListDetail({
   list,
@@ -56,7 +56,8 @@ export function ListDetail({
   const done = current === 2;
   const chef = viewer === "CHEF";
   const canFinish = chef && list.status === "APPROVED";
-  const canFixTotal = !chef && done;
+  // The chef who bought it can fix a mistyped sum too; so can the super admin.
+  const canFixTotal = done;
   const [sum, setSum] = useState("");
   const [fixing, setFixing] = useState(false);
   const sumValue = parseNumber(sum);
@@ -205,18 +206,11 @@ export function ListDetail({
                 {canFinish
                   ? tr("Hammasi uchun to'lagan umumiy summangizni yozing — u to'yning xarajatlariga o'zi tushadi.")
                   : tr("To'g'ri umumiy summani yozing — to'y xarajati ham o'zgaradi.")}
+                {canFixTotal && fixing && <> {tr(`Hozirgi summa: ${formatSom(spent, locale)}.`)}</>}
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                <div className="relative w-full max-w-xs">
-                  <Input
-                    value={sum}
-                    onChange={(e) => setSum(e.target.value)}
-                    inputMode="numeric"
-                    placeholder={tr("masalan: 2 500 000")}
-                    aria-label={tr("Umumiy summa")}
-                    className="pr-12 tabular-nums"
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{tr("so'm")}</span>
+                <div className="w-full max-w-xs">
+                  <MoneyInput value={sum} onValueChange={setSum} placeholder={tr("masalan: 2 500 000")} aria-label={tr("Umumiy summa")} />
                 </div>
                 <button
                   type="button"
@@ -226,6 +220,18 @@ export function ListDetail({
                 >
                   <Check className="h-4 w-4" /> {canFinish ? tr("Xaridni yakunlash") : tr("Saqlash")}
                 </button>
+                {!canFinish && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFixing(false);
+                      setSum("");
+                    }}
+                    className="inline-flex h-10 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                  >
+                    {tr("Bekor qilish")}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -236,7 +242,10 @@ export function ListDetail({
                 {list.event ? tr("Xarid yakunlandi — summa to'yning xarajatlariga o'zi yozildi.") : tr("Xarid yakunlandi.")}
               </p>
               {canFixTotal && !fixing && (
-                <button type="button" onClick={() => setFixing(true)} className="text-sm font-medium text-primary hover:underline">
+                <button type="button" onClick={() => {
+                    setSum("");
+                    setFixing(true);
+                  }} className="text-sm font-medium text-primary hover:underline">
                   {tr("Summani tuzatish")}
                 </button>
               )}

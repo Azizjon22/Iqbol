@@ -15,7 +15,13 @@ const include = {
   items: true,
   createdByWorker: { select: { id: true, fullName: true, position: true } },
   event: {
-    select: { id: true, clientName: true, clientNameRu: true, eventDate: true, guestCount: true },
+    select: {
+      id: true,
+      clientName: true,
+      clientNameRu: true,
+      eventDate: true,
+      guestCount: true,
+    },
   },
   reviewedBy: { select: { id: true, fullName: true } },
   approvedBy: { select: { id: true, fullName: true } },
@@ -316,11 +322,14 @@ export class ShoppingListsService {
     return this.findOne(id);
   }
 
-  /** The super admin corrects a mistyped bazaar sum; the expense follows. */
+  /**
+   * A mistyped bazaar sum is corrected — by the chef who bought it or by the
+   * super admin (the caller checks who may); the wedding's expense follows.
+   */
   async setTotal(
     id: string,
     dto: ShoppingTotalDto,
-    actorId: string,
+    actorId: string | null,
     actorName: string,
   ) {
     const list = await this.findOne(id);

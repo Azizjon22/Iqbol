@@ -1,5 +1,10 @@
 /** Uzbek source text → Russian. Keys with "{x}" are full-string patterns, not shown as-is. */
 export const PHRASES_RU: Record<string, string> = {
+  "Tasdiqlanmoqda...": "Подтверждаем...",
+  "Tasdiqlagach ro'yxat o'zgarmaydi va PDF bo'lib Telegramingizga keladi. Bozordan keyin umumiy summani kiritasiz.": "После подтверждения список не меняется и приходит вам в Telegram в виде PDF. После рынка вы укажете общую сумму.",
+  "Ro'yxat tasdiqlandi": "Список подтверждён",
+  "Ro'yxat PDF bo'lib Telegramingizga keldi. Bozordan qaytgach, umumiy summani kiriting — u to'yning xarajatlariga o'zi yoziladi.": "Список пришёл вам в Telegram в виде PDF. Вернувшись с рынка, укажите общую сумму — она сама запишется в расходы свадьбы.",
+  "Ro'yxat saqlandi, lekin tasdiqlanmadi — «Ro'yxatlarim» bo'limidan tasdiqlang": "Список сохранён, но не подтверждён — подтвердите его в разделе «Мои списки»",
   "PDF Telegram chatingizga yuborildi": "PDF отправлен в ваш чат Telegram",
   "Mahsulotlar": "Товары",
   "Umumiy summa": "Общая сумма",
@@ -762,6 +767,7 @@ export const PHRASES_RU: Record<string, string> = {
 };
 
 export const PHRASE_PATTERNS: { uz: string; ru: string }[] = [
+  { uz: "Hozirgi summa: {x}.", ru: "Текущая сумма: $1." },
   { uz: "{x} ta ro'yxat xaridi hali yakunlanmagan — jamiga qo'shilmagan.", ru: "Закупка по $1 спискам ещё не завершена — не вошла в итог." },
   { uz: "1 {x} narxi, so'm", ru: "Цена за 1 $1, сум" },
   { uz: "1 {x} narxi", ru: "Цена за 1 $1" },

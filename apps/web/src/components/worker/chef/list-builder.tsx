@@ -48,7 +48,7 @@ const PART_ORDER: PartKey[] = ["SALAD", "FIRST_DISH", "SECOND_DISH", "OTHER", "G
 interface CartLine {
   name: string;
   nameRu?: string | null;
-  /** Sum of `parts` — the one number the super admin sees. */
+  /** Sum of `parts` — the one number that goes on the list. */
   quantity: number;
   parts: Partial<Record<PartKey, number>>;
   unit: Unit;
@@ -227,7 +227,19 @@ export function ListBuilder({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error((Array.isArray(data?.message) ? data.message[0] : data?.message) ?? tr("Yuborib bo'lmadi"));
+        throw new Error((Array.isArray(data?.message) ? data.message[0] : data?.message) ?? tr("Saqlab bo'lmadi"));
+      }
+      // This sheet is the chef's check: saving it confirms the list at once,
+      // and the list arrives in Telegram as a PDF to take to the bazaar.
+      const list = await res.json();
+      const confirmed = await fetch(`/api/proxy/shopping-lists/${list.id}/confirm`, { method: "POST" });
+      if (!confirmed.ok) {
+        const data = await confirmed.json().catch(() => null);
+        setCart(new Map());
+        setReviewing(false);
+        router.push("/worker/shopping?tab=mine");
+        router.refresh();
+        throw new Error((Array.isArray(data?.message) ? data.message[0] : data?.message) ?? tr("Ro'yxat saqlandi, lekin tasdiqlanmadi — «Ro'yxatlarim» bo'limidan tasdiqlang"));
       }
       setCart(new Map());
       setReviewing(false);
@@ -664,11 +676,11 @@ export function ListBuilder({
             : tr(`Savatda ${lines.length} ta mahsulot`)
         }
         footer={
-          // The whole basket goes out as one list: send it, or go back to the
+          // The whole basket becomes one list: confirm it, or go back to the
           // categories and keep adding to the same basket.
           <div className="grid w-full grid-cols-2 gap-2">
             <Button type="button" onClick={submit} disabled={busy || lines.length === 0}>
-              <Send className="h-4 w-4" /> {busy ? tr("Yuborilmoqda...") : tr("Super adminga yuborish")}
+              <Send className="h-4 w-4" /> {busy ? tr("Tasdiqlanmoqda...") : tr("Tasdiqlash")}
             </Button>
             <Button
               type="button"
@@ -699,7 +711,7 @@ export function ListBuilder({
         )}
         {events.length > 0 && !eventId && <p className="mb-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{tr("Yuqorida to'yni tanlang.")}</p>}
         <p className="mb-1 text-xs text-muted-foreground">
-          {tr("Super adminga har bir mahsulotning faqat jami miqdori boradi.")}
+          {tr("Tasdiqlagach ro'yxat o'zgarmaydi va PDF bo'lib Telegramingizga keladi. Bozordan keyin umumiy summani kiritasiz.")}
         </p>
         <ul className="divide-y divide-border">
           {lines.map((l) => (

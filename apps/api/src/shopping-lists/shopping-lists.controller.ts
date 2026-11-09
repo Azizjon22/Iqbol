@@ -167,14 +167,19 @@ export class ShoppingListsController {
     return this.lists.findOne(id);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN')
+  /** A mistyped bazaar sum: the chef who bought it, or the super admin, fixes it. */
   @Patch(':id/total')
-  setTotal(
+  async setTotal(
     @Param('id') id: string,
     @Body() dto: ShoppingTotalDto,
     @CurrentUser() user: AuthPayload,
   ) {
-    return this.lists.setTotal(id, dto, user.sub, user.fullName);
+    await this.assertCanSee(id, user);
+    return this.lists.setTotal(
+      id,
+      dto,
+      user.kind === 'STAFF' ? user.sub : null,
+      user.fullName,
+    );
   }
 }

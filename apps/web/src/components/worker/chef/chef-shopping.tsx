@@ -12,6 +12,13 @@ import { ChefListCard } from "./chef-list-card";
 import { ListDetail } from "@/components/shopping-lists/center/list-detail";
 import type { ChefEvent } from "./types";
 
+/** Bought for a wedding that is today or still ahead (or within the last day). */
+function recentlyBought(list: ShoppingList) {
+  if (list.status !== "PURCHASED" && list.status !== "CLOSED") return false;
+  const when = list.event ? new Date(list.event.eventDate).getTime() : new Date(list.createdAt).getTime();
+  return when >= Date.now() - 24 * 60 * 60 * 1000;
+}
+
 export function ChefShopping({
   catalog,
   events,
@@ -72,8 +79,8 @@ export function ChefShopping({
             <div className="flex items-center gap-3 rounded-2xl border border-success/40 bg-success/10 p-4 animate-soft-scale">
               <CheckCircle2 className="h-6 w-6 shrink-0 text-success" />
               <div>
-                <p className="font-semibold">{tr("Ro'yxat saqlandi")}</p>
-                <p className="text-sm text-muted-foreground">{tr("Tekshirib, «Tasdiqlash» ni bosing. Bozorda har bir mahsulotni olganingizda narxini kiriting — hammasi olingach summa to'yning xarajatlariga o'zi yoziladi.")}</p>
+                <p className="font-semibold">{tr("Ro'yxat tasdiqlandi")}</p>
+                <p className="text-sm text-muted-foreground">{tr("Ro'yxat PDF bo'lib Telegramingizga keldi. Bozordan qaytgach, umumiy summani kiriting — u to'yning xarajatlariga o'zi yoziladi.")}</p>
               </div>
             </div>
           )}
@@ -84,7 +91,8 @@ export function ChefShopping({
             </div>
           ) : (
             lists.map((l) =>
-              l.status === "SUBMITTED" || l.status === "REVIEWED" || l.status === "APPROVED" ? (
+              // Open lists, and ones just bought (their sum may still need fixing), in full.
+              l.status === "SUBMITTED" || l.status === "REVIEWED" || l.status === "APPROVED" || recentlyBought(l) ? (
                 <ListDetail key={l.id} list={l} catalog={catalog} viewer="CHEF" />
               ) : (
                 <ChefListCard key={l.id} list={l} />
