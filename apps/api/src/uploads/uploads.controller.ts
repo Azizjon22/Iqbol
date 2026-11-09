@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Body,
   Controller,
   Get,
@@ -14,9 +15,10 @@ import {
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator';
-import { Roles } from '../common/decorators/roles.decorator';
 import { SkipMustChange } from '../common/decorators/skip-must-change.decorator';
-import { RolesGuard } from '../common/guards/roles.guard';
+import { StaffOrChefGuard } from '../common/guards/chef.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { AuthPayload } from '../common/types/auth-payload';
 import { UploadsService } from './uploads.service';
 import { StaffPresignDto } from './dto/presign.dto';
 
@@ -26,10 +28,22 @@ const MAX_BYTES = 200 * 1024 * 1024;
 export class UploadsController {
   constructor(private uploads: UploadsService) {}
 
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  /**
+   * Office staff upload anywhere; a chef only product photos (inventory,
+   * images) for the products section.
+   */
+  @UseGuards(StaffOrChefGuard)
   @Post('presign')
-  presign(@Body() dto: StaffPresignDto) {
+  presign(@Body() dto: StaffPresignDto, @CurrentUser() user: AuthPayload) {
+    if (user.kind === 'STAFF' && user.role === 'ZAVZAL') {
+      throw new ForbiddenException("Bu amal uchun ruxsatingiz yo'q");
+    }
+    if (
+      user.kind === 'WORKER' &&
+      (dto.folder !== 'inventory' || !dto.contentType.startsWith('image/'))
+    ) {
+      throw new ForbiddenException('Oshpaz faqat mahsulot rasmini yuklaydi');
+    }
     return this.uploads.presign(dto.folder, dto.contentType);
   }
 

@@ -7,6 +7,7 @@ function setup(opts: { token?: string } = {}) {
     id: 'staff1',
     fullName: 'Bosh Admin',
     role: 'SUPER_ADMIN',
+    language: 'uz',
     isActive: true,
     telegramChatId: null as string | null,
     telegramLinkedAt: null as Date | null,
@@ -15,6 +16,7 @@ function setup(opts: { token?: string } = {}) {
     id: 'staff2',
     fullName: 'Zavzal',
     role: 'ZAVZAL',
+    language: 'uz',
     isActive: true,
     telegramChatId: '77' as string | null,
   };
@@ -49,7 +51,9 @@ function setup(opts: { token?: string } = {}) {
         },
       ),
       findMany: jest.fn(async () =>
-        staff.telegramChatId ? [{ telegramChatId: staff.telegramChatId }] : [],
+        staff.telegramChatId
+          ? [{ telegramChatId: staff.telegramChatId, language: staff.language }]
+          : [],
       ),
       update: jest.fn(async ({ data }: { data: Partial<typeof staff> }) =>
         Object.assign(staff, data),
@@ -199,5 +203,34 @@ describe('TelegramService', () => {
       'Telegram bot sozlanmagan',
     );
     expect(t.sent).toHaveLength(0);
+  });
+});
+
+describe('TelegramService in Russian', () => {
+  it('writes to each person in their own language', async () => {
+    const t = setup();
+    t.staff.language = 'ru';
+    t.staff.telegramChatId = '42';
+    await t.onMessage(42, '/hisobot');
+    expect(t.texts().at(-1)).toBe('📊 Отчёт — за какой период нужен PDF?');
+
+    expect(await t.service.reportEventCompleted('ev1')).toBe(true);
+    const text = t.texts().at(-1)!;
+    expect(text).toContain('🧾 Завершённая свадьба — Karimovlar');
+    expect(text).toContain('гостей: 300');
+    expect(text).toContain('Расходы: 18 300 000 сум');
+  });
+
+  it('answers an unlinked Russian Telegram user in Russian', async () => {
+    const t = setup();
+    await (
+      t.service as never as { onMessage: (m: unknown) => Promise<void> }
+    ).onMessage({
+      message_id: 1,
+      chat: { id: 99, type: 'private' },
+      from: { language_code: 'ru' },
+      text: '/toylar',
+    });
+    expect(t.texts().at(-1)).toBe('Сначала подключите бота к аккаунту: /start');
   });
 });

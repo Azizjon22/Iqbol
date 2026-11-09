@@ -150,6 +150,8 @@ model StaffUser {
   // Telegram chat linked through the bot (phone + password); notifications go here.
   telegramChatId     String?   @unique
   telegramLinkedAt   DateTime?
+  // Language the bot writes to this person in (the site's language).
+  language           String    @default("uz")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -185,6 +187,7 @@ model Worker {
   // Telegram chat linked through the bot (phone + PIN); reminders go here.
   telegramChatId   String?        @unique
   telegramLinkedAt DateTime?
+  language         String         @default("uz")
   approvedBy       StaffUser?     @relation("WorkerApprovedBy", fields: [approvedById], references: [id])
   approvedById     String?
   createdAt        DateTime       @default(now())

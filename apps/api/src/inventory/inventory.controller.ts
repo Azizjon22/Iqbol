@@ -20,6 +20,7 @@ import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { StockCountDto } from './dto/stock-count.dto';
+import { ChefProductDto, UpdateChefProductDto } from './dto/chef-product.dto';
 
 @Controller('inventory')
 export class InventoryController {
@@ -31,6 +32,26 @@ export class InventoryController {
   @Get('catalog')
   catalog() {
     return this.inventory.productCatalog();
+  }
+
+  /** The chef's products section: add a product, fix its name or photo. */
+  @UseGuards(ChefGuard)
+  @Post('chef-products')
+  createChefProduct(
+    @Body() dto: ChefProductDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    return this.inventory.createChefProduct(dto, user);
+  }
+
+  @UseGuards(ChefGuard)
+  @Patch('chef-products/:id')
+  updateChefProduct(
+    @Param('id') id: string,
+    @Body() dto: UpdateChefProductDto,
+    @CurrentUser() user: AuthPayload,
+  ) {
+    return this.inventory.updateChefProduct(id, dto, user);
   }
 
   // ---- The chef's side of the store: see what there is (no prices), take

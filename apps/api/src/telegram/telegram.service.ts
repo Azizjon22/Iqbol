@@ -14,7 +14,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { AuthPayload } from '../common/types/auth-payload';
 import {
-  PERIOD_LABELS,
+  BOT_TEXT,
+  dayMonth,
+  hourMinute,
+  langFromTelegram,
+  langOf,
+  money,
+  shortDate,
+  type Command,
+  type Lang,
+} from './bot-text';
+import {
   REPORT_KINDS,
   REPORT_PERIODS,
   ReportsService,
@@ -26,7 +36,12 @@ import {
 interface TgMessage {
   message_id: number;
   chat: { id: number; type: string };
-  from?: { first_name?: string; last_name?: string; username?: string };
+  from?: {
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+  };
   text?: string;
   contact?: { phone_number: string };
 }
@@ -38,17 +53,10 @@ interface LinkButton {
 
 interface TgCallback {
   id: string;
-  from: { id: number };
+  from: { id: number; language_code?: string };
   message?: { chat: { id: number; type: string } };
   data?: string;
 }
-
-const REPORT_TITLES: Record<ReportKind, string> = {
-  ACCOUNTING: '📊 Hisob-kitob',
-  ARCHIVE: '🗂 Arxiv',
-};
-
-const WEDDING_BUTTON = "🧾 To'y xarajatlari";
 
 /** A sent message, kept so it can be edited when the list changes. */
 interface MessageRef {
@@ -65,13 +73,15 @@ const LIST_INCLUDE = {
   items: { orderBy: { name: 'asc' as const } },
   createdByWorker: { select: { fullName: true, telegramChatId: true } },
   event: {
-    select: { id: true, clientName: true, eventDate: true, guestCount: true },
+    select: {
+      id: true,
+      clientName: true,
+      clientNameRu: true,
+      eventDate: true,
+      guestCount: true,
+    },
   },
 };
-
-function fmtSom(value: unknown) {
-  return `${Math.round(Number(value ?? 0)).toLocaleString('ru-RU')} so'm`;
-}
 
 /** A chat's linked account, as the bot needs it to pick commands. */
 interface Account {
@@ -79,20 +89,28 @@ interface Account {
   id: string;
   fullName: string;
   role?: 'SUPER_ADMIN' | 'ADMIN' | 'ZAVZAL';
+  lang: Lang;
 }
 
-type Command =
-  'toylar' | 'tekshir' | 'ombor' | 'hisobot' | 'arxiv' | 'toy' | 'chiqish';
+/** What the bot reads of an account; `language` becomes `lang`. */
+const ACCOUNT_SELECT = { id: true, fullName: true, language: true } as const;
 
-const COMMAND_INFO: Record<Command, string> = {
-  toylar: "Yaqin to'ylar",
-  tekshir: 'Eslatmalarni hozir tekshirish',
-  ombor: 'Omborda kam qolgan mahsulotlar',
-  hisobot: 'Hisob-kitob (PDF)',
-  arxiv: "To'ylar arxivi (PDF)",
-  toy: "Bitta to'y xarajatlari — mijoz uchun PDF",
-  chiqish: 'Botdan uzish',
-};
+function toAccount<
+  T extends {
+    id: string;
+    fullName: string;
+    language: string;
+    role?: Account['role'];
+  },
+>(kind: Account['kind'], row: T): Account {
+  return {
+    kind,
+    id: row.id,
+    fullName: row.fullName,
+    role: row.role,
+    lang: langOf(row.language),
+  };
+}
 
 /**
  * What each account may ask the bot for, checked against the database on
@@ -108,20 +126,15 @@ function commandsFor(account: Account): Command[] {
 }
 
 function commandLines(account: Account) {
+  const text = BOT_TEXT[account.lang];
   return commandsFor(account)
-    .map((c) => `/${c} — ${COMMAND_INFO[c]}`)
+    .map((c) => `/${c} — ${text.commands[c]}`)
     .join('\n');
 }
 
 /** Where a chat is in the "phone, then code" linking conversation. */
 type Pending =
   { step: 'PHONE' } | { step: 'CODE'; phone: string; kind: 'WORKER' | 'STAFF' };
-
-const UNIT_UZ: Record<string, string> = {
-  KG: 'kg',
-  LITER: 'litr',
-  DONA: 'dona',
-};
 
 function fmtQty(value: unknown) {
   const n = Number(value);
@@ -248,15 +261,68 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async accountRow(user: { kind: 'STAFF' | 'WORKER'; sub: string }) {
+    const select = {
+      telegramChatId: true,
+      telegramLinkedAt: true,
+      language: true,
+    } as const;
     return user.kind === 'WORKER'
-      ? this.prisma.worker.findUnique({
+      ? this.prisma.worker.findUnique({ where: { id: user.sub }, select })
+      : this.prisma.staffUser.findUnique({ where: { id: user.sub }, select });
+  }
+
+  /**
+   * The site's language is the bot's language: the web app calls this on
+   * sign-in and whenever the language is switched. A linked chat gets its
+   * commands and menu button in the new language at once.
+   */
+  async setLanguage(user: AuthPayload, value: string) {
+    const language = langOf(value);
+    const row = await this.accountRow(user);
+    if (!row) return { language };
+    if (row.language !== language) {
+      if (user.kind === 'WORKER') {
+        await this.prisma.worker.update({
           where: { id: user.sub },
-          select: { telegramChatId: true, telegramLinkedAt: true },
-        })
-      : this.prisma.staffUser.findUnique({
-          where: { id: user.sub },
-          select: { telegramChatId: true, telegramLinkedAt: true },
+          data: { language },
         });
+      } else {
+        await this.prisma.staffUser.update({
+          where: { id: user.sub },
+          data: { language },
+        });
+      }
+      if (this.enabled && row.telegramChatId) {
+        const account = await this.accountById(user.kind, user.sub);
+        if (account) {
+          await this.applyChatMenu(row.telegramChatId, account);
+          if (account.role === 'SUPER_ADMIN') {
+            await this.reportKeyboard(row.telegramChatId, account.lang);
+          }
+          await this.send(
+            row.telegramChatId,
+            BOT_TEXT[language].languageChanged,
+          );
+        }
+      }
+    }
+    return { language };
+  }
+
+  /** The language of whoever has this chat; Uzbek when nobody does. */
+  private async chatLang(chatId: string | number): Promise<Lang> {
+    const id = String(chatId);
+    const [worker, staff] = await Promise.all([
+      this.prisma.worker.findFirst({
+        where: { telegramChatId: id },
+        select: { language: true },
+      }),
+      this.prisma.staffUser.findFirst({
+        where: { telegramChatId: id },
+        select: { language: true },
+      }),
+    ]);
+    return langOf(worker?.language ?? staff?.language);
   }
 
   /** For the profile's Telegram card. */
@@ -332,7 +398,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       await this.resetChatMenu(chatId);
       await this.send(
         chatId,
-        'Bot hisobingizdan profil orqali uzildi. Qayta ulash uchun saytdagi Profil sahifasidan "Telegram botga ulash" tugmasini bosing.',
+        BOT_TEXT[langOf(row.language)].unlinkedFromProfile,
       );
     }
     return { linked: false };
@@ -359,15 +425,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     if (kind === 'WORKER') {
       const worker = await this.prisma.worker.findFirst({
         where: { id, status: 'APPROVED', position: 'CHEF' },
-        select: { id: true, fullName: true },
+        select: ACCOUNT_SELECT,
       });
-      return worker ? { kind, ...worker } : null;
+      return worker ? toAccount(kind, worker) : null;
     }
     const staff = await this.prisma.staffUser.findFirst({
       where: { id, isActive: true },
-      select: { id: true, fullName: true, role: true },
+      select: { ...ACCOUNT_SELECT, role: true },
     });
-    return staff ? { kind, ...staff } : null;
+    return staff ? toAccount(kind, staff) : null;
   }
 
   private async audit(
@@ -390,9 +456,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   /** Start-up: default commands for unlinked chats, then every linked chat's own. */
   private async setUp() {
-    await this.call('setMyCommands', {
-      commands: [{ command: 'start', description: 'Botni ulash' }],
-    }).catch((err: Error) => this.logger.warn(`setMyCommands: ${err.message}`));
+    for (const lang of ['uz', 'ru'] as const) {
+      await this.call('setMyCommands', {
+        commands: [
+          { command: 'start', description: BOT_TEXT[lang].startCommand },
+        ],
+        // Russian-speaking Telegram users see the Russian default.
+        ...(lang === 'ru' ? { language_code: 'ru' } : {}),
+      }).catch((err: Error) =>
+        this.logger.warn(`setMyCommands: ${err.message}`),
+      );
+    }
     await this.call('setChatMenuButton', {
       menu_button: { type: 'commands' },
     }).catch((err: Error) =>
@@ -407,7 +481,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const [staff, workers] = await Promise.all([
       this.prisma.staffUser.findMany({
         where: { isActive: true, telegramChatId: { not: null } },
-        select: { id: true, fullName: true, role: true, telegramChatId: true },
+        select: { ...ACCOUNT_SELECT, role: true, telegramChatId: true },
       }),
       this.prisma.worker.findMany({
         where: {
@@ -415,23 +489,24 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           position: 'CHEF',
           telegramChatId: { not: null },
         },
-        select: { id: true, fullName: true, telegramChatId: true },
+        select: { ...ACCOUNT_SELECT, telegramChatId: true },
       }),
     ]);
     for (const s of staff) {
-      await this.applyChatMenu(s.telegramChatId!, { kind: 'STAFF', ...s });
+      await this.applyChatMenu(s.telegramChatId!, toAccount('STAFF', s));
     }
     for (const w of workers) {
-      await this.applyChatMenu(w.telegramChatId!, { kind: 'WORKER', ...w });
+      await this.applyChatMenu(w.telegramChatId!, toAccount('WORKER', w));
     }
   }
 
   /** This chat's own command list and the menu button that opens its home page. */
   private async applyChatMenu(chatId: string | number, account: Account) {
+    const text = BOT_TEXT[account.lang];
     await this.call('setMyCommands', {
       commands: commandsFor(account).map((c) => ({
         command: c,
-        description: COMMAND_INFO[c],
+        description: text.commands[c],
       })),
       scope: { type: 'chat', chat_id: chatId },
     }).catch((err: Error) => this.logger.warn(`setMyCommands: ${err.message}`));
@@ -441,7 +516,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       menu_button: this.miniApp
         ? {
             type: 'web_app',
-            text: 'Ilova',
+            text: text.menuButton,
             web_app: {
               url: `${this.webUrl}/tg?next=${encodeURIComponent(home)}`,
             },
@@ -562,9 +637,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  /** Rewrites messages sent earlier, e.g. after the list was edited. */
-  private async edit(refs: MessageRef[], text: string, buttons: LinkButton[]) {
+  /** Rewrites messages sent earlier, e.g. after the list was edited — each in its reader's language. */
+  private async edit(
+    refs: MessageRef[],
+    render: (lang: Lang) => { text: string; buttons: LinkButton[] },
+  ) {
     for (const ref of refs) {
+      const { text, buttons } = render(await this.chatLang(ref.chatId));
       await this.deliver(
         'editMessageText',
         { chat_id: ref.chatId, message_id: ref.messageId },
@@ -620,38 +699,35 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const chatId = msg.chat.id;
     const text = (msg.text ?? '').trim();
 
+    // Linked: their own language; not yet: Telegram's.
+    const account = await this.linkedAccount(chatId);
+    const lang = account?.lang ?? langFromTelegram(msg.from?.language_code);
+    const t = BOT_TEXT[lang];
+
     const startToken = /^\/start\s+(\S+)$/.exec(text)?.[1];
     if (startToken) {
-      await this.onStartToken(chatId, startToken);
+      await this.onStartToken(chatId, startToken, lang);
       return;
     }
-
-    const account = await this.linkedAccount(chatId);
 
     if (text === '/start') {
       if (account) {
         await this.send(
           chatId,
-          `${account.fullName}, siz allaqachon ulangansiz.\n\n${commandLines(account)}`,
-          this.homeButton(account.kind),
+          t.alreadyLinked(account.fullName, commandLines(account)),
+          this.homeButton(account.kind, lang),
         );
-        if (account.role === 'SUPER_ADMIN') await this.reportKeyboard(chatId);
+        if (account.role === 'SUPER_ADMIN') {
+          await this.reportKeyboard(chatId, lang);
+        }
         return;
       }
-      await this.askPhone(
-        chatId,
-        "Assalomu alaykum! Bu bot to'yxona xodimlari uchun.\n\n" +
-          'Ulashning eng oson yo\'li: saytda Profil sahifasini ochib, "Telegram botga ulash" tugmasini bosing.\n\n' +
-          'Yoki shu yerda tizimga kiradigan telefon raqamingizni yuboring (masalan, +998901234567).',
-      );
+      await this.askPhone(chatId, t.welcome, lang);
       return;
     }
 
     if (text === '/ulash') {
-      await this.askPhone(
-        chatId,
-        'Tizimga kiradigan telefon raqamingizni yuboring (masalan, +998901234567) yoki pastdagi tugmani bosing.',
-      );
+      await this.askPhone(chatId, t.askPhone, lang);
       return;
     }
 
@@ -667,10 +743,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         );
         await this.resetChatMenu(chatId);
       }
-      await this.send(
-        chatId,
-        'Bot hisobingizdan uzildi. Qayta ulash uchun /start bosing.',
-      );
+      await this.send(chatId, t.unlinked);
       return;
     }
 
@@ -680,74 +753,66 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       if (state.step === 'PHONE') {
         const phone = normalizePhone(msg.contact?.phone_number ?? text);
         if (!phone) {
-          await this.send(
-            chatId,
-            "Telefon raqami noto'g'ri. Masalan: +998901234567",
-          );
+          await this.send(chatId, t.badPhone);
           return;
         }
-        await this.onPhone(msg, phone);
+        await this.onPhone(msg, phone, lang);
         return;
       }
-      await this.onCode(msg, state, text);
+      await this.onCode(msg, state, text, lang);
       return;
     }
 
     const command = this.commandOf(text);
     if (!account) {
-      await this.send(
-        chatId,
-        command
-          ? 'Avval botni hisobingizga ulang: /start'
-          : 'Boshlash uchun /start bosing.',
-      );
+      await this.send(chatId, command ? t.linkFirst : t.startFirst);
       return;
     }
     if (!command) {
-      await this.send(chatId, `Buyruqlar:\n${commandLines(account)}`);
+      await this.send(chatId, `${t.commandsHeader}\n${commandLines(account)}`);
       return;
     }
     if (!commandsFor(account).includes(command)) {
       await this.send(
         chatId,
         command === 'ombor'
-          ? "Ombor ma'lumotlari sizga ochiq emas."
+          ? t.deniedStock
           : command === 'toylar' || command === 'tekshir'
-            ? 'Bu buyruq sizga ochiq emas.'
-            : 'Hisobotlar faqat super admin uchun.',
+            ? t.denied
+            : t.deniedFinance,
       );
       return;
     }
 
     switch (command) {
       case 'toylar':
-        await this.upcomingWeddings(chatId);
+        await this.upcomingWeddings(chatId, lang);
         return;
       case 'ombor':
-        await this.lowStock(chatId);
+        await this.lowStock(chatId, lang);
         return;
       case 'tekshir':
         await this.checkNow(chatId, account);
         return;
       case 'toy':
-        await this.weddingPicker(chatId);
+        await this.weddingPicker(chatId, lang);
         return;
       case 'hisobot':
       case 'arxiv': {
         const reportKind: ReportKind =
           command === 'hisobot' ? 'ACCOUNTING' : 'ARCHIVE';
-        if (reportKind === 'ARCHIVE') await this.archiveSummary(chatId);
+        if (reportKind === 'ARCHIVE') await this.archiveSummary(chatId, lang);
         await this.call('sendMessage', {
           chat_id: chatId,
-          text: `${REPORT_TITLES[reportKind]} — qaysi davr uchun PDF?`,
+          text: t.reportPeriod(t.reportTitles[reportKind]),
           reply_markup: {
             inline_keyboard: [
               REPORT_PERIODS.slice(0, 2).map((p) => ({
-                text: PERIOD_LABELS[p],
+                text: t.periods[p],
                 callback_data: `rep:${reportKind}:${p}`,
               })),
               REPORT_PERIODS.slice(2).map((p) => ({
-                text: PERIOD_LABELS[p],
+                text: t.periods[p],
                 callback_data: `rep:${reportKind}:${p}`,
               })),
             ],
@@ -762,27 +827,34 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   /** "/toylar", "/toylar@bot" and the keyboard buttons, as one command. */
   private commandOf(text: string): Command | null {
-    if (text === REPORT_TITLES.ACCOUNTING) return 'hisobot';
-    if (text === REPORT_TITLES.ARCHIVE) return 'arxiv';
-    if (text === WEDDING_BUTTON) return 'toy';
+    // The keyboard buttons, in either language (the keyboard may be older
+    // than a language switch).
+    for (const t of Object.values(BOT_TEXT)) {
+      if (text === t.reportTitles.ACCOUNTING) return 'hisobot';
+      if (text === t.reportTitles.ARCHIVE) return 'arxiv';
+      if (text === t.weddingButton) return 'toy';
+    }
     const name = /^\/([a-z]+)(?:@\w+)?$/.exec(text)?.[1];
-    return name && name in COMMAND_INFO ? (name as Command) : null;
+    return name && name in BOT_TEXT.uz.commands ? (name as Command) : null;
   }
 
-  private async askPhone(chatId: number, text: string) {
+  private async askPhone(chatId: number, text: string, lang: Lang) {
     this.pending.set(chatId, { step: 'PHONE' });
     await this.call('sendMessage', {
       chat_id: chatId,
       text,
       reply_markup: {
-        keyboard: [[{ text: '📱 Raqamni yuborish', request_contact: true }]],
+        keyboard: [
+          [{ text: BOT_TEXT[lang].sharePhone, request_contact: true }],
+        ],
         resize_keyboard: true,
         one_time_keyboard: true,
       },
     });
   }
 
-  private async onPhone(msg: TgMessage, phone: string) {
+  private async onPhone(msg: TgMessage, phone: string, lang: Lang) {
+    const t = BOT_TEXT[lang];
     const chatId = msg.chat.id;
     const [worker, staff] = await Promise.all([
       this.prisma.worker.findUnique({ where: { phone } }),
@@ -804,14 +876,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       this.pending.delete(chatId);
       await this.call('sendMessage', {
         chat_id: chatId,
-        text: "Bu raqam tizimda oshpaz yoki admin sifatida ro'yxatdan o'tmagan. Super adminga xabar berildi.",
+        text: t.phoneUnknown,
         reply_markup: { remove_keyboard: true },
       }).catch(() => undefined);
       const who = [msg.from?.first_name, msg.from?.last_name]
         .filter(Boolean)
         .join(' ');
-      await this.toSuperAdmins(
-        `⚠️ Botga ruxsatsiz kirishga urinish.\n\nRaqam: ${phone}\nTelegram: ${who || "noma'lum"}${msg.from?.username ? ` (@${msg.from.username})` : ''}\n\nBu raqam bazada oshpaz yoki admin sifatida yo'q.`,
+      const handle = `${who}${msg.from?.username ? ` (@${msg.from.username})` : ''}`;
+      await this.toStaff('SUPER_ADMIN', (l) =>
+        BOT_TEXT[l].phoneUnknownAlert(phone, handle.trim()),
       );
       return;
     }
@@ -823,9 +896,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
     await this.call('sendMessage', {
       chat_id: chatId,
-      text: chef
-        ? 'Endi tizimga kiradigan 4 xonali PIN kodingizni yozing.'
-        : 'Endi tizimga kiradigan parolingizni yozing.',
+      text: chef ? t.askPin : t.askPassword,
       reply_markup: { remove_keyboard: true },
     });
   }
@@ -834,6 +905,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     msg: TgMessage,
     state: Extract<Pending, { step: 'CODE' }>,
     code: string,
+    lang: Lang,
   ) {
     const chatId = msg.chat.id;
     // The code must not stay readable in the chat history.
@@ -853,10 +925,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const account = await this.accountById(state.kind, user.id);
       if (account) await this.linkChat(chatId, account);
     } catch (err) {
-      await this.send(
-        chatId,
-        `${(err as Error).message || "Kod noto'g'ri"}\n\nQayta yozing yoki /start bilan boshidan boshlang.`,
-      );
+      await this.send(chatId, BOT_TEXT[lang].codeWrong((err as Error).message));
     }
   }
 
@@ -894,33 +963,32 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       'Telegram botni uladi',
     );
 
+    const t = BOT_TEXT[account.lang];
+    const times = this.reminderTimes.join(` ${t.and} `);
     const about =
       account.kind === 'WORKER'
-        ? `Ertangi to'ylar uchun bozorlik yozilmagan bo'lsa, soat ${this.reminderTimes.join(' va ')} da eslatma keladi.`
+        ? t.aboutChef(times)
         : account.role === 'SUPER_ADMIN'
-          ? `Oshpaz bozorlik yuborsa va to'y yakunlansa, shu yerga xabar keladi. Ko'rilmagan ro'yxatlar soat ${this.reminderTimes.join(' va ')} da eslatiladi.`
-          : 'Ilovani shu yerdan login va parolsiz ochasiz.';
+          ? t.aboutSuperAdmin(times)
+          : t.aboutOther;
     await this.send(
       chatId,
-      `✅ ${account.fullName}, bot ulandi.\n\n${about}\n\n${commandLines(account)}`,
-      this.homeButton(account.kind),
+      t.linkedNow(account.fullName, about, commandLines(account)),
+      this.homeButton(account.kind, account.lang),
     );
     await this.applyChatMenu(chatId, account);
     if (account.role === 'SUPER_ADMIN') {
-      await this.reportKeyboard(chatId);
+      await this.reportKeyboard(chatId, account.lang);
       void this.backfillArchive();
     }
   }
 
   /** /start <token> from the profile's "connect Telegram" button. */
-  private async onStartToken(chatId: number, token: string) {
+  private async onStartToken(chatId: number, token: string, lang: Lang) {
     const entry = this.takeLinkToken(token);
     const account = entry ? await this.accountById(entry.kind, entry.id) : null;
     if (!account) {
-      await this.send(
-        chatId,
-        'Havola eskirgan yoki allaqachon ishlatilgan. Saytdagi Profil sahifasidan "Telegram botga ulash" tugmasini qayta bosing.',
-      );
+      await this.send(chatId, BOT_TEXT[lang].linkExpired);
       return;
     }
     this.pending.delete(chatId);
@@ -928,14 +996,18 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Two always-visible buttons for the super admin's PDF reports. */
-  private async reportKeyboard(chatId: number) {
+  private async reportKeyboard(chatId: number | string, lang: Lang) {
+    const t = BOT_TEXT[lang];
     await this.call('sendMessage', {
       chat_id: chatId,
-      text: "Hisobotlarni PDF ko'rinishida olish uchun pastdagi tugmalardan foydalaning.",
+      text: t.reportKeyboardHint,
       reply_markup: {
         keyboard: [
-          [{ text: REPORT_TITLES.ACCOUNTING }, { text: REPORT_TITLES.ARCHIVE }],
-          [{ text: WEDDING_BUTTON }],
+          [
+            { text: t.reportTitles.ACCOUNTING },
+            { text: t.reportTitles.ARCHIVE },
+          ],
+          [{ text: t.weddingButton }],
         ],
         resize_keyboard: true,
         is_persistent: true,
@@ -957,17 +1029,18 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     const linked = await this.linkedAccount(chatId);
+    const t = BOT_TEXT[linked?.lang ?? langFromTelegram(cb.from.language_code)];
     if (linked?.role !== 'SUPER_ADMIN') {
       await this.call('answerCallbackQuery', {
         callback_query_id: cb.id,
-        text: 'Hisobotlar faqat super admin uchun.',
+        text: t.deniedFinance,
         show_alert: true,
       });
       return;
     }
     await this.call('answerCallbackQuery', {
       callback_query_id: cb.id,
-      text: 'Hisobot tayyorlanmoqda…',
+      text: t.preparing,
     });
     if (wedding) {
       await this.sendFile(String(chatId), () =>
@@ -983,7 +1056,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** The super admin picks a recent wedding for its client PDF. */
-  private async weddingPicker(chatId: number) {
+  private async weddingPicker(chatId: number, lang: Lang) {
+    const t = BOT_TEXT[lang];
     const events = await this.prisma.event.findMany({
       where: {
         status: { not: 'CANCELLED' },
@@ -994,16 +1068,16 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       select: { id: true, clientName: true, eventDate: true },
     });
     if (events.length === 0) {
-      await this.send(chatId, "Hali o'tgan to'y yo'q.");
+      await this.send(chatId, t.noPastWeddings);
       return;
     }
     await this.call('sendMessage', {
       chat_id: chatId,
-      text: "🧾 Qaysi to'yning xarajatlari kerak? (mijozga ko'rsatish uchun, mahsulot narxlarisiz)",
+      text: t.weddingPicker,
       reply_markup: {
         inline_keyboard: events.map((e) => [
           {
-            text: `${e.eventDate.toLocaleDateString('uz-UZ', { timeZone: this.timeZone, day: '2-digit', month: '2-digit' })} — ${e.clientName}`.slice(
+            text: `${shortDate(e.eventDate, this.timeZone).slice(0, 5)} — ${e.clientName}`.slice(
               0,
               60,
             ),
@@ -1045,7 +1119,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Hisobot yuborilmadi: ${(err as Error).message}`);
       await this.send(
         chatId,
-        "Hisobotni tayyorlab bo'lmadi, birozdan keyin qayta urinib ko'ring.",
+        BOT_TEXT[await this.chatLang(chatId)].reportFailed,
       );
       return false;
     }
@@ -1114,10 +1188,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     return sent ? ('SENT' as const) : ('FAILED' as const);
   }
 
-  private homeButton(kind: 'WORKER' | 'STAFF'): LinkButton {
+  private homeButton(kind: 'WORKER' | 'STAFF', lang: Lang): LinkButton {
+    const t = BOT_TEXT[lang];
     return kind === 'WORKER'
-      ? { text: '📱 Oshpaz sahifasi', url: `${this.webUrl}/worker` }
-      : { text: '📱 Ilovani ochish', url: `${this.webUrl}/dashboard` };
+      ? { text: t.homeChef, url: `${this.webUrl}/worker` }
+      : { text: t.homeStaff, url: `${this.webUrl}/dashboard` };
   }
 
   /** The active account linked to this chat, read fresh on every message. */
@@ -1125,14 +1200,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const id = String(chatId);
     const worker = await this.prisma.worker.findFirst({
       where: { telegramChatId: id, status: 'APPROVED', position: 'CHEF' },
-      select: { id: true, fullName: true },
+      select: ACCOUNT_SELECT,
     });
-    if (worker) return { kind: 'WORKER', ...worker };
+    if (worker) return toAccount('WORKER', worker);
     const staff = await this.prisma.staffUser.findFirst({
       where: { telegramChatId: id, isActive: true },
-      select: { id: true, fullName: true, role: true },
+      select: { ...ACCOUNT_SELECT, role: true },
     });
-    return staff ? { kind: 'STAFF', ...staff } : null;
+    return staff ? toAccount('STAFF', staff) : null;
   }
 
   /** One chat belongs to one account at a time. */
@@ -1148,26 +1223,30 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Sends to every linked, active staff member of a role; returns what was sent. */
+  /**
+   * Sends to every linked, active staff member of a role — the text built
+   * for each one's own language; returns what was sent.
+   */
   private async toStaff(
     role: 'SUPER_ADMIN' | 'ADMIN',
-    text: string,
-    buttons: LinkButton | LinkButton[] = [],
+    text: (lang: Lang) => string,
+    buttons: (lang: Lang) => LinkButton | LinkButton[] = () => [],
   ): Promise<MessageRef[]> {
     const staff = await this.prisma.staffUser.findMany({
       where: { role, isActive: true, telegramChatId: { not: null } },
-      select: { telegramChatId: true },
+      select: { telegramChatId: true, language: true },
     });
     const refs: MessageRef[] = [];
     for (const member of staff) {
-      const messageId = await this.send(member.telegramChatId!, text, buttons);
+      const lang = langOf(member.language);
+      const messageId = await this.send(
+        member.telegramChatId!,
+        text(lang),
+        buttons(lang),
+      );
       if (messageId) refs.push({ chatId: member.telegramChatId!, messageId });
     }
     return refs;
-  }
-
-  private async toSuperAdmins(text: string, button?: LinkButton) {
-    return (await this.toStaff('SUPER_ADMIN', text, button)).length;
   }
 
   // ---------------------------------------------------------------- Reminders
@@ -1249,65 +1328,59 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         status: 'APPROVED',
         telegramChatId: onlyChatId ?? { not: null },
       },
-      select: { telegramChatId: true },
+      select: { telegramChatId: true, language: true },
     });
 
     let sent = 0;
     for (const event of events) {
-      const date = event.eventDate.toLocaleDateString('uz-UZ', {
-        timeZone: this.timeZone,
-        day: 'numeric',
-        month: 'long',
-      });
-      const time = event.eventDate.toLocaleTimeString('uz-UZ', {
-        timeZone: this.timeZone,
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const dishes = [event.firstDish, event.secondDish]
-        .filter(Boolean)
-        .join(', ');
-      const text =
-        `🛒 Ertaga to'y bor — ${date}, soat ${time}\n\n` +
-        `${event.clientName}\n${event.guestCount} mehmon` +
-        (dishes ? `\nTaomlar: ${dishes}` : '') +
-        (event.shoppingLists.length > 0
-          ? `\n\nBozorlik ro'yxati yozilgan, lekin hali tasdiqlanmagan — tasdiqlab, xaridga chiqing.`
-          : `\n\nShu sana uchun bozorlik yozishingiz kerak.`);
       for (const chef of chefs) {
-        await this.send(chef.telegramChatId!, text, {
-          text: 'Bozorlik yozish',
-          url: `${this.webUrl}/worker/shopping?event=${event.id}`,
-        });
+        const lang = langOf(chef.language);
+        const t = BOT_TEXT[lang];
+        const ru = lang === 'ru';
+        const dishes = [
+          ru ? (event.firstDishRu ?? event.firstDish) : event.firstDish,
+          ru ? (event.secondDishRu ?? event.secondDish) : event.secondDish,
+        ]
+          .filter(Boolean)
+          .join(', ');
+        await this.send(
+          chef.telegramChatId!,
+          t.remindChef({
+            date: dayMonth(event.eventDate, lang, this.timeZone),
+            time: hourMinute(event.eventDate, this.timeZone),
+            name: this.clientName(event, lang),
+            guests: event.guestCount,
+            dishes,
+            hasList: event.shoppingLists.length > 0,
+          }),
+          {
+            text: t.writeShopping,
+            url: `${this.webUrl}/worker/shopping?event=${event.id}`,
+          },
+        );
         sent++;
       }
     }
     return sent;
   }
 
-  private dayMonth(date: Date) {
-    return date.toLocaleDateString('uz-UZ', {
-      timeZone: this.timeZone,
-      day: 'numeric',
-      month: 'long',
-    });
+  /** The couple's name as written for this reader. */
+  private clientName(
+    event: { clientName: string; clientNameRu?: string | null },
+    lang: Lang,
+  ) {
+    return lang === 'ru'
+      ? event.clientNameRu || event.clientName
+      : event.clientName;
   }
 
-  private hourMinute(date: Date) {
-    return date.toLocaleTimeString('uz-UZ', {
-      timeZone: this.timeZone,
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    });
-  }
-
-  private shortDate(date: Date) {
-    return date.toLocaleDateString('ru-RU', { timeZone: this.timeZone });
+  private unit(unit: string, lang: Lang) {
+    return BOT_TEXT[lang].units[unit] ?? unit;
   }
 
   /** /toylar: the next ten weddings from today on, cancelled ones left out. */
-  private async upcomingWeddings(chatId: number) {
+  private async upcomingWeddings(chatId: number, lang: Lang) {
+    const t = BOT_TEXT[lang];
     const { start } = this.tomorrowRange();
     const today = new Date(start.getTime() - 24 * 60 * 60 * 1000);
     const events = await this.prisma.event.findMany({
@@ -1316,65 +1389,77 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       take: 10,
       select: {
         clientName: true,
+        clientNameRu: true,
         eventDate: true,
         guestCount: true,
         status: true,
       },
     });
     if (events.length === 0) {
-      await this.send(chatId, "Yaqin kunlarda to'y yo'q.");
+      await this.send(chatId, t.noUpcoming);
       return;
     }
     const rows = events.map(
       (e) =>
-        `• ${this.dayMonth(e.eventDate)}, ${this.hourMinute(e.eventDate)} — ${e.clientName}, ${e.guestCount} mehmon` +
-        (e.status === 'PENDING' ? ' (kutilmoqda)' : ''),
+        t.upcomingRow(
+          dayMonth(e.eventDate, lang, this.timeZone),
+          hourMinute(e.eventDate, this.timeZone),
+          this.clientName(e, lang),
+          e.guestCount,
+        ) + (e.status === 'PENDING' ? t.pendingMark : ''),
     );
-    await this.send(chatId, `📅 Yaqin to'ylar\n\n${rows.join('\n')}`);
+    await this.send(chatId, `${t.upcomingTitle}\n\n${rows.join('\n')}`);
   }
 
   /** /ombor: products at or under their minimum (30 at most). */
-  private async lowStock(chatId: number) {
+  private async lowStock(chatId: number, lang: Lang) {
+    const t = BOT_TEXT[lang];
     const items = await this.prisma.inventoryItem.findMany({
       where: { minThreshold: { gt: 0 } },
-      select: { name: true, unit: true, quantity: true, minThreshold: true },
+      select: {
+        name: true,
+        nameRu: true,
+        unit: true,
+        quantity: true,
+        minThreshold: true,
+      },
       orderBy: { name: 'asc' },
     });
     const low = items.filter((i) => i.quantity.lte(i.minThreshold!));
     if (low.length === 0) {
-      await this.send(
-        chatId,
-        "Omborda hamma mahsulot yetarli — chegaradan kam qolgani yo'q.",
-      );
+      await this.send(chatId, t.stockOk);
       return;
     }
-    const rows = low.slice(0, 30).map((i) => {
-      const unit = UNIT_UZ[i.unit] ?? i.unit;
-      return `• ${i.name} — ${fmtQty(i.quantity)} ${unit} qoldi (chegara: ${fmtQty(i.minThreshold)} ${unit})`;
+    const rows = low
+      .slice(0, 30)
+      .map((i) =>
+        t.lowStockRow(
+          lang === 'ru' ? i.nameRu || i.name : i.name,
+          fmtQty(i.quantity),
+          fmtQty(i.minThreshold),
+          this.unit(i.unit, lang),
+        ),
+      );
+    if (low.length > rows.length) rows.push(t.more(low.length - rows.length));
+    await this.send(chatId, `${t.lowStockTitle}\n\n${rows.join('\n')}`, {
+      text: t.storeButton,
+      url: `${this.webUrl}/dashboard/inventory`,
     });
-    if (low.length > rows.length)
-      rows.push(`… va yana ${low.length - rows.length} ta`);
-    await this.send(
-      chatId,
-      `📦 Omborda kam qolgan mahsulotlar\n\n${rows.join('\n')}`,
-      { text: 'Ombor', url: `${this.webUrl}/dashboard/inventory` },
-    );
   }
 
   /** /tekshir: the same reminders as at the set hours, for this one person. */
   private async checkNow(chatId: number, account: Account) {
     let sent = 0;
-    if (account.kind === 'WORKER')
+    if (account.kind === 'WORKER') {
       sent = await this.remindChefs(String(chatId));
-    else if (account.role === 'SUPER_ADMIN') {
+    } else if (account.role === 'SUPER_ADMIN') {
       sent = await this.remindSuperAdmins(String(chatId));
     }
     if (sent === 0) {
+      const t = BOT_TEXT[account.lang];
       await this.send(
         chatId,
-        account.kind === 'WORKER'
-          ? "Ertangi to'ylar uchun bozorlik yozilgan va tasdiqlangan."
-          : "Hozircha sizni kutayotgan ish yo'q.",
+        account.kind === 'WORKER' ? t.nothingChef : t.nothingPending,
       );
     }
   }
@@ -1389,25 +1474,43 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       orderBy: { createdAt: 'asc' },
       include: {
         createdByWorker: { select: { fullName: true } },
-        event: { select: { clientName: true, eventDate: true } },
+        event: {
+          select: { clientName: true, clientNameRu: true, eventDate: true },
+        },
         _count: { select: { items: true } },
       },
     });
     if (lists.length === 0) return 0;
-    const rows = lists
-      .slice(0, 10)
-      .map(
-        (l) =>
-          `• ${l.event ? `${l.event.clientName} (${this.dayMonth(l.event.eventDate)})` : "To'ysiz ro'yxat"} — ${l._count.items} ta mahsulot, ${l.createdByWorker.fullName}` +
-          (l.status === 'PURCHASED' ? ', xarid qilindi' : ''),
-      );
-    if (lists.length > rows.length)
-      rows.push(`… va yana ${lists.length - rows.length} ta`);
-    const text = `📋 ${lists.length} ta bozorlik ro'yxati hali ko'rilmagan:\n\n${rows.join('\n')}`;
+    const render = (lang: Lang) => {
+      const t = BOT_TEXT[lang];
+      const rows = lists
+        .slice(0, 10)
+        .map((l) =>
+          t.unseenRow(
+            l.event
+              ? `${this.clientName(l.event, lang)} (${dayMonth(l.event.eventDate, lang, this.timeZone)})`
+              : t.noEventList,
+            l._count.items,
+            l.createdByWorker.fullName,
+            l.status === 'PURCHASED',
+          ),
+        );
+      if (lists.length > rows.length) {
+        rows.push(t.more(lists.length - rows.length));
+      }
+      return `${t.unseenTitle(lists.length)}\n\n${rows.join('\n')}`;
+    };
     if (onlyChatId) {
-      return (await this.send(onlyChatId, text, this.listsButton())) ? 1 : 0;
+      const lang = await this.chatLang(onlyChatId);
+      return (await this.send(onlyChatId, render(lang), this.listsButton(lang)))
+        ? 1
+        : 0;
     }
-    return (await this.toStaff('SUPER_ADMIN', text, this.listsButton())).length;
+    return (
+      await this.toStaff('SUPER_ADMIN', render, (lang) =>
+        this.listsButton(lang),
+      )
+    ).length;
   }
 
   // ------------------------------------------------------- Wedding archive
@@ -1420,6 +1523,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       select: {
         id: true,
         clientName: true,
+        clientNameRu: true,
         eventDate: true,
         guestCount: true,
         totalPrice: true,
@@ -1440,7 +1544,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const cost = spent.get(e.id) ?? 0;
       return {
         id: e.id,
-        name: e.clientName,
+        clientName: e.clientName,
+        clientNameRu: e.clientNameRu,
         date: e.eventDate,
         guests: e.guestCount,
         agreed,
@@ -1460,25 +1565,30 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   async reportEventCompleted(eventId: string): Promise<boolean> {
     if (!this.enabled) return false;
     try {
-      const [account] = await this.weddingAccounts({
+      const [a] = await this.weddingAccounts({
         id: eventId,
         status: 'COMPLETED',
         archivedNotifiedAt: null,
       });
-      if (!account) return false;
-      const text =
-        `🧾 Yakunlangan to'y — ${account.name}\n` +
-        `📅 ${this.shortDate(account.date)} · ${account.guests} mehmon\n` +
-        `———\n` +
-        `Kelishilgan summa: ${fmtSom(account.agreed)}\n` +
-        `Olingan pul: ${fmtSom(account.collected)}\n` +
-        (account.debt > 0 ? `Qarzdorlik: ${fmtSom(account.debt)}\n` : '') +
-        `Xarajatlar: ${fmtSom(account.expenses)}\n` +
-        `Qolgan (foyda): ${fmtSom(account.profit)}`;
-      const refs = await this.toStaff('SUPER_ADMIN', text, {
-        text: "To'y kartasi",
-        url: `${this.webUrl}/dashboard/events/${eventId}`,
-      });
+      if (!a) return false;
+      const refs = await this.toStaff(
+        'SUPER_ADMIN',
+        (lang) =>
+          BOT_TEXT[lang].completed({
+            name: this.clientName(a, lang),
+            date: shortDate(a.date, this.timeZone),
+            guests: a.guests,
+            agreed: money(a.agreed, lang),
+            collected: money(a.collected, lang),
+            debt: a.debt > 0 ? money(a.debt, lang) : null,
+            expenses: money(a.expenses, lang),
+            profit: money(a.profit, lang),
+          }),
+        (lang) => ({
+          text: BOT_TEXT[lang].eventCard,
+          url: `${this.webUrl}/dashboard/events/${eventId}`,
+        }),
+      );
       if (refs.length === 0) return false;
       await this.prisma.event.update({
         where: { id: eventId },
@@ -1526,36 +1636,51 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** /arxiv: every completed wedding in short, with the totals, before the PDF. */
-  private async archiveSummary(chatId: number) {
+  private async archiveSummary(chatId: number, lang: Lang) {
+    const t = BOT_TEXT[lang];
     const all = await this.weddingAccounts({ status: 'COMPLETED' });
     if (all.length === 0) {
-      await this.send(chatId, "Arxiv bo'sh — hali yakunlangan to'y yo'q.");
+      await this.send(chatId, t.archiveEmpty);
       return;
     }
     const latest = [...all].reverse();
     const rows = latest
       .slice(0, 12)
       .map(
-        (a) => `• ${this.shortDate(a.date)} ${a.name} — ${fmtSom(a.profit)}`,
+        (a) =>
+          `• ${shortDate(a.date, this.timeZone)} ${this.clientName(a, lang)} — ${money(a.profit, lang)}`,
       );
-    if (latest.length > rows.length)
-      rows.push(`… va yana ${latest.length - rows.length} ta`);
+    if (latest.length > rows.length) {
+      rows.push(t.more(latest.length - rows.length));
+    }
     const sum = (pick: (a: (typeof all)[number]) => number) =>
       all.reduce((total, a) => total + pick(a), 0);
     await this.send(
       chatId,
-      `🗂 To'ylar arxivi · ${all.length} ta yakunlangan to'y\n\n${rows.join('\n')}\n\n` +
-        `Jami olingan: ${fmtSom(sum((a) => a.collected))}\n` +
-        `Jami xarajat: ${fmtSom(sum((a) => a.expenses))}\n` +
-        `Jami qolgan: ${fmtSom(sum((a) => a.profit))}`,
+      t.archive(
+        all.length,
+        rows.join('\n'),
+        money(
+          sum((a) => a.collected),
+          lang,
+        ),
+        money(
+          sum((a) => a.expenses),
+          lang,
+        ),
+        money(
+          sum((a) => a.profit),
+          lang,
+        ),
+      ),
     );
   }
 
   // ------------------------------------------------------ List announcements
 
-  private listsButton(): LinkButton {
+  private listsButton(lang: Lang): LinkButton {
     return {
-      text: 'Bozorlikni ochish',
+      text: BOT_TEXT[lang].openLists,
       url: `${this.webUrl}/dashboard/shopping-lists`,
     };
   }
@@ -1567,51 +1692,47 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  private listHead(
-    list: NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>,
-  ) {
+  private listHead(list: LoadedList, lang: Lang) {
     const event = list.event
-      ? `${list.event.clientName} — ${list.event.eventDate.toLocaleDateString('uz-UZ', { timeZone: this.timeZone, day: 'numeric', month: 'long' })}, ${list.event.guestCount} mehmon`
-      : "To'ysiz ro'yxat";
-    return `${event}\nOshpaz: ${list.createdByWorker.fullName}`;
+      ? `${this.clientName(list.event, lang)} — ${dayMonth(list.event.eventDate, lang, this.timeZone)}, ${BOT_TEXT[lang].guests(list.event.guestCount)}`
+      : null;
+    return BOT_TEXT[lang].listHead(event, list.createdByWorker.fullName);
   }
 
   /** What is to be bought. */
-  private itemRows(
-    list: NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>,
-  ) {
+  private itemRows(list: LoadedList, lang: Lang) {
+    const t = BOT_TEXT[lang];
     const rows = list.items.slice(0, 40).map((i) => {
-      const unit = UNIT_UZ[i.unit] ?? i.unit;
       let mark = '';
       if (i.originalQuantity && !i.originalQuantity.equals(i.quantity)) {
         mark = i.originalQuantity.isZero()
-          ? " (qo'shildi)"
-          : ` (oshpaz: ${fmtQty(i.originalQuantity)})`;
+          ? t.added
+          : t.chefQty(fmtQty(i.originalQuantity));
       }
-      return `• ${i.name} — ${fmtQty(i.quantity)} ${unit}${mark}`;
+      const name = lang === 'ru' ? i.nameRu || i.name : i.name;
+      return `• ${name} — ${fmtQty(i.quantity)} ${this.unit(i.unit, lang)}${mark}`;
     });
     if (list.items.length > rows.length) {
-      rows.push(`… va yana ${list.items.length - rows.length} ta`);
+      rows.push(t.more(list.items.length - rows.length));
     }
     return rows.join('\n');
   }
 
-  private purchasedText(
-    list: NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>,
-  ) {
-    return (
-      `💰 Bozorlik xarid qilindi\n\n${this.listHead(list)}\n\n${this.itemRows(list)}` +
-      `\n\nJami: ${fmtSom(list.totalCost)}` +
-      (list.event ? "\nBu summa to'yning xarajatlariga o'zi yozildi." : '')
+  private purchasedText(list: LoadedList, lang: Lang) {
+    return BOT_TEXT[lang].purchased(
+      this.listHead(list, lang),
+      this.itemRows(list, lang),
+      money(list.totalCost, lang),
+      Boolean(list.event),
     );
   }
 
   /** Under the price report: the wedding's card, where the expense now sits. */
-  private purchasedButtons(eventId?: string): LinkButton[] {
-    const buttons = [this.listsButton()];
+  private purchasedButtons(lang: Lang, eventId?: string): LinkButton[] {
+    const buttons = [this.listsButton(lang)];
     if (eventId) {
       buttons.unshift({
-        text: "To'y kartasi",
+        text: BOT_TEXT[lang].eventCard,
         url: `${this.webUrl}/dashboard/events/${eventId}`,
       });
     }
@@ -1673,8 +1794,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       if (!list) return;
       const refs = await this.toStaff(
         'SUPER_ADMIN',
-        this.purchasedText(list),
-        this.purchasedButtons(list.event?.id),
+        (lang) => this.purchasedText(list, lang),
+        (lang) => this.purchasedButtons(lang, list.event?.id),
       );
       await this.saveRefs(id, { purchased: refs });
     });
@@ -1689,11 +1810,10 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       }
       const refs =
         ((list.telegramMessages ?? {}) as ListMessages).purchased ?? [];
-      await this.edit(
-        refs,
-        this.purchasedText(list),
-        this.purchasedButtons(list.event?.id),
-      );
+      await this.edit(refs, (lang) => ({
+        text: this.purchasedText(list, lang),
+        buttons: this.purchasedButtons(lang, list.event?.id),
+      }));
     });
   }
 
@@ -1711,6 +1831,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
             select: {
               id: true,
               clientName: true,
+              clientNameRu: true,
               eventDate: true,
               guestCount: true,
             },
@@ -1718,37 +1839,40 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         },
       });
       if (!usage) return;
-      const date = usage.event.eventDate.toLocaleDateString('uz-UZ', {
-        timeZone: this.timeZone,
-        day: 'numeric',
-        month: 'long',
-      });
-      const rows = usage.items.map(
-        (i) =>
-          `• ${i.name} — ${fmtQty(i.quantity)} ${UNIT_UZ[i.unit] ?? i.unit}`,
-      );
       // Only super admins get this message, so the cost may be shown.
       const unpriced = usage.items.filter((i) => i.totalCost === null).length;
       const total = usage.items.reduce(
         (sum, i) => sum + Number(i.totalCost ?? 0),
         0,
       );
-      const cost =
-        unpriced === usage.items.length
-          ? 'Narxi: omborda bu mahsulotlarga narx kiritilmagan'
-          : `Jami: ${fmtSom(total)}` +
-            (unpriced > 0 ? ` (${unpriced} ta mahsulot narxsiz)` : '');
       const refs = await this.toStaff(
         'SUPER_ADMIN',
-        `📦 Ombordan shu to'yga olingan mahsulotlar\n\n` +
-          `${usage.event.clientName} — ${date}, ${usage.event.guestCount} mehmon\n` +
-          `Oshpaz: ${usage.worker.fullName}\n\n${rows.join('\n')}\n\n${cost}`,
-        [
+        (lang) => {
+          const t = BOT_TEXT[lang];
+          const rows = usage.items.map(
+            (i) =>
+              `• ${i.name} — ${fmtQty(i.quantity)} ${this.unit(i.unit, lang)}`,
+          );
+          const cost =
+            unpriced === usage.items.length
+              ? t.stockNoPrice
+              : t.stockTotal(money(total, lang), unpriced);
+          return t.stockUsage(
+            `${this.clientName(usage.event, lang)} — ${dayMonth(usage.event.eventDate, lang, this.timeZone)}, ${t.guests(usage.event.guestCount)}`,
+            usage.worker.fullName,
+            rows.join('\n'),
+            cost,
+          );
+        },
+        (lang) => [
           {
-            text: "To'y kartasi",
+            text: BOT_TEXT[lang].eventCard,
             url: `${this.webUrl}/dashboard/events/${usage.event.id}`,
           },
-          { text: 'Ombor', url: `${this.webUrl}/dashboard/inventory` },
+          {
+            text: BOT_TEXT[lang].storeButton,
+            url: `${this.webUrl}/dashboard/inventory`,
+          },
         ],
       );
       await this.prisma.stockUsage.update({
@@ -1763,9 +1887,10 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     return this.safely('Qaytarish xabari yuborilmadi', async () => {
       const refs = (Array.isArray(stored) ? stored : []) as MessageRef[];
       for (const ref of refs) {
+        const lang = await this.chatLang(ref.chatId);
         await this.call('sendMessage', {
           chat_id: ref.chatId,
-          text: `↩️ Bu mahsulotlar omborga qaytarildi (${byName}).`,
+          text: BOT_TEXT[lang].returned(byName),
           reply_parameters: {
             message_id: ref.messageId,
             allow_sending_without_reply: true,
@@ -1777,3 +1902,5 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
   }
 }
+
+type LoadedList = NonNullable<Awaited<ReturnType<TelegramService['loadList']>>>;

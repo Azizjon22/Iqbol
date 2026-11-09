@@ -5,14 +5,21 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
 } from '@nestjs/common';
+import { IsIn } from 'class-validator';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SkipMustChange } from '../common/decorators/skip-must-change.decorator';
 import { AuthPayload } from '../common/types/auth-payload';
 import { TelegramLoginDto } from '../auth/dto/telegram-login.dto';
 import { TelegramService } from './telegram.service';
+
+class LanguageDto {
+  @IsIn(['uz', 'ru'])
+  language!: 'uz' | 'ru';
+}
 
 /** The profile's Telegram card — any signed-in account (staff or chef). */
 @SkipMustChange()
@@ -30,6 +37,12 @@ export class TelegramController {
   @Post('link')
   link(@CurrentUser() user: AuthPayload) {
     return this.telegram.createLink(user);
+  }
+
+  /** The site's language, so the bot writes to this person in it too. */
+  @Patch('language')
+  language(@CurrentUser() user: AuthPayload, @Body() dto: LanguageDto) {
+    return this.telegram.setLanguage(user, dto.language);
   }
 
   @Delete('link')

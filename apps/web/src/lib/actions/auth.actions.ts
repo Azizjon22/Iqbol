@@ -1,5 +1,8 @@
 "use server";
 import { getTr } from "@/i18n/server-tr";
+import { cookies } from "next/headers";
+import { getLocale } from "@/i18n/locale";
+import { LOCALE_COOKIE } from "@/i18n/types";
 
 
 import { redirect } from "next/navigation";
@@ -31,6 +34,24 @@ async function linkTelegram(formData: FormData, accessToken: string): Promise<bo
     // Still signed in; only the automatic next sign-in is lost.
   }
   return true;
+}
+
+/**
+ * The bot writes in the language the site is used in — when this browser
+ * has picked one (no cookie: leave what was chosen elsewhere). Best-effort.
+ */
+async function syncBotLanguage(accessToken: string) {
+  if (!(await cookies()).get(LOCALE_COOKIE)) return;
+  try {
+    await fetch(publicApiUrl("/telegram/language"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ language: await getLocale() }),
+      cache: "no-store",
+    });
+  } catch {
+    // Signed in all the same.
+  }
 }
 
 const CONNECTION_ERROR = "Server bilan bog'lanib bo'lmadi. Ulanishni tekshirib, qayta urinib ko'ring.";
@@ -72,6 +93,7 @@ export async function loginStaffAction(
   }
 
   const data = await res.json();
+  await syncBotLanguage(data.accessToken);
   const telegram = await linkTelegram(formData, data.accessToken);
   await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user, ...(telegram && { telegram }) });
   redirect(data.user.mustChangePassword ? "/change-password" : "/dashboard");
@@ -101,6 +123,7 @@ export async function loginWorkerAction(
   }
 
   const data = await res.json();
+  await syncBotLanguage(data.accessToken);
   const telegram = await linkTelegram(formData, data.accessToken);
   await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken, user: data.user, ...(telegram && { telegram }) });
   redirect(data.user.mustChangePin ? "/change-pin" : "/worker");

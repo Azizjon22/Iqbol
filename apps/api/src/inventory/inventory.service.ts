@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ChefProductDto, UpdateChefProductDto } from './dto/chef-product.dto';
 import { InventoryTxnType, Prisma, StaffRole, Unit } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -39,6 +40,16 @@ const txnInclude = {
     },
   },
 } satisfies Prisma.InventoryTransactionInclude;
+
+/** What the kitchen sees of a product: no stock, no prices. */
+const CHEF_PRODUCT_SELECT = {
+  id: true,
+  name: true,
+  nameRu: true,
+  productCategory: true,
+  unit: true,
+  photoUrl: true,
+} as const;
 
 @Injectable()
 export class InventoryService {
@@ -121,17 +132,97 @@ export class InventoryService {
    * Read-only product catalog for building shopping lists — reachable by
    * chefs (WORKER kind) as well as staff, unlike the rest of this module.
    */
+  /** The chef adds a product (name, unit, photo) to the shopping catalog. */
+  async createChefProduct(dto: ChefProductDto, chef: AuthPayload) {
+    const name = dto.name.trim();
+    const existing = await this.prisma.inventoryItem.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
+    if (existing) {
+      throw new ConflictException('Bu nomdagi mahsulot allaqachon mavjud');
+    }
+    const item = await this.prisma.inventoryItem.create({
+      data: {
+        name,
+        nameRu: dto.nameRu?.trim() || name,
+        category: 'PRODUCT',
+        productCategory: dto.productCategory ?? 'OTHER',
+        photoUrl: dto.photoUrl,
+        unit: dto.unit,
+      },
+      select: CHEF_PRODUCT_SELECT,
+    });
+    await this.auditLog.record({
+      actorId: null,
+      actorName: chef.fullName,
+      action: 'CREATE',
+      entityType: 'INVENTORY_ITEM',
+      entityId: item.id,
+      description: `Oshpaz "${item.name}" mahsulotini qo'shdi`,
+    });
+    return item;
+  }
+
+  /** The chef fixes a catalog product's name, unit, section or photo. */
+  async updateChefProduct(
+    id: string,
+    dto: UpdateChefProductDto,
+    chef: AuthPayload,
+  ) {
+    const existing = await this.prisma.inventoryItem.findUnique({
+      where: { id },
+    });
+    if (!existing || existing.category !== 'PRODUCT') {
+      throw new NotFoundException('Mahsulot topilmadi');
+    }
+    const name = dto.name?.trim();
+    if (name && name.toLowerCase() !== existing.name.toLowerCase()) {
+      const clash = await this.prisma.inventoryItem.findFirst({
+        where: { name: { equals: name, mode: 'insensitive' }, NOT: { id } },
+      });
+      if (clash) {
+        throw new ConflictException('Bu nomdagi mahsulot allaqachon mavjud');
+      }
+    }
+    const item = await this.prisma.inventoryItem.update({
+      where: { id },
+      data: {
+        name: name || undefined,
+        nameRu:
+          dto.nameRu !== undefined
+            ? dto.nameRu.trim() || name || existing.name
+            : undefined,
+        unit: dto.unit,
+        productCategory: dto.productCategory,
+        photoUrl: dto.photoUrl === undefined ? undefined : dto.photoUrl || null,
+      },
+      select: CHEF_PRODUCT_SELECT,
+    });
+    const changes: string[] = [];
+    if (name && name !== existing.name)
+      changes.push(`nomi "${existing.name}" → "${name}"`);
+    if (
+      dto.photoUrl !== undefined &&
+      (dto.photoUrl || null) !== existing.photoUrl
+    ) {
+      changes.push(dto.photoUrl ? 'rasm' : "rasm o'chirildi");
+    }
+    if (dto.unit && dto.unit !== existing.unit) changes.push('birligi');
+    await this.auditLog.record({
+      actorId: null,
+      actorName: chef.fullName,
+      action: 'UPDATE',
+      entityType: 'INVENTORY_ITEM',
+      entityId: id,
+      description: `Oshpaz "${item.name}" mahsulotini tahrirladi${changes.length ? ` (${changes.join(', ')})` : ''}`,
+    });
+    return item;
+  }
+
   productCatalog() {
     return this.prisma.inventoryItem.findMany({
       where: { category: 'PRODUCT' },
-      select: {
-        id: true,
-        name: true,
-        nameRu: true,
-        productCategory: true,
-        unit: true,
-        photoUrl: true,
-      },
+      select: CHEF_PRODUCT_SELECT,
       orderBy: { name: 'asc' },
     });
   }

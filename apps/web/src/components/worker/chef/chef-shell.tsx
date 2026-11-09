@@ -4,7 +4,7 @@ import { useTr } from "@/components/i18n/locale-provider";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarHeart, Home, LogOut, ShoppingCart, Warehouse } from "lucide-react";
+import { Apple, CalendarHeart, Home, LogOut, ShoppingCart, Warehouse } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth.actions";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -18,6 +18,7 @@ const TABS = [
   { href: "/worker/events", label: "To'ylar", icon: CalendarHeart, chefOnly: true },
   { href: "/worker/shopping", label: "Bozorlik", icon: ShoppingCart },
   { href: "/worker/stock", label: "Ombor", icon: Warehouse, chefOnly: true },
+  { href: "/worker/products", label: "Mahsulotlar", icon: Apple, chefOnly: true },
 ];
 
 /** App-like frame for chefs: slim header on top, thumb-reachable tab bar at the bottom. */

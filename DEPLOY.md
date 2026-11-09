@@ -31,6 +31,13 @@ nano .env.production
 | `SEED_SUPER_ADMIN_PHONE`, `SEED_SUPER_ADMIN_PASSWORD` | Birinchi hisob. Parol kamida 8 belgi |
 | `CONTACT_PHONE` | Menyu taqdimotida ko'rinadigan telefon |
 
+Baza va rasmlar uchun volume'larni bir marta yarating (ular "tashqi": `docker compose down -v` ham ularni o'chira olmaydi):
+
+```bash
+docker volume create iqbol_postgres_data
+docker volume create iqbol_uploads
+```
+
 Ishga tushirish:
 
 ```bash
@@ -155,3 +162,9 @@ Server o'chib yonsa, xizmatlar o'zi qayta ko'tariladi (`restart: unless-stopped`
 - Har bir xodim yoki oshpaz bir marta ulaydi: Profil (oshpazda bosh sahifa) → «Telegram botga ulash» → botda «Start». Havola bir martalik, 15 daqiqa amal qiladi. Keyin mini-app login va parolsiz ochiladi.
 - Super admin ulanishi bilan hali yozilmagan yakunlangan to'ylarning yakuniy hisobi botga yoziladi. Har bir to'y faqat bir marta yoziladi.
 - Ixtiyoriy: `ERROR_ALERT_BOT_TOKEN` va `ERROR_ALERT_CHAT_ID` berilsa, server (5xx) va brauzer xatolari alohida botga keladi.
+
+## Ma'lumotni o'chirib yubormaslik
+
+- Baza (`iqbol_postgres_data`) va rasmlar (`iqbol_uploads`) tashqi volume'larda turadi. `docker compose down`, `down -v`, `up -d --build` ularga tegmaydi.
+- Ularni faqat qo'lda `docker volume rm iqbol_postgres_data` o'chira oladi — buni hech qachon qilmang.
+- Baribir har kuni `./scripts/backup.sh` ishlatib, `backups/` ni boshqa joyga ko'chirib turing: server diskining o'zi buzilishi mumkin.

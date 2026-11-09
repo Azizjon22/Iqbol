@@ -80,8 +80,15 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+# The database and the uploaded photos live in external volumes: Compose never
+# deletes those, not even with `docker compose down -v`. They are created once
+# by hand (DEPLOY.md); the names match what Compose made under /opt/iqbol.
 volumes:
   postgres_data:
+    external: true
+    name: iqbol_postgres_data
   uploads:
+    external: true
+    name: iqbol_uploads
   caddy_data:
   caddy_config:
