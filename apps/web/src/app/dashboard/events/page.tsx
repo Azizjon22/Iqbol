@@ -1,5 +1,6 @@
 import { Archive, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { getSession } from "@/lib/session";
 import type { EventDetail } from "@/lib/types";
 import { LinkButton } from "@/components/ui/button";
 import { EventsCalendar } from "@/components/events/events-calendar";
@@ -12,7 +13,9 @@ function startOfDay(date: Date) {
 }
 
 export default async function EventsPage() {
-  const [events, locale] = await Promise.all([apiFetch<EventDetail[]>("/events"), getLocale()]);
+  const [events, locale, session] = await Promise.all([apiFetch<EventDetail[]>("/events"), getLocale(), getSession()]);
+  // Zavzal sees the weddings; booking them is the super admin's and admin's (the API agrees).
+  const canCreate = session?.user.kind === "STAFF" && (session.user.role === "SUPER_ADMIN" || session.user.role === "ADMIN");
   const dict = getDictionary(locale);
   const t = (key: string, params?: Record<string, string | number>) => translate(dict, key, params);
 
@@ -30,13 +33,16 @@ export default async function EventsPage() {
           <LinkButton href="/dashboard/events/archive" variant="outline">
             <Archive className="h-4 w-4" /> {t("events.viewArchive")}
           </LinkButton>
-          <LinkButton href="/dashboard/events/new">
-            <Plus className="h-4 w-4" /> {t("events.new")}
-          </LinkButton>
+          {canCreate && (
+            <LinkButton href="/dashboard/events/new">
+              <Plus className="h-4 w-4" /> {t("events.new")}
+            </LinkButton>
+          )}
         </div>
       </div>
 
       <EventsCalendar
+        canCreate={canCreate}
         events={events
           .filter((e) => e.status !== "CANCELLED")
           .map((e) => ({ id: e.id, clientName: e.clientName, clientNameRu: e.clientNameRu, eventDate: e.eventDate }))}

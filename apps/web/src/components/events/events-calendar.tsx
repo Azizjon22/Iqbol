@@ -46,7 +46,16 @@ function buildMonthGrid(year: number, month: number) {
 
 type Filter = "all" | "free" | "booked";
 
-export function EventsCalendar({ events, readOnly = false }: { events: CalendarEvent[]; readOnly?: boolean }) {
+/** readOnly: the chef's view (no links). canCreate: false hides "+ to'y" for those who may not book. */
+export function EventsCalendar({
+  events,
+  readOnly = false,
+  canCreate = true,
+}: {
+  events: CalendarEvent[];
+  readOnly?: boolean;
+  canCreate?: boolean;
+}) {
   const tr = useTr();
   const pick = usePick();
 
@@ -172,7 +181,7 @@ export function EventsCalendar({ events, readOnly = false }: { events: CalendarE
                 {inMonth && dayEvents.length > 2 && (
                   <span className="text-[10px] text-muted-foreground">+{dayEvents.length - 2} ta</span>
                 )}
-                {inMonth && !readOnly && (
+                {inMonth && !readOnly && canCreate && (
                   <Link
                     href={`/dashboard/events/new?date=${key}`}
                     aria-label={tr("to'y")}

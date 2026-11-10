@@ -5,7 +5,11 @@ import { isJwtExpiringSoon } from "@/lib/jwt-decode";
 const ZAVZAL_EXACT_PATHS = ["/dashboard"];
 const ZAVZAL_ALLOWED_PREFIXES = ["/dashboard/events", "/dashboard/workers", "/dashboard/profile"];
 
+/** Creating and editing weddings is the super admin's and admin's (the API refuses it too). */
+const ZAVZAL_READ_ONLY = /^\/dashboard\/events\/(?:new|[^/]+\/edit)\/?$/;
+
 function isZavzalAllowed(pathname: string) {
+  if (ZAVZAL_READ_ONLY.test(pathname)) return false;
   if (ZAVZAL_EXACT_PATHS.includes(pathname)) return true;
   return ZAVZAL_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(`${prefix}/`) || pathname === prefix);
 }
@@ -69,7 +73,8 @@ export default async function proxy(req: NextRequest) {
   }
 
   if (session.user.kind === "STAFF" && session.user.role === "ZAVZAL" && !isZavzalAllowed(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    const back = ZAVZAL_READ_ONLY.test(pathname) ? "/dashboard/events" : "/dashboard";
+    return NextResponse.redirect(new URL(back, req.url));
   }
 
   let response = NextResponse.next();
