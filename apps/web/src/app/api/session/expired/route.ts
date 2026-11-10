@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/session";
+import { clearSessionCookies } from "@/lib/session";
 
 /**
  * Where a page lands when its session turned out to be dead mid-render: a
@@ -7,7 +7,6 @@ import { SESSION_COOKIE } from "@/lib/session";
  */
 export function GET(req: NextRequest) {
   const response = NextResponse.redirect(new URL("/login", req.url));
-  response.cookies.delete(SESSION_COOKIE);
-  response.cookies.delete({ name: SESSION_COOKIE, path: "/", secure: true, sameSite: "none", partitioned: true });
+  clearSessionCookies(response.cookies);
   return response;
 }

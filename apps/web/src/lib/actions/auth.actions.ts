@@ -131,7 +131,8 @@ export async function loginWorkerAction(
 
 export async function logoutAction() {
   await clearSession();
-  redirect("/login");
+  // ?out: the login page must not sign the linked Telegram account straight back in.
+  redirect("/login?out=1");
 }
 
 export async function changeStaffPasswordAction(
@@ -167,7 +168,8 @@ export async function changeStaffPasswordAction(
     return { error: tr(extractErrorMessage(err, "Parolni yangilab bo'lmadi")) };
   }
 
-  await setSession(data);
+  // Same place as before (mini app or browser), new tokens.
+  await setSession({ ...data, telegram: session.telegram });
   // The Profil page sends the user back to itself; only in-app dashboard paths are honoured.
   const redirectTo = String(formData.get("redirectTo") ?? "");
   redirect(redirectTo.startsWith("/dashboard") && !redirectTo.startsWith("//") ? redirectTo : "/dashboard");
@@ -206,6 +208,6 @@ export async function changeWorkerPinAction(
     return { error: tr(extractErrorMessage(err, "PIN kodni yangilab bo'lmadi")) };
   }
 
-  await setSession(data);
+  await setSession({ ...data, telegram: session.telegram });
   redirect("/worker");
 }

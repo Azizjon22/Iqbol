@@ -45,6 +45,9 @@ export function LoginForm() {
     const initData = (window as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData;
     if (!initData) return;
     setTgInitData(initData);
+    // Just signed out: show the form, so another account (say, the chef's)
+    // can sign in — the password sign-in then links Telegram to that account.
+    if (new URLSearchParams(window.location.search).has("out")) return;
     setTgChecking(true);
     try {
       const res = await fetch("/api/telegram/session", {
